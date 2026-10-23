@@ -17,11 +17,18 @@ return new class extends Migration
             $table->string('identificacion_fiscal')->unique();
             $table->string('domicilio')->nullable();
             $table->foreignId('id_representante')->nullable()->constrained('representante')->nullOnDelete();
+            // true = UNLPam o unidad académica (puede ser unidad responsable / alcance de usuarios).
+            $table->boolean('es_interna')->default(false);
+            // Ubicación de la sede, solo para internas (geolocalización de la app).
+            $table->decimal('latitud', 10, 7)->nullable();
+            $table->decimal('longitud', 10, 7)->nullable();
             $table->timestamps();
             $table->foreignId('created_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->softDeletes();
             $table->foreignId('deleted_by')->nullable()->constrained('usuario')->nullOnDelete();
+            $table->timestamp('suspended_at')->nullable();
+            $table->foreignId('suspended_by')->nullable()->constrained('usuario')->nullOnDelete();
         });
     }
 

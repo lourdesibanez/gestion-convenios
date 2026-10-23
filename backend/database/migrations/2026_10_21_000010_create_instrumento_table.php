@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('instrumento', function (Blueprint $table) {
             $table->id();
+            // Referencia pública no adivinable, usada en el QR.
+            $table->uuid('uuid')->unique();
             $table->string('codigo')->unique();
             $table->string('titulo');
-            $table->string('tipo_instrumento');
-            $table->foreignId('id_unidad')->constrained('unidad')->restrictOnDelete();
+            $table->foreignId('id_tipo_instrumento')->constrained('tipo_instrumento')->restrictOnDelete();
+            // Unidad responsable: institución interna (UNLPam o unidad académica).
+            $table->foreignId('id_institucion')->constrained('institucion')->restrictOnDelete();
             $table->foreignId('id_estado')->constrained('estado')->restrictOnDelete();
             $table->date('fecha_inicio')->nullable();
             $table->date('fecha_fin')->nullable();

@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('institucion_instrumento', function (Blueprint $table) {
+        // Partes del convenio: una fila por institución firmante (mínimo 2 para aprobar).
+        Schema::create('parte_firmante', function (Blueprint $table) {
             $table->id();
             $table->foreignId('id_institucion')->constrained('institucion')->restrictOnDelete();
             $table->foreignId('id_instrumento')->constrained('instrumento')->cascadeOnDelete();
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('institucion_instrumento');
+        Schema::dropIfExists('parte_firmante');
     }
 };

@@ -14,14 +14,16 @@ return new class extends Migration
         Schema::create('observacion', function (Blueprint $table) {
             $table->id();
             $table->foreignId('id_instrumento')->constrained('instrumento')->cascadeOnDelete();
+            // Revisor que hizo la observación.
             $table->foreignId('id_usuario')->constrained('usuario')->restrictOnDelete();
             $table->text('contenido');
-            $table->foreignId('id_estado')->constrained('estado')->restrictOnDelete();
+            // Estado propio de la observación: pendiente | respondida | resuelta.
+            $table->string('estado')->default('pendiente');
             $table->text('respuesta')->nullable();
+            $table->foreignId('respondido_por')->nullable()->constrained('usuario')->nullOnDelete();
+            $table->timestamp('fecha_respuesta')->nullable();
             $table->timestamp('fecha_resolucion')->nullable();
-            // id_usuario es quien la crea; updated_by registra quién respondió o la resolvió.
             $table->timestamps();
-            $table->foreignId('updated_by')->nullable()->constrained('usuario')->nullOnDelete();
         });
     }
 

@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('nombre_usuario')->unique();
             $table->string('contrasena');
             $table->string('email')->unique();
+            // Token del dispositivo para notificaciones push.
+            $table->string('push_token')->nullable();
             $table->timestamps();
             $table->foreignId('created_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('usuario')->nullOnDelete();

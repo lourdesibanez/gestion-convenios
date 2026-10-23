@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('id_instrumento_origen')->constrained('instrumento')->cascadeOnDelete();
             $table->foreignId('id_instrumento_destino')->constrained('instrumento')->cascadeOnDelete();
+            // Se lee "origen <tipo_vinculo> destino": especifico_de | modifica | renueva | sustituye.
             $table->string('tipo_vinculo');
             $table->timestamps();
             $table->foreignId('created_by')->nullable()->constrained('usuario')->nullOnDelete();

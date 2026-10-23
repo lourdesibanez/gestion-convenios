@@ -15,8 +15,6 @@ return new class extends Migration
         Schema::create('convenio', function (Blueprint $table) {
             $table->foreignId('id_instrumento')->primary()->constrained('instrumento')->cascadeOnDelete();
             $table->text('objeto')->nullable();
-            $table->text('alcance')->nullable();
-            $table->text('finalidad')->nullable();
             $table->text('marco_legal')->nullable();
             $table->text('obligaciones')->nullable();
             $table->text('condiciones_terminacion')->nullable();

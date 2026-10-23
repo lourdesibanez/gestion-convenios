@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('unidad', function (Blueprint $table) {
+        Schema::create('tipo_instrumento', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->string('tipo_unidad');
-            $table->text('descripcion')->nullable();
+            $table->string('nombre')->unique();
+            // colaboracion | pasantia; null si aplica a ambos (adenda).
+            $table->string('ambito')->nullable();
+            // marco | especifico | adenda
+            $table->string('categoria');
             $table->timestamps();
             $table->foreignId('created_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->softDeletes();
             $table->foreignId('deleted_by')->nullable()->constrained('usuario')->nullOnDelete();
-            $table->timestamp('suspended_at')->nullable();
-            $table->foreignId('suspended_by')->nullable()->constrained('usuario')->nullOnDelete();
         });
     }
 
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('unidad');
+        Schema::dropIfExists('tipo_instrumento');
     }
 };

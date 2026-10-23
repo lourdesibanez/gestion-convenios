@@ -15,14 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('id_usuario')->constrained('usuario')->cascadeOnDelete();
             $table->foreignId('id_perfil')->constrained('perfil')->cascadeOnDelete();
-            $table->foreignId('id_unidad')->nullable()->constrained('unidad')->nullOnDelete();
+            // Unidad de alcance (institución interna); null = alcance global.
+            $table->foreignId('id_institucion')->nullable()->constrained('institucion')->nullOnDelete();
             $table->timestamps();
             $table->foreignId('created_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->timestamp('suspended_at')->nullable();
             $table->foreignId('suspended_by')->nullable()->constrained('usuario')->nullOnDelete();
 
-            $table->unique(['id_usuario', 'id_perfil', 'id_unidad']);
+            $table->unique(['id_usuario', 'id_perfil', 'id_institucion']);
         });
     }
 
