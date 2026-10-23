@@ -21,7 +21,8 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('usuario')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('usuario')->nullOnDelete();
 
-            $table->unique(['id_instrumento_origen', 'id_instrumento_destino', 'tipo_vinculo']);
+            // Nombre explícito: el generado supera el límite de 64 caracteres de MySQL.
+            $table->unique(['id_instrumento_origen', 'id_instrumento_destino', 'tipo_vinculo'], 'instrumento_vinculo_unique');
         });
     }
 
