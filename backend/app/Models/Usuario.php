@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UsuarioFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -44,6 +45,7 @@ class Usuario extends Authenticatable
      */
     protected $hidden = [
         'contrasena',
+        'push_token',
     ];
 
     /**
@@ -62,5 +64,10 @@ class Usuario extends Authenticatable
     public function estaSuspendido(): bool
     {
         return $this->suspended_at !== null;
+    }
+
+    public function codigosVerificacion(): HasMany
+    {
+        return $this->hasMany(CodigoVerificacion::class, 'id_usuario');
     }
 }
