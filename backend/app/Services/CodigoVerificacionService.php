@@ -11,37 +11,29 @@ use Illuminate\Support\Facades\Mail;
 /**
  * Genera y envía los códigos de verificación del login (MFA).
  */
-class CodigoVerificacionService
-{
+class CodigoVerificacionService {
     public const MINUTOS_VALIDEZ = 5;
 
     public const SEGUNDOS_ESPERA_REENVIO = 60;
 
-    /**
-     * Crea un código nuevo para el usuario y lo envía por el canal indicado.
-     *
-     * @return array{0: CodigoVerificacion, 1: string} El desafío y el código en claro.
-     */
-    public function generarYEnviar(Usuario $usuario, string $canal): array
-    {
+    /*Crea un código nuevo para el usuario y lo envía por el canal indicado.*/
+    public function generarYEnviar(Usuario $usuario, string $canal, string $proposito = 'login'): array{
         $codigo = (string) random_int(100000, 999999);
 
         $desafio = $usuario->codigosVerificacion()->create([
             'hash' => Hash::make($codigo),
             'canal' => $canal,
+            'proposito' => $proposito,
             'expira_en' => now()->addMinutes(self::MINUTOS_VALIDEZ),
         ]);
 
-        $this->enviar($usuario, $canal, $codigo);
+        $this->enviar($usuario, $canal, $codigo, $proposito);
 
         return [$desafio, $codigo];
     }
 
-    /**
-     * Canales por los que se le puede mandar el código a este usuario.
-     *
-     * @return list<string>
-     */
+
+    /*Canales por los que se le puede mandar el código a este usuario.*/
     public function canalesDisponibles(Usuario $usuario): array
     {
         return array_values(array_filter([
@@ -70,18 +62,19 @@ class CodigoVerificacionService
         return max(0, (int) ceil(now()->diffInSeconds($disponibleDesde)));
     }
 
-    private function enviar(Usuario $usuario, string $canal, string $codigo): void
-    {
-        $texto = "Tu código de verificación es {$codigo}. Vence en ".self::MINUTOS_VALIDEZ.' minutos.';
+    private function enviar(Usuario $usuario, string $canal, string $codigo, string $proposito): void {
+        $motivo = $proposito === 'reset' ? 'para restablecer tu contraseña' : 'de verificación';
+        $texto = "Tu código {$motivo} es {$codigo}. Vence en ".self::MINUTOS_VALIDEZ.' minutos.';
 
         match ($canal) {
             // Con MAIL_MAILER=log queda en storage/logs/laravel.log.
-            'mail' => Mail::raw($texto, fn ($mensaje) => $mensaje->to($usuario->email)->subject('Código de verificación')),
+            'mail' => Mail::raw($texto, fn ($mensaje) => $mensaje->to($usuario->email)->subject('Código '.$motivo)),
             // Simulados en el log hasta integrar un proveedor de SMS y Expo Push.
             'sms' => Log::info("SMS simulado a {$usuario->telefono}: {$texto}"),
             'push' => Log::info("Push simulado al usuario {$usuario->id}: {$texto}"),
         };
     }
+
 
     private function enmascararEmail(string $email): string
     {
