@@ -14,8 +14,12 @@ return new class extends Migration
         Schema::create('usuario', function (Blueprint $table) {
             $table->id();
             $table->string('nombre_usuario')->unique();
+            $table->string('nombre');
+            $table->string('apellido');
             $table->string('contrasena');
             $table->string('email')->unique();
+            // Para enviar el código MFA por SMS (simulado).
+            $table->string('telefono', 30)->nullable();
             // Token del dispositivo para notificaciones push.
             $table->string('push_token')->nullable();
             $table->timestamps();

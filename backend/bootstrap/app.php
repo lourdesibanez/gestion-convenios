@@ -15,5 +15,6 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // La API siempre responde errores en JSON, aunque el cliente no mande Accept.
+        $exceptions->shouldRenderJsonWhen(fn ($request) => $request->is('api/*'));
     })->create();

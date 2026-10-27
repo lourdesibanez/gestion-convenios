@@ -25,5 +25,9 @@ class CatalogoSeeder extends Seeder
         DB::table('estado')->insert(array_map(fn ($nombre) => ['nombre' => $nombre, 'created_at' => $ahora, 'updated_at' => $ahora], [
             'borrador', 'revision', 'aprobado', 'firmado', 'rescindido', 'archivado',
         ]));
+
+        DB::table('perfil')->insert(array_map(fn ($nombre) => ['nombre' => $nombre, 'created_at' => $ahora, 'updated_at' => $ahora], [
+            'administracion', 'gestion', 'revision', 'consulta',
+        ]));
     }
 }

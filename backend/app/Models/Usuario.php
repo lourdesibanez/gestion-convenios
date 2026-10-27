@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UsuarioFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -33,7 +34,10 @@ class Usuario extends Authenticatable
      */
     protected $fillable = [
         'nombre_usuario',
+        'nombre',
+        'apellido',
         'email',
+        'telefono',
         'contrasena',
     ];
 
@@ -44,6 +48,7 @@ class Usuario extends Authenticatable
      */
     protected $hidden = [
         'contrasena',
+        'push_token',
     ];
 
     /**
@@ -62,5 +67,42 @@ class Usuario extends Authenticatable
     public function estaSuspendido(): bool
     {
         return $this->suspended_at !== null;
+    }
+
+    public function codigosVerificacion(): HasMany
+    {
+        return $this->hasMany(CodigoVerificacion::class, 'id_usuario');
+    }
+
+    public function perfiles(): HasMany
+    {
+        return $this->hasMany(UsuarioPerfil::class, 'id_usuario');
+    }
+
+    public function firmas(): HasMany
+    {
+        return $this->hasMany(Firma::class, 'id_usuario');
+    }
+
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class, 'id_usuario');
+    }
+
+    /**
+     * Instituciones cuyos instrumentos puede ver, según sus perfiles activos.
+     * null = alcance global (algún perfil sin institución).
+     *
+     * @return list<int>|null
+     */
+    public function institucionesVisibles(): ?array
+    {
+        return once(function () {
+            $instituciones = $this->perfiles()->activos()->pluck('id_institucion');
+
+            return $instituciones->containsStrict(null)
+                ? null
+                : $instituciones->unique()->values()->all();
+        });
     }
 }
