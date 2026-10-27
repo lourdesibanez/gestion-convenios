@@ -36,6 +36,76 @@ class AuthTest extends TestCase
         ])->assertStatus(422)->assertJsonValidationErrors('email');
     }
 
+    public function test_login_devuelve_datos_para_la_pantalla_de_verificacion(): void
+    {
+        $usuario = Usuario::factory()->create(['email' => 'lourdes@unlpam.edu.ar']);
+
+        $this->postJson('/api/auth/login', [
+            'email' => $usuario->email,
+            'password' => 'password',
+        ])->assertOk()->assertJson([
+            'canal' => 'mail',
+            'destino' => 'l•••••@unlpam.edu.ar',
+            'canales_disponibles' => ['mail'],
+            'reenviar_en_segundos' => 60,
+        ]);
+    }
+
+    public function test_canales_disponibles_segun_datos_del_usuario(): void
+    {
+        $usuario = Usuario::factory()->create(['telefono' => '2954123678']);
+        $usuario->forceFill(['push_token' => 'ExponentPushToken[abc]'])->save();
+
+        $this->assertSame(['mail', 'sms', 'push'], $this->iniciarLogin($usuario)['canales_disponibles']);
+    }
+
+    public function test_no_se_puede_reenviar_antes_de_la_espera(): void
+    {
+        $desafio = $this->iniciarLogin(Usuario::factory()->create());
+
+        $this->postJson('/api/auth/resend-code', [
+            'id_desafio' => $desafio['id_desafio'],
+            'canal' => 'mail',
+        ])->assertStatus(429)->assertJsonStructure(['message', 'segundos_restantes']);
+    }
+
+    public function test_reenvio_por_sms_anula_el_codigo_anterior(): void
+    {
+        $usuario = Usuario::factory()->create(['telefono' => '2954123678']);
+        $anterior = $this->iniciarLogin($usuario);
+
+        $this->travel(61)->seconds();
+
+        $nuevo = $this->postJson('/api/auth/resend-code', [
+            'id_desafio' => $anterior['id_desafio'],
+            'canal' => 'sms',
+        ])->assertOk()->assertJson(['canal' => 'sms', 'destino' => '•••• 678'])->json();
+
+        $this->postJson('/api/auth/verify-code', [
+            'id_desafio' => $anterior['id_desafio'],
+            'codigo' => $anterior['codigo_debug'],
+            'dispositivo' => 'celular',
+        ])->assertStatus(422);
+
+        $this->postJson('/api/auth/verify-code', [
+            'id_desafio' => $nuevo['id_desafio'],
+            'codigo' => $nuevo['codigo_debug'],
+            'dispositivo' => 'celular',
+        ])->assertOk()->assertJsonStructure(['token']);
+    }
+
+    public function test_reenvio_por_canal_no_disponible_es_rechazado(): void
+    {
+        $desafio = $this->iniciarLogin(Usuario::factory()->create());
+
+        $this->travel(61)->seconds();
+
+        $this->postJson('/api/auth/resend-code', [
+            'id_desafio' => $desafio['id_desafio'],
+            'canal' => 'sms',
+        ])->assertStatus(422)->assertJsonValidationErrors('canal');
+    }
+
     public function test_usuario_suspendido_no_puede_ingresar(): void
     {
         $usuario = Usuario::factory()->suspendido()->create();
