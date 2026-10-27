@@ -25,6 +25,7 @@ class CodigoVerificacion extends Model
         'canal',
         'expira_en',
         'usado_en',
+        'proposito',
     ];
 
     /**
