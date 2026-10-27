@@ -14,7 +14,7 @@ class CatalogoSeeder extends Seeder
     {
         $ahora = now();
 
-        DB::table('tipo_instrumento')->insert(array_map(fn ($t) => $t + ['created_at' => $ahora, 'updated_at' => $ahora], [
+        DB::table('tipo_instrumento')->insert(array_map(fn ($t) => $t + ['created_at' => $ahora], [
             ['nombre' => 'Convenio marco de colaboración', 'ambito' => 'colaboracion', 'categoria' => 'marco'],
             ['nombre' => 'Convenio específico de colaboración', 'ambito' => 'colaboracion', 'categoria' => 'especifico'],
             ['nombre' => 'Convenio marco de pasantía', 'ambito' => 'pasantia', 'categoria' => 'marco'],
@@ -22,11 +22,11 @@ class CatalogoSeeder extends Seeder
             ['nombre' => 'Adenda', 'ambito' => null, 'categoria' => 'adenda'],
         ]));
 
-        DB::table('estado')->insert(array_map(fn ($nombre) => ['nombre' => $nombre, 'created_at' => $ahora, 'updated_at' => $ahora], [
+        DB::table('estado')->insert(array_map(fn ($nombre) => ['nombre' => $nombre, 'created_at' => $ahora], [
             'borrador', 'revision', 'aprobado', 'firmado', 'rescindido', 'archivado',
         ]));
 
-        DB::table('perfil')->insert(array_map(fn ($nombre) => ['nombre' => $nombre, 'created_at' => $ahora, 'updated_at' => $ahora], [
+        DB::table('perfil')->insert(array_map(fn ($nombre) => ['nombre' => $nombre, 'created_at' => $ahora], [
             'administracion', 'gestion', 'revision', 'consulta',
         ]));
     }

@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\Auditoria;
+use App\Models\Concerns\Suspendible;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,7 +12,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class UsuarioPerfil extends Model
 {
+    use Auditoria, Suspendible;
+
     protected $table = 'usuario_perfil';
+
+    /**
+     * Sin borrado lógico: se suspende o se borra.
+     *
+     * @var list<string>
+     */
+    protected array $auditoria = ['created_by', 'updated_by'];
 
     /**
      * The attributes that are mass assignable.
@@ -24,18 +34,6 @@ class UsuarioPerfil extends Model
         'id_institucion',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'suspended_at' => 'datetime',
-        ];
-    }
-
     public function perfil(): BelongsTo
     {
         return $this->belongsTo(Perfil::class, 'id_perfil');
@@ -44,10 +42,5 @@ class UsuarioPerfil extends Model
     public function institucion(): BelongsTo
     {
         return $this->belongsTo(Institucion::class, 'id_institucion');
-    }
-
-    public function scopeActivos(Builder $query): void
-    {
-        $query->whereNull('suspended_at');
     }
 }

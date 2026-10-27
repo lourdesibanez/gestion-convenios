@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditoria;
+use App\Models\Concerns\Suspendible;
 use Database\Factories\InstitucionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Institucion extends Model
 {
     /** @use HasFactory<InstitucionFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, Auditoria, SoftDeletes, Suspendible;
 
     protected $table = 'institucion';
 
@@ -38,7 +40,6 @@ class Institucion extends Model
     {
         return [
             'es_interna' => 'boolean',
-            'suspended_at' => 'datetime',
         ];
     }
 }

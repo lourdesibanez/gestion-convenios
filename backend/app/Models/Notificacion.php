@@ -2,12 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditoria;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notificacion extends Model
 {
+    use Auditoria;
+
     protected $table = 'notificacion';
+
+    /**
+     * Sin columnas *_by: el trait solo aplica la regla de fechas (updated_at vacío al crear).
+     *
+     * @var list<string>
+     */
+    protected array $auditoria = [];
 
     /**
      * The attributes that are mass assignable.
