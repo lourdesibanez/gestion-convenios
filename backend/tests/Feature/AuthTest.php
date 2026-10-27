@@ -53,7 +53,7 @@ class AuthTest extends TestCase
 
         $this->assertDatabaseHas('codigo_verificacion', ['id_usuario' => $usuario->id, 'usado_en' => null]);
 
-        $token = $this->postJson('/api/auth/verificar-codigo', [
+        $token = $this->postJson('/api/auth/verify-code', [
             'id_desafio' => $desafio['id_desafio'],
             'codigo' => $desafio['codigo_debug'],
             'dispositivo' => 'celular',
@@ -70,7 +70,7 @@ class AuthTest extends TestCase
         $desafio = $this->iniciarLogin(Usuario::factory()->create());
         $codigoIncorrecto = $desafio['codigo_debug'] === '111111' ? '222222' : '111111';
 
-        $this->postJson('/api/auth/verificar-codigo', [
+        $this->postJson('/api/auth/verify-code', [
             'id_desafio' => $desafio['id_desafio'],
             'codigo' => $codigoIncorrecto,
             'dispositivo' => 'celular',
@@ -86,8 +86,8 @@ class AuthTest extends TestCase
             'dispositivo' => 'celular',
         ];
 
-        $this->postJson('/api/auth/verificar-codigo', $datos)->assertOk();
-        $this->postJson('/api/auth/verificar-codigo', $datos)->assertStatus(422);
+        $this->postJson('/api/auth/verify-code', $datos)->assertOk();
+        $this->postJson('/api/auth/verify-code', $datos)->assertStatus(422);
     }
 
     public function test_codigo_vencido_no_entrega_token(): void
@@ -96,7 +96,7 @@ class AuthTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->postJson('/api/auth/verificar-codigo', [
+        $this->postJson('/api/auth/verify-code', [
             'id_desafio' => $desafio['id_desafio'],
             'codigo' => $desafio['codigo_debug'],
             'dispositivo' => 'celular',

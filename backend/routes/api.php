@@ -7,7 +7,7 @@ Route::prefix('auth')->group(function () {
     // Limitado a 5 intentos por minuto para frenar ataques de fuerza bruta.
     Route::middleware('throttle:5,1')->group(function () {
         Route::post('login', [AuthController::class, 'login']);
-        Route::post('verificar-codigo', [AuthController::class, 'verificarCodigo']);
+        Route::post('verify-code', [AuthController::class, 'verificarCodigo']);
     });
 
     Route::middleware('auth:sanctum')->group(function () {
