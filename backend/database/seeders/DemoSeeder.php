@@ -68,7 +68,6 @@ class DemoSeeder extends Seeder
                 'id_instrumento' => $creados[$codigo]->id,
                 'id_usuario' => $usuario->id,
                 'created_at' => now()->subHours($horas),
-                'updated_at' => now()->subHours($horas),
             ])->save();
         }
 

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditoria;
+use App\Models\Concerns\Suspendible;
 use Database\Factories\UsuarioFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,9 +15,21 @@ use Laravel\Sanctum\HasApiTokens;
 class Usuario extends Authenticatable
 {
     /** @use HasFactory<UsuarioFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, Auditoria, SoftDeletes, Suspendible;
 
     protected $table = 'usuario';
+
+    protected static function booted(): void
+    {
+        // Suspender o dar de baja cierra todas sus sesiones abiertas.
+        static::updated(function (Usuario $usuario) {
+            if ($usuario->wasChanged('suspended_at') && $usuario->estaSuspendido()) {
+                $usuario->tokens()->delete();
+            }
+        });
+
+        static::deleted(fn (Usuario $usuario) => $usuario->tokens()->delete());
+    }
 
     /**
      * Columna que guarda el hash de la contraseña.
@@ -60,13 +74,7 @@ class Usuario extends Authenticatable
     {
         return [
             'contrasena' => 'hashed',
-            'suspended_at' => 'datetime',
         ];
-    }
-
-    public function estaSuspendido(): bool
-    {
-        return $this->suspended_at !== null;
     }
 
     public function codigosVerificacion(): HasMany

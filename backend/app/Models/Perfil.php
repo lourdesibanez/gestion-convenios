@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditoria;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Perfil extends Model
 {
-    use SoftDeletes;
+    use Auditoria, SoftDeletes;
 
     protected $table = 'perfil';
 
