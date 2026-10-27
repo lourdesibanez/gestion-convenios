@@ -34,6 +34,8 @@ class Usuario extends Authenticatable
      */
     protected $fillable = [
         'nombre_usuario',
+        'nombre',
+        'apellido',
         'email',
         'telefono',
         'contrasena',
@@ -70,5 +72,37 @@ class Usuario extends Authenticatable
     public function codigosVerificacion(): HasMany
     {
         return $this->hasMany(CodigoVerificacion::class, 'id_usuario');
+    }
+
+    public function perfiles(): HasMany
+    {
+        return $this->hasMany(UsuarioPerfil::class, 'id_usuario');
+    }
+
+    public function firmas(): HasMany
+    {
+        return $this->hasMany(Firma::class, 'id_usuario');
+    }
+
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class, 'id_usuario');
+    }
+
+    /**
+     * Instituciones cuyos instrumentos puede ver, según sus perfiles activos.
+     * null = alcance global (algún perfil sin institución).
+     *
+     * @return list<int>|null
+     */
+    public function institucionesVisibles(): ?array
+    {
+        return once(function () {
+            $instituciones = $this->perfiles()->activos()->pluck('id_institucion');
+
+            return $instituciones->containsStrict(null)
+                ? null
+                : $instituciones->unique()->values()->all();
+        });
     }
 }
