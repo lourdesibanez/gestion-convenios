@@ -1,0 +1,38 @@
+
+
+:root{
+    --foreground: #000000;
+    --background: #ffffff;
+    --primary: #007bff;
+    --secondary: #6c757d;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+    --light: #f8f9fa;
+    --dark: #343a40;
+    --title-color:#466ea9;
+
+}
+
+
+
+
+.buscador{
+    background-color: var(--background);
+}
+
+.form-buscador{
+    gap: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: var(--light);
+}
+
+.buscador-campos{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
