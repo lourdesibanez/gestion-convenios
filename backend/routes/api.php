@@ -25,9 +25,6 @@ Route::prefix('auth')->group(function () {
     
 });
 
-//Coloca las rutas de convenios aquí. Luego las mudo a la autenticacion cuando tenga sentido. Por ahora no hay login para convenios.//Obtener los convenios
-Route::get('convenios', [ConvenioController::class, 'index']);
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('home', HomeController::class);
     Route::apiResource('people', RepresentanteController::class);
@@ -35,8 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('parties', ParteFirmanteController::class);
     Route::apiResource('documents', ArchivoController::class);
 });
-
-
 
 // por ahora va a estar publica astsa que se haga el login
 Route::get('convenios', [ConvenioController::class, 'index']);
