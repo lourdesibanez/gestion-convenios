@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '@/services/api';
 import { authService, LoginChallenge } from '../services/authService';
+import { Alert } from 'react-native';
 
 type Challenge = Pick<LoginChallenge,
   'id_desafio' | 'canal' | 'destino' | 'canales_disponibles'| 'reenviar_en_segundos' | 'codigo_debug' 
@@ -10,7 +11,8 @@ type Challenge = Pick<LoginChallenge,
 
 //Acá vive la lógica: la cuenta regresiva, llamar a la API y guardar el token.
 export function useVerifyCode(initial: Challenge) {
-  const { signIn } = useAuth();
+  const { signIn, biometrics, biometricEnabled, enableBiometrics } = useAuth();
+
 
   const [challenge, setChallenge] = useState(initial);
   const [resendIn, setResendIn] = useState(initial.reenviar_en_segundos);
@@ -38,6 +40,19 @@ export function useVerifyCode(initial: Challenge) {
       );
       // Al cambiar la sesión, el layout raíz lleva al home automáticamente.
       await signIn(token, usuario);
+      
+      // Primer ingreso con contraseña en este celular: ofrecer la huella para la próxima.
+      if (biometrics.length > 0 && !biometricEnabled) {
+        Alert.alert(
+          'Ingreso con huella',
+          '¿Querés usar tu huella o rostro para ingresar la próxima vez?',
+          [
+            { text: 'Ahora no', style: 'cancel' },
+            { text: 'Activar', onPress: () => enableBiometrics() },
+          ],
+        );
+      }
+
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.');
     } finally {

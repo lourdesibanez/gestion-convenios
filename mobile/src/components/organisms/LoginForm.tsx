@@ -12,7 +12,8 @@ export type LoginData = {
 type Props = {
   onSubmit: (data: LoginData) => void;
   onForgotPassword: () => void;
-  onBiometric: (type: 'fingerprint' | 'face') => void;
+  biometricTypes?: ('fingerprint' | 'face')[];
+  onBiometric: () => void;
   loading?: boolean;
   serverError?: string;
 };
@@ -41,6 +42,7 @@ export function LoginForm({
   onSubmit,
   onForgotPassword,
   onBiometric,
+  biometricTypes = [],
   loading = false,
   serverError,
 }: Props) {
@@ -99,12 +101,17 @@ export function LoginForm({
 
       <Button title="Ingresar" onPress={handleSubmit} loading={loading} />
 
-      <Divider text="o ingresá con" />
+            {biometricTypes.length > 0 && (
+        <>
+          <Divider text="o ingresá con" />
+          <View style={styles.biometricRow}>
+            {biometricTypes.map((type) => (
+              <BiometricButton key={type} type={type} onPress={onBiometric} />
+            ))}
+          </View>
+        </>
+      )}
 
-      <View style={styles.biometricRow}>
-        <BiometricButton type="fingerprint" onPress={() => onBiometric('fingerprint')} />
-        <BiometricButton type="face" onPress={() => onBiometric('face')} />
-      </View>
     </View>
   );
 }
