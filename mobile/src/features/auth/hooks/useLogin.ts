@@ -22,6 +22,7 @@ export function useLogin() {
           id: String(challenge.id_desafio),
           canal: challenge.canal,
           destino: challenge.destino,
+          canales: challenge.canales_disponibles.join(','),
           reenviar: String(challenge.reenviar_en_segundos),
           debug: challenge.codigo_debug ?? '',
         },

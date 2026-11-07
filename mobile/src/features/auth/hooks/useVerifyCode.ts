@@ -4,9 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { ApiError } from '@/services/api';
 import { authService, LoginChallenge } from '../services/authService';
 
-type Challenge = Pick<
-  LoginChallenge,
-  'id_desafio' | 'canal' | 'destino' | 'reenviar_en_segundos' | 'codigo_debug'
+type Challenge = Pick<LoginChallenge,
+  'id_desafio' | 'canal' | 'destino' | 'canales_disponibles'| 'reenviar_en_segundos' | 'codigo_debug' 
 >;
 
 //Acá vive la lógica: la cuenta regresiva, llamar a la API y guardar el token.
@@ -46,13 +45,14 @@ export function useVerifyCode(initial: Challenge) {
     }
   };
 
-  const resend = async () => {
+  //si no cambian el canal, reenvio por el ya seleccionado
+  const resend = async (canal: LoginChallenge['canal'] = challenge.canal) => {
     if (resending) return;
     setResending(true);
     setError(undefined);
 
     try {
-      const nuevo = await authService.resendCode(challenge.id_desafio, challenge.canal);
+      const nuevo = await authService.resendCode(challenge.id_desafio, canal);
       setChallenge(nuevo);
       setResendIn(nuevo.reenviar_en_segundos);
     } catch (e) {
