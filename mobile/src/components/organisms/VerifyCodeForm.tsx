@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Button, TextLink } from '@/components/atoms';
-import { CodeInput } from '@/components/molecules';
+import { Button, TextLink, Label } from '@/components/atoms';
+import { Canal, ChannelSelector, CodeInput } from '@/components/molecules';
 import { colors, spacing, typography } from '@/theme';
 
 const CODE_LENGTH = 6;
 
 type Props = {
   destino: string;
+  canal: Canal;
+  canalesDisponibles: string[];
+  onChangeChannel: (canal: Canal) => void;
   onSubmit: (codigo: string) => void;
   onResend: () => void;
   onBack: () => void;
@@ -27,6 +30,9 @@ function formatTime(seconds: number) {
 //maneja lo que escribe el usuario y avisa hacia afuera, pero no llama a la API
 export function VerifyCodeForm({
   destino,
+  canal,
+  canalesDisponibles,
+  onChangeChannel,
   onSubmit,
   onResend,
   onBack,
@@ -78,6 +84,18 @@ export function VerifyCodeForm({
       ) : null}
 
       <Button title="Verificar" onPress={() => submit(codigo)} loading={loading} />
+
+        <View>
+        <Label>¿No te llegó? Recibilo por:</Label>
+
+        <ChannelSelector
+          selected={canal}
+          available={canalesDisponibles}
+          disabled={resendIn > 0 || resending}
+          onSelect={onChangeChannel}
+        />
+      </View>
+
 
       <View style={styles.center}>
         {resendIn > 0 ? (

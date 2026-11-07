@@ -9,6 +9,7 @@ export function VerifyCodeScreen() {
     id: string;
     canal: string;
     destino: string;
+    canales: string;
     reenviar: string;
     debug?: string;
   }>();
@@ -17,6 +18,7 @@ export function VerifyCodeScreen() {
     id_desafio: Number(params.id),
     canal: params.canal as LoginChallenge['canal'],
     destino: params.destino,
+    canales_disponibles: params.canales ? params.canales.split(',') : ['mail'],
     reenviar_en_segundos: Number(params.reenviar),
     codigo_debug: params.debug || null,
   });
@@ -26,7 +28,10 @@ export function VerifyCodeScreen() {
       <VerifyCodeForm
         destino={challenge.destino}
         onSubmit={verify}
-        onResend={resend}
+        canal={challenge.canal}
+        canalesDisponibles={challenge.canales_disponibles}
+        onChangeChannel={resend}
+        onResend={() => resend()}
         onBack={() => router.back()}
         resendIn={resendIn}
         loading={loading}
