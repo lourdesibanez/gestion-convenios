@@ -4,7 +4,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ConvenioController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ConvenioController;
 
 Route::prefix('auth')->group(function () {
     //throttle:5,1 - 5 intentos por cada 1 minuto
