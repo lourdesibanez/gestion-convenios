@@ -83,6 +83,6 @@ const styles = StyleSheet.create({
   },
   labelSelected: {
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: '500',
   },
 });
