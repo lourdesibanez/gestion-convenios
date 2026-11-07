@@ -72,7 +72,7 @@ class CodigoVerificacionService {
             'mail' => Mail::raw($texto, fn ($mensaje) => $mensaje->to($usuario->email)->subject('Código '.$motivo)),
             // Simulados en el log hasta integrar un proveedor de SMS y Expo Push.
             'sms' => Log::info("SMS simulado a {$usuario->telefono}: {$texto}"),
-            'push' => Log::info("Push simulado al usuario {$usuario->id}: {$texto}"),
+            'push' => $this->push->enviar($usuario->push_token, 'Código '.$motivo, $texto),
         };
     }
 
