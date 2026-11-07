@@ -42,4 +42,9 @@ class Institucion extends Model
             'es_interna' => 'boolean',
         ];
     }
+
+    public function representante()
+    {
+        return $this->belongsTo(Representante::class, 'id_representante');
+    }
 }

@@ -29,5 +29,9 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('home', HomeController::class);
+    Route::apiResource('people', RepresentanteController::class);
+    Route::apiResource('units', InstitucionController::class);
+    Route::apiResource('parties', ParteFirmanteController::class);
+    Route::apiResource('documents', ArchivoController::class);
 });
 

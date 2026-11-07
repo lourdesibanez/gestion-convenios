@@ -22,7 +22,7 @@ export function BiometricButton({ type, onPress }: Props) {
         title={title}
         variant="outline"
         onPress={onPress}
-        icon={<MaterialCommunityIcons name={icon} size={20} color={colors.emphasis} />}
+        icon={<MaterialCommunityIcons name={icon} size={20} color={colors.primary} />}
       />
     </View>
   );
