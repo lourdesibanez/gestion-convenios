@@ -32,4 +32,7 @@ export const authService = {
 
   resendCode: (id_desafio: number, canal: LoginChallenge['canal']) =>
     api.post<LoginChallenge>('/auth/resend-code', { id_desafio, canal }),
+
+  me: () => api.get<Usuario>('/auth/me'),
+  logout: () => api.post<void>('/auth/logout'),
 };

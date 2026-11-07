@@ -1,8 +1,7 @@
 import * as Device from 'expo-device';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 import { ApiError } from '@/services/api';
-import { tokenStorage } from '@/services/tokenStorage';
 import { authService, LoginChallenge } from '../services/authService';
 
 type Challenge = Pick<
@@ -12,6 +11,8 @@ type Challenge = Pick<
 
 //Acá vive la lógica: la cuenta regresiva, llamar a la API y guardar el token.
 export function useVerifyCode(initial: Challenge) {
+  const { signIn } = useAuth();
+
   const [challenge, setChallenge] = useState(initial);
   const [resendIn, setResendIn] = useState(initial.reenviar_en_segundos);
   const [loading, setLoading] = useState(false);
@@ -36,9 +37,8 @@ export function useVerifyCode(initial: Challenge) {
         codigo,
         Device.modelName ?? 'Celular',
       );
-      await tokenStorage.set(token);
-      // Temporal: en el paso 8 esto pasa por el AuthContext y navega al home.
-      Alert.alert('Sesión iniciada', `¡Hola, ${usuario.nombre}!`);
+      // Al cambiar la sesión, el layout raíz lleva al home automáticamente.
+      await signIn(token, usuario);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.');
     } finally {
