@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext, useEffect, useState } from 'react
 import { ApiError } from '@/services/api';
 import { tokenStorage } from '@/services/tokenStorage';
 import { authService, Usuario } from '../services/authService';
+import { getPushToken } from '@/services/pushNotifications';
 
 type Status = 'loading' | 'signedIn' | 'signedOut';
 
@@ -13,6 +14,17 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+// Registra este celular para push. Si falla o no hay permiso, la app sigue funcionando igual.
+async function registerPush() {
+  try {
+    const token = await getPushToken();
+    if (token) await authService.savePushToken(token);
+  } catch (e) {
+    console.warn('No se pudo registrar el push:', e);
+  }
+}
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');                  //loading pq al abrir la app no se sabe si hay token guardado o no
@@ -31,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setUsuario(await authService.me());
         setStatus('signedIn');
+        registerPush();
       } catch (e) {
         // 401: el token ya no sirve (logout en otro lado, contraseña cambiada, usuario suspendido).
         if (e instanceof ApiError && e.status === 401) {
@@ -47,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await tokenStorage.set(token);
     setUsuario(usuario);
     setStatus('signedIn');
+    registerPush();
   };
 
   const signOut = async () => {
