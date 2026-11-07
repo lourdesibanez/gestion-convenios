@@ -12,7 +12,7 @@ export default function Header({ onMenu }) {
         <div className="header-contenido">
             <h3 className='header-titulo'>Convenios</h3>
             <div className="header-opciones">
-                <button className="btn btn-primary">+ Nuevo Convenio </button>
+                <button className="btn btn-primary">Iniciar Sesión</button>
             </div>        
         </div>
 

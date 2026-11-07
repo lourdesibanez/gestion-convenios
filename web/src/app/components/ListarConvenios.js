@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const API = process.env.NEXT_PUBLIC_API_URL
-const POR_PAGINA = 10
+const POR_PAGINA = 7
 
 const COLOR_ESTADO = {
   borrador: 'secondary',
@@ -21,6 +23,9 @@ export default function ListaConvenios({ filtros }) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [pagina, setPagina] = useState(1)
+  const router = useRouter();
+
+  const [refId, setRefId] = useState(null);
 
   // 1) Se pide UNA sola vez
   useEffect(() => {
@@ -94,7 +99,7 @@ export default function ListaConvenios({ filtros }) {
 
   if (error) return <div className="alert alert-danger small mt-3 mb-0">{error}</div>
 
-  return (
+   return (
     <div className="card shadow-sm mt-3">
       <div className="table-responsive">
         <table className="table table-sm table-hover align-middle mb-0 small">
@@ -118,9 +123,19 @@ export default function ListaConvenios({ filtros }) {
             ) : (
               visibles.map((c) => {
                 const color = COLOR_ESTADO[norm(c.estado)] ?? 'secondary'
+                const ruta = `/convenios/${c.id}`
+
                 return (
-                  <tr key={c.id ?? c.codigo}>
-                    <td className="ps-3 fw-semibold text-primary">{c.codigo}</td>
+                  <tr
+                    key={c.id ?? c.codigo}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => router.push(`/convenios/${c.id}`)}
+                  >
+                    <td className="ps-3 fw-semibold">
+                      <Link href={`/convenios/${c.id}`} onClick={(e) => e.stopPropagation()}>
+                        {c.codigo}
+                      </Link>
+                    </td>
                     <td>{c.titulo}</td>
                     <td className="text-muted">{c.tipo}</td>
                     <td className="text-muted">{c.unidad}</td>
@@ -146,15 +161,23 @@ export default function ListaConvenios({ filtros }) {
         <nav aria-label="Paginado de convenios">
           <ul className="pagination pagination-sm mb-0">
             <li className={`page-item ${pagina === 1 ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => setPagina(pagina - 1)}>&lsaquo;</button>
+              <button className="page-link" onClick={() => setPagina(pagina - 1)}>
+                &lsaquo;
+              </button>
             </li>
+
             {numeros.map((n) => (
               <li key={n} className={`page-item ${n === pagina ? 'active' : ''}`}>
-                <button className="page-link" onClick={() => setPagina(n)}>{n}</button>
+                <button className="page-link" onClick={() => setPagina(n)}>
+                  {n}
+                </button>
               </li>
             ))}
+
             <li className={`page-item ${pagina === totalPaginas ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => setPagina(pagina + 1)}>&rsaquo;</button>
+              <button className="page-link" onClick={() => setPagina(pagina + 1)}>
+                &rsaquo;
+              </button>
             </li>
           </ul>
         </nav>

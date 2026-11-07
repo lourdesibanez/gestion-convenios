@@ -1,14 +1,7 @@
-'use client'
-
-import styles from "./page.module.css";
-import DashboardPublico from "./dashboard/page";
-
+import { redirect } from 'next/navigation'
 
 export default function Home() {
-
-  return (
-    <>
-      <DashboardPublico />
-    </>
-  );
+  redirect('/convenios')
 }
+
+
