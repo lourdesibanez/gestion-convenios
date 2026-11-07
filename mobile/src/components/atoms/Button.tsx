@@ -80,6 +80,6 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
   textOutline: {
-    color: colors.emphasis,
+    color: colors.primary,
   },
 });

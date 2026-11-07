@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { router } from 'expo-router';
 import { LoginData } from '@/components/organisms';
 import { ApiError } from '@/services/api';
 import { authService } from '../services/authService';
@@ -15,8 +15,18 @@ export function useLogin() {
 
     try {
       const challenge = await authService.login(data);
-      // Temporal: en el paso 7 esto navega a la pantalla del código.
-      Alert.alert('Código enviado', `A: ${challenge.destino}\nCódigo (debug): ${challenge.codigo_debug}`);
+
+      router.push({
+        pathname: '/verify-code',
+        params: {
+          id: String(challenge.id_desafio),
+          canal: challenge.canal,
+          destino: challenge.destino,
+          reenviar: String(challenge.reenviar_en_segundos),
+          debug: challenge.codigo_debug ?? '',
+        },
+      });
+
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.');
     } finally {
