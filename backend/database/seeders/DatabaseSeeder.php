@@ -2,28 +2,41 @@
 
 namespace Database\Seeders;
 
-use App\Models\Usuario;
 use Illuminate\Database\Seeder;
 
+/**
+ * Todos los seeders son idempotentes (upsert por clave): `php artisan db:seed`
+ * se puede correr las veces que haga falta sin duplicar filas.
+ */
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         $this->call(CatalogoSeeder::class);
 
-        $usuario = Usuario::factory()->create([
-            'nombre_usuario' => 'test',
-            'nombre' => 'Laura',
-            'apellido' => 'Iriarte',
-            'email' => 'test@example.com',
-        ]);
-
         // Datos ficticios para ver las pantallas con contenido.
+        // El orden respeta las claves foráneas.
         if (app()->environment('local')) {
-            $this->callWith(DemoSeeder::class, ['usuario' => $usuario]);
+            $this->call([
+                UsuarioSeeder::class,
+                RepresentanteSeeder::class,
+                InstitucionSeeder::class,
+                UsuarioPerfilSeeder::class,
+                InstrumentoSeeder::class,
+                ConvenioSeeder::class,
+                ParteFirmanteSeeder::class,
+                RepresentanteInstrumentoSeeder::class,
+                PasantiaSeeder::class,
+                HistorialEstadoSeeder::class,
+                InstrumentoVinculoSeeder::class,
+                ArchivoSeeder::class,
+                ComentarioSeeder::class,
+                ObservacionSeeder::class,
+                FirmaSeeder::class,
+                CodigoVerificacionSeeder::class,
+                NotificacionSeeder::class,
+                UsuarioInstrumentoSeeder::class,
+            ]);
         }
     }
 }
