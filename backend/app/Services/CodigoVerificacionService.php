@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Mail;
  */
 class CodigoVerificacionService {
     public const MINUTOS_VALIDEZ = 5;
-
     public const SEGUNDOS_ESPERA_REENVIO = 60;
+
+    public function __construct(private PushService $push) {}
 
     /*Crea un código nuevo para el usuario y lo envía por el canal indicado.*/
     public function generarYEnviar(Usuario $usuario, string $canal, string $proposito = 'login'): array{

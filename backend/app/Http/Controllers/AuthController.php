@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Http\Requests\Auth\GuardarPushTokenRequest;
+
 
 class AuthController extends Controller
 {
@@ -109,6 +111,25 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
+        /**
+     * Registra el celular del usuario para recibir notificaciones push.
+     */
+    public function guardarPushToken(GuardarPushTokenRequest $request): Response
+    {
+        $token = $request->validated('push_token');
+        $usuario = $request->user();
+
+        // Un celular pertenece a un solo usuario: si antes lo usó otro, se le quita.
+        Usuario::where('push_token', $token)
+            ->whereKeyNot($usuario->id)
+            ->update(['push_token' => null]);
+
+        $usuario->forceFill(['push_token' => $token])->save();
+
+        return response()->noContent();
+    }
+
 
     /**
      * Cierra la sesión solo en el dispositivo actual.
