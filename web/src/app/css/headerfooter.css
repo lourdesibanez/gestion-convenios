@@ -1,0 +1,121 @@
+/*Styles Generales */
+
+:root {
+    --foreground: #000000;
+    --background: #ffffff;
+    --primary: #007bff;
+    --secondary: #6c757d;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+    --light: #f8f9fa;
+    --dark: #343a40;
+    --title-color:#466ea9;
+}
+
+
+.bloque-header{
+    display: flex;
+    justify-content: space-between;
+    margin: 10px;  
+
+    font-size: 18pt;
+}
+
+
+footer{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px;
+
+    min-height: 100px;
+}
+
+
+.Logo {
+  width: 100px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+
+/*--------------------------------------------------*/
+/*--------------------------------------------------*/
+
+/* Styles para el sidebar*/
+.bloque-dashboard {
+  display: grid;
+  grid-template-columns: 255px 1fr;
+  min-height: 100vh;
+}
+
+.barra-lateral {
+  background: #466ea9;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  height: 100%;
+  padding: 16px;
+}
+
+.barra-lateral ul { list-style: none; padding: 0; margin: 0; }
+.barra-lateral a { display: block; color: #fff; padding: 10px 12px; border-radius: 8px; text-decoration: none; }
+.barra-lateral a:hover { background: rgba(255,255,255,.15); }
+
+.columna-principal { min-width: 0; display: flex; flex-direction: column; }
+.contenido { padding: 24px; flex: 1; }
+
+.boton-hamburguesa, .fondo-menu { display: none; }
+
+@media (max-width: 768px) {
+  .bloque-dashboard { grid-template-columns: 1fr; }
+
+  .boton-hamburguesa { display: inline-block; background: none; border: 0; font-size: 1.6rem; cursor: pointer; }
+
+  .barra-lateral {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 260px;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+  }
+  .barra-lateral-abierta { transform: translateX(0); }
+
+  .fondo-menu {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 30;
+  }
+}
+
+
+.barra-lateral-logo{
+    display: flex;
+    justify-content: center;
+}
+
+
+
+/*--------------------------------------------------*/
+/*--------------------------------------------------*/
+
+/* Styles para header*/
+
+.header-contenido{
+    display: flex;
+    justify-content: space-between;
+
+    margin: 10px;
+}
+
+.header-titulo{
+    font-size: 18pt;
+    font-weight: bold;
+
+    color: var(--title-color);
+}

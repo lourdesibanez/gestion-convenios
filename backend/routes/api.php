@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ConvenioController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ConvenioController;
 
 Route::prefix('auth')->group(function () {
     //throttle:5,1 - 5 intentos por cada 1 minuto
@@ -35,3 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('documents', ArchivoController::class);
 });
 
+
+
+// por ahora va a estar publica astsa que se haga el login
+Route::get('convenios', [ConvenioController::class, 'index']);
+Route::get('convenios/{id}', [ConvenioController::class, 'show']);
