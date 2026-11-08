@@ -13,9 +13,7 @@ import PersonasTab from './tabs/PersonasTab'
 import DocumentosTab from './tabs/DocumentosTab'
 import HistorialTab from './tabs/HistorialTab'
 import ObservacionesTab from './tabs/ObservacionesTab'
-
-
-const API = process.env.NEXT_PUBLIC_API_URL
+import { obtenerUno } from '@/app/lib/api'
 
 export default function DetalleConvenio({ id, admin = false }) {
   const base = admin ? '/admin/convenios' : '/convenios'
@@ -29,26 +27,18 @@ export default function DetalleConvenio({ id, admin = false }) {
     if (!id) return // todavía no llegó el id
 
     async function cargar() {
-      const url = `${API}/api/convenios/${id}`
+      const ruta = `/api/agreements/${id}`
       try {
-        const res = await fetch(url, { headers: { Accept: 'application/json' } })
-
-        if (!res.ok) {
-          setError(`El servidor respondió ${res.status} al pedir ${url}`)
-          return
-        }
-
-        const json = await res.json()
-        const info = json.data ?? json // ← desenvuelve { ok, data }
+        const info = await obtenerUno(ruta)
 
         if (!info?.convenio) {
-          setError(`La respuesta de ${url} no trae el campo "convenio".`)
+          setError(`La respuesta de ${ruta} no trae el campo "convenio".`)
           return
         }
         setDatos(info)
       } catch (err) {
         console.error(err)
-        setError(`No se pudo conectar con ${url}. ¿Está corriendo el backend? ¿CORS?`)
+        setError(err instanceof Error ? err.message : 'No se pudo consultar el convenio.')
       } finally {
         setCargando(false)
       }

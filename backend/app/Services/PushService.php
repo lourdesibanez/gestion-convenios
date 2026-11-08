@@ -15,7 +15,7 @@ class PushService
     /**
      * @param  array<string, mixed>  $datos  Información extra para la app (por ejemplo, a qué pantalla ir).
      */
-    public function enviar(string $pushToken, string $titulo, string $mensaje, array $datos = []): void
+    public function enviarNotificacionPush(string $pushToken, string $titulo, string $mensaje, array $datos = []): void
     {
         $respuesta = Http::acceptJson()->post(self::URL, [
             'to' => $pushToken,

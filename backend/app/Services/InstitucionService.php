@@ -3,29 +3,52 @@
 namespace App\Services;
 
 use App\Models\Institucion;
-use Illuminate\Database\Eloquent\Collection;
+use App\Models\Usuario;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class InstitucionService
 {
-    public function listarTodas(): Collection
+    public function listar(Usuario $usuario): LengthAwarePaginator
     {
-        return Institucion::with('representante')->latest('id')->get();
+        $query = Institucion::with('representante')
+            ->withCount('partesFirmantes as total_convenios')
+            ->latest('id');
+        $visibles = $usuario->institucionesVisibles();
+
+        if ($visibles !== null) {
+            $query->whereIn('id', $visibles);
+        }
+
+        return $query->paginate(15);
     }
 
-    public function obtenerPorId(int $id): Institucion
+    public function obtenerDetalle(Usuario $usuario, int $id): Institucion
     {
-        return Institucion::with('representante')->findOrFail($id);
+        $query = Institucion::with('representante')
+            ->withCount('partesFirmantes as total_convenios')
+            ->whereKey($id);
+        $visibles = $usuario->institucionesVisibles();
+
+        if ($visibles !== null) {
+            $query->whereIn('id', $visibles);
+        }
+
+        return $query->firstOrFail();
     }
 
     public function crear(array $datos): Institucion
     {
-        return Institucion::create($datos);
+        return Institucion::create($datos)
+            ->load('representante')
+            ->loadCount('partesFirmantes as total_convenios');
     }
 
     public function actualizar(Institucion $institucion, array $datos): Institucion
     {
         $institucion->update($datos);
-        return $institucion;
+
+        return $institucion->load('representante')
+            ->loadCount('partesFirmantes as total_convenios');
     }
 
     public function eliminar(Institucion $institucion): void
@@ -33,14 +56,4 @@ class InstitucionService
         $institucion->delete();
     }
 
-    public function existeIdentificacionFiscal(string $identificacion, ?int $idExcluido = null): bool
-    {
-        $query = Institucion::where('identificacion_fiscal', $identificacion);
-
-        if ($idExcluido) {
-            $query->where('id', '!=', $idExcluido);
-        }
-
-        return $query->exists();
-    }
 }

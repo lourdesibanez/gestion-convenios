@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { obtenerTodos } from '../lib/api'
 
-const API = process.env.NEXT_PUBLIC_API_URL // http://127.0.0.1:8000
 const POR_PAGINA = 7
 
 const COLOR_ESTADO = {
@@ -29,12 +29,7 @@ export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
   useEffect(() => {
     async function cargar() {
       try {
-        const res = await fetch(`${API}/api/convenios`, {
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        const data = await res.json()
-        setConvenios(Array.isArray(data) ? data : data.data ?? data.convenios ?? [])
+        setConvenios(await obtenerTodos('/api/agreements'))
       } catch (err) {
         console.error(err)
         setError('No se pudieron cargar los convenios.')

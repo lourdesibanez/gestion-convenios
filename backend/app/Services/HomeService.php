@@ -19,18 +19,18 @@ class HomeService
 
     public const MAX_MOVIMIENTOS = 10;
 
-    public function datosPara(Usuario $usuario): array
+    public function obtenerDatos(Usuario $usuario): array
     {
         return [
-            'usuario' => $this->encabezado($usuario),
+            'usuario' => $this->construirEncabezado($usuario),
             'notificaciones_sin_leer' => $usuario->notificaciones()->where('leido', false)->count(),
-            'resumen' => $this->resumen($usuario),
-            'pendientes' => $this->pendientes($usuario),
-            'ultimos_movimientos' => $this->ultimosMovimientos($usuario),
+            'resumen' => $this->calcularResumen($usuario),
+            'pendientes' => $this->listarPendientes($usuario),
+            'ultimos_movimientos' => $this->listarUltimosMovimientos($usuario),
         ];
     }
 
-    private function encabezado(Usuario $usuario): array
+    private function construirEncabezado(Usuario $usuario): array
     {
         $perfil = $usuario->perfiles()->activos()->with('institucion')->oldest('id')->first();
 
@@ -42,7 +42,7 @@ class HomeService
         ];
     }
 
-    private function resumen(Usuario $usuario): array
+    private function calcularResumen(Usuario $usuario): array
     {
         $visibles = fn () => Instrumento::visiblePara($usuario);
         $hoy = today();
@@ -63,7 +63,7 @@ class HomeService
      * Firmas asignadas al usuario, de la más reciente a la más antigua.
      * Ser firmante asignado da acceso al instrumento aunque no sea de su unidad.
      */
-    private function pendientes(Usuario $usuario): array
+    private function listarPendientes(Usuario $usuario): array
     {
         $pendientes = $usuario->firmas()->pendientes();
 
@@ -89,7 +89,7 @@ class HomeService
     /**
      * Instrumentos con acciones registradas, del movimiento más reciente al más antiguo.
      */
-    private function ultimosMovimientos(Usuario $usuario): array
+    private function listarUltimosMovimientos(Usuario $usuario): array
     {
         $ultimos = UsuarioInstrumento::query()
             ->selectRaw('id_instrumento, max(created_at) as fecha')

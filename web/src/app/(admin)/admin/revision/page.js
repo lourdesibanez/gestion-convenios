@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { fecha } from '../../../components/convenio/Formato'
-
-const API = process.env.NEXT_PUBLIC_API_URL
+import { obtenerTodos } from '../../../lib/api'
 
 const norm = (t) =>
   (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
@@ -17,13 +16,7 @@ export default function Revision() {
   useEffect(() => {
     async function cargar() {
       try {
-        const res = await fetch(`${API}/api/revision`, {
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        const json = await res.json()
-        const lista = Array.isArray(json) ? json : json.data ?? json.convenios ?? []
-        setConvenios(lista)
+        setConvenios(await obtenerTodos('/api/agreements/review'))
       } catch (err) {
         console.error(err)
         setError('No se pudieron cargar los convenios.')

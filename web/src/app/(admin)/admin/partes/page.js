@@ -1,18 +1,11 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
+import { obtenerTodos } from '../../../lib/api'
 
-const API = process.env.NEXT_PUBLIC_API_URL
 const POR_PAGINA = 10
 
 const norm = (t) =>
   (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-
-const traer = async (ruta) => {
-  const res = await fetch(`${API}${ruta}`, { headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error(`Error ${res.status} en ${ruta}`)
-  const json = await res.json()
-  return Array.isArray(json) ? json : json.data ?? []
-}
 
 function Paginado({ pagina, total, onCambiar }) {
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
@@ -54,14 +47,14 @@ export default function PartesYPersonas() {
     async function cargar() {
       try {
         const [i, p] = await Promise.all([
-          traer('/api/instituciones'),
-          traer('/api/representantes'),
+          obtenerTodos('/api/units'),
+          obtenerTodos('/api/people'),
         ])
         setInstituciones(i)
         setPersonas(p)
       } catch (err) {
         console.error(err)
-        setError('No se pudieron cargar los datos. ¿Existen los endpoints /api/instituciones y /api/representantes?')
+        setError('No se pudieron cargar los datos. Revisá que el backend esté disponible y que tu usuario tenga permisos.')
       } finally {
         setCargando(false)
       }

@@ -2,69 +2,68 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ArchivoRequest;
+use App\Http\Resources\ArchivoResource;
 use App\Models\Archivo;
 use App\Services\ArchivoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ArchivoController extends Controller
 {
-    public function __construct(private ArchivoService $archivoService)
+    public function __construct(private ArchivoService $archivos) {}
+
+    public function listar(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Archivo::class);
+
+        return ArchivoResource::collection(
+            $this->archivos->listar($request->user())
+        )->response();
     }
 
-    public function index(): JsonResponse
+    public function crear(ArchivoRequest $request): JsonResponse
     {
-        return response()->json($this->archivoService->listarTodos());
+        $instrumento = $this->archivos->obtenerInstrumentoVisible(
+            $request->user(),
+            $request->validated('id_instrumento'),
+        );
+        $this->authorize('create', [Archivo::class, $instrumento]);
+        $archivo = $this->archivos->crear(
+            $instrumento,
+            $request->validated('tipo_documento'),
+            $request->file('archivo'),
+        );
+
+        return (new ArchivoResource($archivo))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function store(Request $request): JsonResponse
+    public function obtenerDetalle(Request $request, int $id): ArchivoResource
     {
-        $validado = $request->validate([
-            'id_instrumento' => 'required|integer|exists:instrumento,id',
-            'nombre' => 'required|string|max:255',
-            'tipo_documento' => 'required|string|max:255',
-            'tipo_mime' => 'required|string|max:255',
-            'tamanio_bytes' => 'required|integer|min:0',
-            'hash_sha256' => 'required|string|size:64',
-            'ruta' => 'required|string|max:255',
-        ]);
+        $archivo = $this->archivos->obtenerDetalle($request->user(), $id);
+        $this->authorize('view', $archivo);
 
-        $archivo = $this->archivoService->crear($validado);
-
-        return response()->json($archivo, 201);
+        return new ArchivoResource($archivo);
     }
 
-    public function show(int $id): JsonResponse
+    public function descargar(Request $request, int $id): StreamedResponse
     {
-        $archivo = $this->archivoService->obtenerPorId($id);
-        return response()->json($archivo);
+        $archivo = $this->archivos->obtenerDetalle($request->user(), $id);
+        $this->authorize('view', $archivo);
+
+        return $this->archivos->descargar($archivo, $request->user());
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function eliminar(Request $request, int $id): Response
     {
-        $archivo = $this->archivoService->obtenerPorId($id);
+        $archivo = $this->archivos->obtenerDetalle($request->user(), $id);
+        $this->authorize('delete', $archivo);
+        $this->archivos->eliminar($archivo);
 
-        $validado = $request->validate([
-            'id_instrumento' => 'sometimes|required|integer|exists:instrumento,id',
-            'nombre' => 'sometimes|required|string|max:255',
-            'tipo_documento' => 'sometimes|required|string|max:255',
-            'tipo_mime' => 'sometimes|required|string|max:255',
-            'tamanio_bytes' => 'sometimes|required|integer|min:0',
-            'hash_sha256' => 'sometimes|required|string|size:64',
-            'ruta' => 'sometimes|required|string|max:255',
-        ]);
-
-        $actualizado = $this->archivoService->actualizar($archivo, $validado);
-
-        return response()->json($actualizado);
-    }
-
-    public function destroy(int $id): JsonResponse
-    {
-        $archivo = $this->archivoService->obtenerPorId($id);
-        $this->archivoService->eliminar($archivo);
-
-        return response()->json(null, 204);
+        return response()->noContent();
     }
 }

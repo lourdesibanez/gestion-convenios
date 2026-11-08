@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditoria;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Perfil extends Model
@@ -20,4 +21,9 @@ class Perfil extends Model
     protected $fillable = [
         'nombre',
     ];
+
+    public function permisos(): BelongsToMany
+    {
+        return $this->belongsToMany(Permiso::class, 'perfil_permiso', 'id_perfil', 'id_permiso');
+    }
 }

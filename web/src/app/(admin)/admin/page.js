@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-
-const API = process.env.NEXT_PUBLIC_API_URL
+import { obtenerTodos } from '../../lib/api'
 
 const ESTADOS = [
   { clave: 'borrador', label: 'Borrador', color: 'secondary' },
@@ -20,10 +19,7 @@ export default function Panel() {
   useEffect(() => {
     async function cargar() {
       try {
-        const res = await fetch(`${API}/api/convenios`, { headers: { Accept: 'application/json' } })
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        const data = await res.json()
-        setConvenios(Array.isArray(data) ? data : data.data ?? [])
+        setConvenios(await obtenerTodos('/api/agreements'))
       } catch (err) {
         console.error(err)
       }

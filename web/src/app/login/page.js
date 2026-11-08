@@ -2,9 +2,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { enviarJson } from '@/app/lib/api'
 import '../css/login.css'
-
-const API = process.env.NEXT_PUBLIC_API_URL
 
 export default function Login() {
   const router = useRouter()
@@ -23,26 +22,18 @@ export default function Login() {
     setCargando(true)
 
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(datos),
+      const data = await enviarJson('/api/auth/login', {
+        email: datos.email,
+        password: datos.password,
       })
 
-      res
-
-      if (res.status === 401 || res.status === 422) {
-        setError('Correo o contraseña incorrectos.')
-        return
-      }
-      if (!res.ok) throw new Error(`Error ${res.status}`)
-
-      const data = await res.json()
       console.log('respuesta del login:', data)
       router.push('/admin/convenios') // paso del código; mientras tanto podés usar '/convenios'
     } catch (err) {
       console.error(err)
-      setError('No se pudo conectar con el servidor.')
+      setError(err.status === 401 || err.status === 422
+        ? 'Correo o contraseña incorrectos.'
+        : 'No se pudo conectar con el servidor.')
     } finally {
       setCargando(false)
     }

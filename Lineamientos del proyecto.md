@@ -138,11 +138,17 @@ Ruta (auth:sanctum) → FormRequest (valida) → Policy (autoriza)
 
 * **Controladores cortos:** un método no consulta la base directamente ni aplica reglas de negocio; delega en un servicio.
 
-* **Validación siempre en la API**, aunque la web o la app también validen.
+* **Nombres de métodos del backend:** controladores y servicios usan español y camelCase. En todas las entidades, las operaciones CRUD se llaman `listar`, `crear`, `obtenerDetalle`, `actualizar` y `eliminar`, respectivamente; los servicios usan los mismos nombres que sus controladores. Las acciones especiales usan un verbo y un propósito claros, por ejemplo `listarEnRevision`, `descargar`, `iniciarSesion` y `obtenerDatos`.
 
-* **Autenticación:** todas las rutas usan auth:sanctum, salvo POST /auth/login y POST /auth/verify-code.
+* **Rutas explícitas:** como los controladores usan nombres de dominio en español en lugar de las acciones convencionales de Laravel (`index`, `store`, `show`, `update`, `destroy`), cada método se vincula explícitamente en `routes/api.php`. Las URLs y sus nombres públicos no dependen del nombre interno del método.
 
-* **Autorización en el servidor:** cada consulta se filtra por el alcance del usuario. Un usuario ve solo los instrumentos de las instituciones de su usuario\_perfil, salvo que tenga alcance global (id\_institucion \= null).
+* **Validación siempre en la API**, aunque la web o la app también validen. Cada endpoint que recibe datos usa un FormRequest y el controlador trabaja con `validated()`.
+
+* **Autenticación:** todas las rutas usan auth:sanctum, salvo POST /auth/login, /auth/verify-code, /auth/resend-code, /auth/forgot-password y /auth/reset-password.
+
+* **Autorización en el servidor:** los controladores autorizan cada acción con una Policy. Las consultas también se filtran por el alcance del usuario. Un usuario ve solo los instrumentos de las instituciones de su usuario\_perfil, salvo que tenga alcance global (id\_institucion \= null).
+
+* **Respuestas:** los recursos individuales devuelven sus campos directamente; los listados paginados usan `data`, `links` y `meta`. No se agrega un envoltorio `ok` ni se duplica `data`.
 
 * **Transacciones:** toda operación que escribe en más de una tabla va dentro de DB::transaction.
 
@@ -174,7 +180,7 @@ Ruta (auth:sanctum) → FormRequest (valida) → Policy (autoriza)
 
 * Los errores siempre vuelven en JSON (configurado en bootstrap/app.php), con mensajes en español.
 
-* Los listados se paginan con ?page=; 15 elementos por página, salvo que el TP pida otra cosa (por ejemplo, "máximo 10 movimientos").
+* Los listados se paginan con ?page=; el JSON incluye `data`, `links` y `meta`; 15 elementos por página, salvo que el TP pida otra cosa (por ejemplo, "máximo 10 movimientos").
 
 ## **4.5 Autenticación (implementada)**
 
@@ -253,7 +259,15 @@ mobile/src/
 
 # **6\. Cliente web (Next.js)**
 
-Todavía no está creado. Cuando se cree, sigue los mismos principios que la app: carpetas por funcionalidad, componentes compartidos, un único cliente HTTP y ninguna regla de negocio propia. El trabajo sin conexión se resuelve con IndexedDB, como pide el TP. Esta sección se completa cuando se arme el proyecto.
+La web sigue los mismos principios que la app: componentes compartidos, un único cliente HTTP y ninguna regla de negocio propia.
+
+* **Cliente HTTP:** las llamadas se centralizan en `web/src/app/lib/api.js`; los componentes no llaman a `fetch` directamente.
+
+* **Paginación:** el cliente interpreta `data`, `links` y `meta`. Si una pantalla necesita el listado completo, recorre las páginas mediante el helper correspondiente.
+
+* **URL de la API:** se configura con `NEXT_PUBLIC_API_URL`; no se escriben direcciones de backend directamente en los componentes.
+
+* **Sin conexión:** se resuelve con IndexedDB, como pide el TP.
 
 # **7\. Git y trabajo en equipo**
 
