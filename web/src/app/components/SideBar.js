@@ -1,8 +1,19 @@
+'use client'
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import '../css/headerfooter.css'
 
+const items = [
+  { href: "/admin", label: "Panel", exacto: true },
+  { href: "/admin/convenios", label: "Convenios" },
+  { href: "#", label: "Revisión" },
+  { href: "#", label: "Vencimientos" },
+  { href: "#", label: "Partes y Personas" },
+];
 
 export default function Sidebar({ abierto, onCerrar }) {
+  const pathname = usePathname();
+
   return (
     <aside className={`barra-lateral ${abierto ? "barra-lateral-abierta" : ""}`}>
       <div className="barra-lateral-logo">
@@ -10,11 +21,24 @@ export default function Sidebar({ abierto, onCerrar }) {
       </div>
       <nav className="barra-lateral-contenido">
         <ul>
-          <li><Link href="#" onClick={onCerrar}>Panel</Link></li>
-          <li><Link href="/admin/convenios" onClick={onCerrar}>Convenios</Link></li>
-          <li><Link href="#" onClick={onCerrar}>Revisión</Link></li>
-          <li><Link href="#" onClick={onCerrar}>Vencimientos</Link></li>
-          <li><Link href="#" onClick={onCerrar}>Partes y Personas</Link></li>
+          {items.map((it) => {
+            const activo = it.exacto
+              ? pathname === it.href
+              : pathname.startsWith(it.href);
+
+            return (
+              <li key={it.href}>
+                <Link
+                  href={it.href}
+                  onClick={onCerrar}
+                  className={activo ? "activo" : ""}
+                  aria-current={activo ? "page" : undefined}
+                >
+                  {it.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </aside>

@@ -7,11 +7,19 @@ import PlazosCard from './PlazosCard'
 import VinculosCard from './VinculosCard'
 import DocumentosCard from './DocumentosCard'
 
+
+import PartesTab from './tabs/PartesTab'
+import PersonasTab from './tabs/PersonasTab'
+import DocumentosTab from './tabs/DocumentosTab'
+import HistorialTab from './tabs/HistorialTab'
+import ObservacionesTab from './tabs/ObservacionesTab'
+
+
 const API = process.env.NEXT_PUBLIC_API_URL
 
 export default function DetalleConvenio({ id, admin = false }) {
   const base = admin ? '/admin/convenios' : '/convenios'
-
+  
   const [datos, setDatos] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
@@ -63,14 +71,17 @@ export default function DetalleConvenio({ id, admin = false }) {
     vinculos = [],
   } = datos
 
-  const PESTANIAS = [
+  const TODAS = [
     { id: 'ficha', label: 'Ficha' },
     { id: 'partes', label: 'Partes', n: partes.length },
-    { id: 'personas', label: 'Personas', n: representantes.length },
+    { id: 'personas', label: 'Personas', n: representantes.length, soloAdmin: true },
     { id: 'documentos', label: 'Documentos', n: archivos.length },
-    { id: 'historial', label: 'Historial' },
+    { id: 'historial', label: 'Historial', soloAdmin: true},
     { id: 'observaciones', label: 'Observaciones', n: observaciones.length },
-  ]
+  ] 
+
+  const PESTANIAS= TODAS.filter((p)=> admin || !p.soloAdmin);
+  const activa = PESTANIAS.some((p) => p.id === pestania) ? pestania : 'ficha'
 
   return (
     <div>
@@ -131,7 +142,24 @@ export default function DetalleConvenio({ id, admin = false }) {
       ) : (
         <div className="card shadow-sm">
           <div className="card-body small text-muted">
-            Contenido de la pestaña «{PESTANIAS.find((p) => p.id === pestania).label}» (pendiente).
+            {activa === 'ficha' && (
+              <div className="row g-3">
+                <div className="col-12 col-lg-8">
+                  <FichaConvenio convenio={convenio} />
+                </div>
+                <div className="col-12 col-lg-4 d-flex flex-column gap-3">
+                  <PlazosCard convenio={convenio} />
+                  <VinculosCard vinculos={vinculos} idActual={convenio.id} base={base} />
+                  <DocumentosCard documentos={archivos} admin={admin} />
+                </div>
+              </div>
+            )}
+
+            {activa === 'partes' && <PartesTab partes={partes} />}
+            {activa === 'personas' && <PersonasTab representantes={representantes} />}
+            {activa === 'documentos' && <DocumentosTab archivos={archivos} admin={admin} />}
+            {activa === 'historial' && <HistorialTab historial={historial} />}
+            {activa === 'observaciones' && <ObservacionesTab observaciones={observaciones} />}
           </div>
         </div>
       )}

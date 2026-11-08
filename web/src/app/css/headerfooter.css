@@ -119,3 +119,21 @@ footer{
 
     color: var(--title-color);
 }
+
+.barra-lateral a {
+  display: block;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.barra-lateral a:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.barra-lateral a.activo {
+  background: rgba(255, 255, 255, 0.22);
+  font-weight: 600;
+}
