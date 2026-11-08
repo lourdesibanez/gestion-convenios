@@ -107,8 +107,7 @@ export default function DetalleConvenio({ id, admin = false }) {
         {admin && (
           <div className="d-flex gap-2">
             <button className="btn btn-outline-primary btn-sm">Editar</button>
-            <button className="btn btn-outline-primary btn-sm">Generar QR</button>
-            <button className="btn btn-primary btn-sm">Registrar firma</button>
+            <button className="btn btn-success btn-sm">Registrar firma</button>
           </div>
         )}
       </div>
