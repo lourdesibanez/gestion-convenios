@@ -8,7 +8,7 @@ const items = [
   { href: "/admin", label: "Panel", exacto: true },
   { href: "/admin/convenios", label: "Convenios" },
   { href: "/admin/revision", label: "Revisión" },
-  { href: "#", label: "Vencimientos" },
+  { href: "/admin/vencimientos", label: "Vencimientos" },
   { href: "#", label: "Partes y Personas" },
 ];
 
