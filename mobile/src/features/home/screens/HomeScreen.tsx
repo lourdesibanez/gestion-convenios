@@ -69,7 +69,7 @@ export function HomeScreen() {
               <StatCard label="Firmados último año" value={data.resumen.firmados_ultimo_anio} color={colors.primary} />
             </View>
 
-{/* -------- ÚLTIMOS MOVIMIENTOS ------- */}
+            {/* -------- ÚLTIMOS MOVIMIENTOS ------- */}
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ expanded: movimientosAbiertos }}
@@ -114,9 +114,10 @@ export function HomeScreen() {
                   ))}
                 </View>
               ))}
+
           {/* -------- MIS PENDIENTES ------- */}
             <View style={styles.headerList}>
-              <Text style={styles.section}>Mis pendientes · {data.pendientes.total}</Text>
+              <Text style={styles.section}>Mis pendientes  ({data.pendientes.total})</Text>
             </View>
 
             {data.pendientes.items.length === 0 ? (
