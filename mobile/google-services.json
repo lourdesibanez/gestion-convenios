@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "687996831990",
+    "project_id": "nexoconvenios-75f44",
+    "storage_bucket": "nexoconvenios-75f44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687996831990:android:b6022e053e38bf4cac44d7",
+        "android_client_info": {
+          "package_name": "ar.edu.unlpam.convenios"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGFJUYd0rGax08k6RTwoymKrXT8W_xvZ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Mail;
  */
 class CodigoVerificacionService {
     public const MINUTOS_VALIDEZ = 5;
-
     public const SEGUNDOS_ESPERA_REENVIO = 60;
+
+    public function __construct(private PushService $push) {}
 
     /*Crea un código nuevo para el usuario y lo envía por el canal indicado.*/
     public function generarYEnviar(Usuario $usuario, string $canal, string $proposito = 'login'): array{
@@ -71,7 +72,7 @@ class CodigoVerificacionService {
             'mail' => Mail::raw($texto, fn ($mensaje) => $mensaje->to($usuario->email)->subject('Código '.$motivo)),
             // Simulados en el log hasta integrar un proveedor de SMS y Expo Push.
             'sms' => Log::info("SMS simulado a {$usuario->telefono}: {$texto}"),
-            'push' => Log::info("Push simulado al usuario {$usuario->id}: {$texto}"),
+            'push' => $this->push->enviar($usuario->push_token, 'Código '.$motivo, $texto),
         };
     }
 

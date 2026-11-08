@@ -35,4 +35,6 @@ export const authService = {
 
   me: () => api.get<Usuario>('/auth/me'),
   logout: () => api.post<void>('/auth/logout'),
+  savePushToken: (push_token: string) => api.post<void>('/auth/push-token', { push_token }),
+
 };
