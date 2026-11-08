@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-const API = process.env.NEXT_PUBLIC_API_URL
-const POR_PAGINA = 7
+const API = process.env.NEXT_PUBLIC_API_URL // http://127.0.0.1:8000
+const POR_PAGINA = 10
 
 const COLOR_ESTADO = {
   borrador: 'secondary',
@@ -18,16 +18,14 @@ const COLOR_ESTADO = {
 const norm = (t) =>
   (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
-export default function ListaConvenios({ filtros }) {
+export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
+  const router = useRouter()
   const [convenios, setConvenios] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [pagina, setPagina] = useState(1)
-  const router = useRouter();
 
-  const [refId, setRefId] = useState(null);
-
-  // 1) Se pide UNA sola vez
+  // 1) Se piden los datos UNA sola vez
   useEffect(() => {
     async function cargar() {
       try {
@@ -69,6 +67,7 @@ export default function ListaConvenios({ filtros }) {
     setPagina(1)
   }, [filtros])
 
+  // 4) Paginado en el cliente
   const total = filtrados.length
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
 
@@ -77,6 +76,7 @@ export default function ListaConvenios({ filtros }) {
     return filtrados.slice(inicio, inicio + POR_PAGINA)
   }, [filtrados, pagina])
 
+  // ventana de hasta 5 números de página alrededor de la actual
   const numeros = useMemo(() => {
     const desde = Math.max(1, Math.min(pagina - 2, totalPaginas - 4))
     const hasta = Math.min(totalPaginas, desde + 4)
@@ -97,9 +97,11 @@ export default function ListaConvenios({ filtros }) {
     )
   }
 
-  if (error) return <div className="alert alert-danger small mt-3 mb-0">{error}</div>
+  if (error) {
+    return <div className="alert alert-danger small mt-3 mb-0">{error}</div>
+  }
 
-   return (
+  return (
     <div className="card shadow-sm mt-3">
       <div className="table-responsive">
         <table className="table table-sm table-hover align-middle mb-0 small">
@@ -113,6 +115,7 @@ export default function ListaConvenios({ filtros }) {
               <th>Vence</th>
             </tr>
           </thead>
+
           <tbody>
             {visibles.length === 0 ? (
               <tr>
@@ -123,16 +126,16 @@ export default function ListaConvenios({ filtros }) {
             ) : (
               visibles.map((c) => {
                 const color = COLOR_ESTADO[norm(c.estado)] ?? 'secondary'
-                const ruta = `/convenios/${c.id}`
+                const ruta = `${base}/${c.id}`
 
                 return (
                   <tr
                     key={c.id ?? c.codigo}
                     style={{ cursor: 'pointer' }}
-                    onClick={() => router.push(`/convenios/${c.id}`)}
+                    onClick={() => router.push(ruta)}
                   >
                     <td className="ps-3 fw-semibold">
-                      <Link href={`/convenios/${c.id}`} onClick={(e) => e.stopPropagation()}>
+                      <Link href={ruta} onClick={(e) => e.stopPropagation()}>
                         {c.codigo}
                       </Link>
                     </td>

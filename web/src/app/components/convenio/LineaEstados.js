@@ -1,3 +1,5 @@
+import {fecha as formatear} from './Formato';
+
 const ETAPAS = [
   { clave: 'borrador', label: 'Borrador', color: 'secondary' },
   { clave: 'revision', label: 'Revisión', color: 'warning' },
@@ -17,7 +19,7 @@ export default function LineaEstados({ estado, transiciones = [] }) {
         <div className="row g-2">
           {ETAPAS.map((e, i) => {
             const alcanzada = i <= actual
-            const fecha = transiciones.find((t) => norm(t.estado) === e.clave)?.fecha
+            const fecha = transiciones.find((t) => norm(t.estado) === e.clave)?.created_at
             return (
               <div className="col-6 col-md-3" key={e.clave}>
                 <div
@@ -25,7 +27,7 @@ export default function LineaEstados({ estado, transiciones = [] }) {
                   style={{ height: 6, borderRadius: 3 }}
                 />
                 <div className={`small mt-1 ${i === actual ? 'fw-bold text-primary' : 'text-muted'}`}>
-                  {e.label}{fecha ? ` · ${fecha}` : ''}
+                  {e.label}{fecha ? ` · ${formatear(fecha)}` : ''}
                 </div>
               </div>
             )

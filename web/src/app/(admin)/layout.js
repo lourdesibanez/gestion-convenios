@@ -1,9 +1,9 @@
 'use client'
 import { useState } from 'react'
-import SideBar from '../components/SideBar'
+import Sidebar from '../components/SideBar'
 import Header from '../components/Header'
 
-export default function PanelLayout({ children }) {
+export default function AdminLayout({ children }) {
   const [menuAbierto, setMenuAbierto] = useState(false)
 
   return (
@@ -11,10 +11,10 @@ export default function PanelLayout({ children }) {
       {menuAbierto && (
         <div className="fondo-menu" onClick={() => setMenuAbierto(false)} />
       )}
-      <SideBar abierto={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
+      <Sidebar abierto={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
 
       <div className="columna-principal">
-        <Header onMenu={() => setMenuAbierto(true)} />
+        <Header admin onMenu={() => setMenuAbierto(true)} />
         <main className="contenido">{children}</main>
       </div>
     </div>
