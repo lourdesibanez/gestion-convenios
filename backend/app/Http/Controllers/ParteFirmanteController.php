@@ -2,72 +2,74 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ParteFirmanteRequest;
+use App\Http\Resources\ParteFirmanteResource;
 use App\Models\ParteFirmante;
 use App\Services\ParteFirmanteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class ParteFirmanteController extends Controller
 {
-    public function __construct(private ParteFirmanteService $parteFirmanteService)
+    public function __construct(private ParteFirmanteService $partes) {}
+
+    public function listar(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', ParteFirmante::class);
+
+        return ParteFirmanteResource::collection(
+            $this->partes->listar($request->user())
+        )->response();
     }
 
-    public function index(): JsonResponse
+    public function crear(ParteFirmanteRequest $request): JsonResponse
     {
-        return response()->json($this->parteFirmanteService->listarTodas());
+        $instrumento = $this->partes->obtenerInstrumentoVisible(
+            $request->user(),
+            $request->validated('id_instrumento'),
+        );
+        $this->authorize('create', [ParteFirmante::class, $instrumento]);
+        $parte = $this->partes->crear($request->validated());
+
+        return (new ParteFirmanteResource($parte))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function store(Request $request): JsonResponse
+    public function obtenerDetalle(Request $request, int $id): ParteFirmanteResource
     {
-        $validado = $request->validate([
-            'id_institucion' => 'required|integer|exists:institucion,id',
-            'id_instrumento' => 'required|integer|exists:instrumento,id',
-            'fecha_firma' => 'nullable|date',
-        ]);
+        $parte = $this->partes->obtenerDetalle($request->user(), $id);
+        $this->authorize('view', $parte);
 
-        if ($this->parteFirmanteService->existeVinculoDuplicado($validado['id_institucion'], $validado['id_instrumento'])) {
-            return response()->json(['message' => 'La institución ya es parte firmante de este instrumento.'], 422);
+        return new ParteFirmanteResource($parte);
+    }
+
+    public function actualizar(ParteFirmanteRequest $request, int $id): ParteFirmanteResource
+    {
+        $parte = $this->partes->obtenerDetalle($request->user(), $id);
+        $this->authorize('update', $parte);
+        $datos = $request->validated();
+
+        if (isset($datos['id_instrumento'])) {
+            $instrumento = $this->partes->obtenerInstrumentoVisible(
+                $request->user(),
+                $datos['id_instrumento'],
+            );
+            $this->authorize('create', [ParteFirmante::class, $instrumento]);
         }
 
-        $parte = $this->parteFirmanteService->crear($validado);
-
-        return response()->json($parte, 201);
+        return new ParteFirmanteResource(
+            $this->partes->actualizar($parte, $datos)
+        );
     }
 
-    public function show(int $id): JsonResponse
+    public function eliminar(Request $request, int $id): Response
     {
-        $parte = $this->parteFirmanteService->obtenerPorId($id);
-        return response()->json($parte);
-    }
+        $parte = $this->partes->obtenerDetalle($request->user(), $id);
+        $this->authorize('delete', $parte);
+        $this->partes->eliminar($parte);
 
-    public function update(Request $request, int $id): JsonResponse
-    {
-        $parte = $this->parteFirmanteService->obtenerPorId($id);
-
-        $validado = $request->validate([
-            'id_institucion' => 'sometimes|required|integer|exists:institucion,id',
-            'id_instrumento' => 'sometimes|required|integer|exists:instrumento,id',
-            'fecha_firma' => 'nullable|date',
-        ]);
-
-        $idInstitucion = $validado['id_institucion'] ?? $parte->id_institucion;
-        $idInstrumento = $validado['id_instrumento'] ?? $parte->id_instrumento;
-
-        if ($this->parteFirmanteService->existeVinculoDuplicado($idInstitucion, $idInstrumento, $id)) {
-            return response()->json(['message' => 'La institución ya es parte firmante de este instrumento.'], 422);
-        }
-
-        $actualizado = $this->parteFirmanteService->actualizar($parte, $validado);
-
-        return response()->json($actualizado);
-    }
-
-    public function destroy(int $id): JsonResponse
-    {
-        $parte = $this->parteFirmanteService->obtenerPorId($id);
-        $this->parteFirmanteService->eliminar($parte);
-
-        return response()->json(null, 204);
+        return response()->noContent();
     }
 }

@@ -2,78 +2,60 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RepresentanteRequest;
+use App\Http\Resources\RepresentanteResource;
 use App\Models\Representante;
 use App\Services\RepresentanteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class RepresentanteController extends Controller
 {
-    public function __construct(private RepresentanteService $representanteService)
+    public function __construct(private RepresentanteService $representantes) {}
+
+    public function listar(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Representante::class);
+
+        return RepresentanteResource::collection($this->representantes->listar())
+            ->response();
     }
 
-    public function index(): JsonResponse
+    public function crear(RepresentanteRequest $request): JsonResponse
     {
-        return response()->json($this->representanteService->listarTodos());
+        $this->authorize('create', Representante::class);
+        $representante = $this->representantes->crear($request->validated());
+
+        return (new RepresentanteResource($representante))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function store(Request $request): JsonResponse
+    public function obtenerDetalle(Request $request, int $id): RepresentanteResource
     {
-        $validado = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'apellido' => 'required|string|max:255',
-            'tipo_documento' => 'required|string|max:255',
-            'numero_documento' => 'required|string|max:255',
-            'correo_electronico' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:255',
-        ]);
+        $representante = $this->representantes->obtenerDetalle($id);
+        $this->authorize('view', $representante);
 
-        if ($this->representanteService->existeDocumentoDuplicado($validado['tipo_documento'], $validado['numero_documento'])) {
-            return response()->json(['message' => 'El documento ya está registrado para este tipo.'], 422);
-        }
-
-        $representante = $this->representanteService->crear($validado);
-
-        return response()->json($representante, 201);
+        return new RepresentanteResource($representante);
     }
 
-    public function show(int $id): JsonResponse
+    public function actualizar(RepresentanteRequest $request, int $id): RepresentanteResource
     {
-        $representante = $this->representanteService->obtenerPorId($id);
-        return response()->json($representante);
+        $representante = $this->representantes->obtenerDetalle($id);
+        $this->authorize('update', $representante);
+
+        return new RepresentanteResource(
+            $this->representantes->actualizar($representante, $request->validated())
+        );
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function eliminar(int $id): Response
     {
-        $representante = $this->representanteService->obtenerPorId($id);
+        $representante = $this->representantes->obtenerDetalle($id);
+        $this->authorize('delete', $representante);
+        $this->representantes->eliminar($representante);
 
-        $validado = $request->validate([
-            'nombre' => 'sometimes|required|string|max:255',
-            'apellido' => 'sometimes|required|string|max:255',
-            'tipo_documento' => 'sometimes|required|string|max:255',
-            'numero_documento' => 'sometimes|required|string|max:255',
-            'correo_electronico' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:255',
-        ]);
-
-        $tipo = $validado['tipo_documento'] ?? $representante->tipo_documento;
-        $numero = $validado['numero_documento'] ?? $representante->numero_documento;
-
-        if ($this->representanteService->existeDocumentoDuplicado($tipo, $numero, $id)) {
-            return response()->json(['message' => 'El documento ya está registrado para este tipo.'], 422);
-        }
-
-        $actualizado = $this->representanteService->actualizar($representante, $validado);
-
-        return response()->json($actualizado);
-    }
-
-    public function destroy(int $id): JsonResponse
-    {
-        $representante = $this->representanteService->obtenerPorId($id);
-        $this->representanteService->eliminar($representante);
-
-        return response()->json(null, 204);
+        return response()->noContent();
     }
 }

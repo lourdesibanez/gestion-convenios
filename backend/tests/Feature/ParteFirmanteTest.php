@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use App\Models\Institucion;
 use App\Models\Instrumento;
 use App\Models\ParteFirmante;
+use App\Models\Perfil;
 use App\Models\Usuario;
+use App\Models\UsuarioPerfil;
+use Database\Seeders\CatalogoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,7 +21,13 @@ class ParteFirmanteTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(CatalogoSeeder::class);
         $this->usuario = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $this->usuario->id,
+            'id_perfil' => Perfil::where('nombre', 'administracion')->value('id'),
+            'id_institucion' => null,
+        ]);
     }
 
     public function test_puede_crear_parte_firmante(): void

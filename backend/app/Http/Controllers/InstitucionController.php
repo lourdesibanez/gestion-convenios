@@ -2,79 +2,61 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\InstitucionRequest;
+use App\Http\Resources\InstitucionResource;
 use App\Models\Institucion;
 use App\Services\InstitucionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class InstitucionController extends Controller
 {
-    public function __construct(private InstitucionService $institucionService)
+    public function __construct(private InstitucionService $instituciones) {}
+
+    public function listar(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Institucion::class);
+
+        return InstitucionResource::collection(
+            $this->instituciones->listar($request->user())
+        )->response();
     }
 
-    public function index(): JsonResponse
+    public function crear(InstitucionRequest $request): JsonResponse
     {
-        return response()->json($this->institucionService->listarTodas());
+        $this->authorize('create', Institucion::class);
+        $institucion = $this->instituciones->crear($request->validated());
+
+        return (new InstitucionResource($institucion))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function store(Request $request): JsonResponse
+    public function obtenerDetalle(Request $request, int $id): InstitucionResource
     {
-        $validado = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'identificacion_fiscal' => 'required|string|max:255',
-            'domicilio' => 'nullable|string|max:255',
-            'id_representante' => 'nullable|integer|exists:representante,id',
-            'es_interna' => 'boolean',
-            'latitud' => 'nullable|numeric|between:-90,90',
-            'longitud' => 'nullable|numeric|between:-180,180',
-        ]);
+        $institucion = $this->instituciones->obtenerDetalle($request->user(), $id);
+        $this->authorize('view', $institucion);
 
-        if ($this->institucionService->existeIdentificacionFiscal($validado['identificacion_fiscal'])) {
-            return response()->json(['message' => 'La identificación fiscal ya está registrada.'], 422);
-        }
-
-        $institucion = $this->institucionService->crear($validado);
-
-        return response()->json($institucion, 201);
+        return new InstitucionResource($institucion);
     }
 
-    public function show(int $id): JsonResponse
+    public function actualizar(InstitucionRequest $request, int $id): InstitucionResource
     {
-        $institucion = $this->institucionService->obtenerPorId($id);
-        return response()->json($institucion);
+        $institucion = $this->instituciones->obtenerDetalle($request->user(), $id);
+        $this->authorize('update', $institucion);
+
+        return new InstitucionResource(
+            $this->instituciones->actualizar($institucion, $request->validated())
+        );
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function eliminar(Request $request, int $id): Response
     {
-        $institucion = $this->institucionService->obtenerPorId($id);
+        $institucion = $this->instituciones->obtenerDetalle($request->user(), $id);
+        $this->authorize('delete', $institucion);
+        $this->instituciones->eliminar($institucion);
 
-        $validado = $request->validate([
-            'nombre' => 'sometimes|required|string|max:255',
-            'identificacion_fiscal' => 'sometimes|required|string|max:255',
-            'domicilio' => 'nullable|string|max:255',
-            'id_representante' => 'nullable|integer|exists:representante,id',
-            'es_interna' => 'boolean',
-            'latitud' => 'nullable|numeric|between:-90,90',
-            'longitud' => 'nullable|numeric|between:-180,180',
-        ]);
-
-        $identificacion = $validado['identificacion_fiscal'] ?? $institucion->identificacion_fiscal;
-
-        if ($this->institucionService->existeIdentificacionFiscal($identificacion, $id)) {
-            return response()->json(['message' => 'La identificación fiscal ya está registrada.'], 422);
-        }
-
-        $actualizado = $this->institucionService->actualizar($institucion, $validado);
-
-        return response()->json($actualizado);
-    }
-
-    public function destroy(int $id): JsonResponse
-    {
-        $institucion = $this->institucionService->obtenerPorId($id);
-        $this->institucionService->eliminar($institucion);
-
-        return response()->json(null, 204);
+        return response()->noContent();
     }
 }
