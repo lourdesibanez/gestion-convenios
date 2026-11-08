@@ -1,0 +1,131 @@
+.login {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Panel azul ---------- */
+.login-panel {
+  background: #2b5086;
+  color: #fff;
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.login-marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+}
+.login-marca-icono {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.login-mensaje h1 {
+  font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+.login-mensaje p {
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 460px;
+}
+
+.login-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.login-chips span {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.login-pie { color: rgba(255, 255, 255, 0.7); }
+
+/* ---------- Formulario ---------- */
+.login-form-zona {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+.login-form { width: 100%; max-width: 400px; }
+
+.login-form h2 { color: #2b5086; font-weight: 700; font-size: 1.4rem; margin-bottom: 2px; }
+.login-sub { color: #5b6470; font-size: 0.9rem; margin-bottom: 24px; }
+
+.login-form .form-label { font-weight: 600; font-size: 0.85rem; }
+.login-form .form-control {
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.login-form .form-control:focus {
+  border-color: #2b5086;
+  box-shadow: 0 0 0 2px rgba(43, 80, 134, 0.2);
+}
+
+.login-link { color: #2b5086; text-decoration: none; font-weight: 500; }
+.login-link:hover { text-decoration: underline; }
+
+.btn-login {
+  background: #2b5086;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 600;
+}
+.btn-login:hover { background: #234271; color: #fff; }
+
+.login-info {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #f3f5f9;
+  color: #3d4654;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  margin-top: 20px;
+}
+
+/* ---------- Móvil ---------- */
+@media (max-width: 768px) {
+  .login { grid-template-columns: 1fr; }
+
+  /* el panel azul queda como encabezado compacto */
+  .login-panel { padding: 20px; }
+  .login-mensaje, .login-pie { display: none; }
+}
+
+
+
+.login-marca-icono img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px; /* aire entre el logo y el borde del cuadrado */
+}
+
+
+.login-marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+}
+.login-marca:hover {
+  color: #fff;
+  opacity: 0.9;
+}

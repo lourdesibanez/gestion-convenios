@@ -2,10 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\RepresentanteController;
-use App\Http\Controllers\InstitucionController;
-use App\Http\Controllers\ParteFirmanteController;
-use App\Http\Controllers\ArchivoController;
+use App\Http\Controllers\ConvenioController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -23,6 +20,8 @@ Route::prefix('auth')->group(function () {
         Route::post('push-token',                       [AuthController::class, 'guardarPushToken']);
 
     });
+
+
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -31,4 +30,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('units', InstitucionController::class);
     Route::apiResource('parties', ParteFirmanteController::class);
     Route::apiResource('documents', ArchivoController::class);
+
+    Route::get('convenios',             [ConvenioController::class, 'index']);
+    Route::get('convenios/{id}',        [ConvenioController::class, 'show']);
+    Route::get('/revision',             [ConvenioController::class, 'revision']);
+    Route::get('/instituciones',        [ConvenioController::class, 'instituciones']);
+    Route::get('/representantes',       [ConvenioController::class, 'representantes']);
 });

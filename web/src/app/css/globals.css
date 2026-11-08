@@ -1,6 +1,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --light: #f8f9fa;
+  --dark: #343a40;
+  --primary: #007bff;     
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,7 +28,7 @@ body {
   display: flex;
   flex-direction: column;
   color: var(--foreground);
-  background: var(--background);
+  background: var(--light);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
