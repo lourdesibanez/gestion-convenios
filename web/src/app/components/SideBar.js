@@ -9,7 +9,7 @@ const items = [
   { href: "/admin/convenios", label: "Convenios" },
   { href: "/admin/revision", label: "Revisión" },
   { href: "/admin/vencimientos", label: "Vencimientos" },
-  { href: "#", label: "Partes y Personas" },
+  { href: "/admin/partes", label: "Partes y Personas" },
 ];
 
 // Dibuja la lista. No usa hooks, solo recibe el pathname.
