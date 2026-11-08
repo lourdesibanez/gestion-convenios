@@ -1,13 +1,13 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Bell, Mail, MessageSquareText } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '@/theme';
 
 export type Canal = 'mail' | 'sms' | 'push';
 
 const OPTIONS = [
-  { canal: 'mail', label: 'Email', icon: 'email-outline' },
-  { canal: 'sms', label: 'SMS', icon: 'message-text-outline' },
-  { canal: 'push', label: 'Push', icon: 'bell-outline' },
+  { canal: 'mail', label: 'Email', icon: Mail },
+  { canal: 'sms', label: 'SMS', icon: MessageSquareText },
+  { canal: 'push', label: 'Push', icon: Bell },
 ] as const;
 
 type Props = {
@@ -20,7 +20,7 @@ type Props = {
 export function ChannelSelector({ selected, available, disabled = false, onSelect }: Props) {
   return (
     <View style={styles.row}>
-      {OPTIONS.map(({ canal, label, icon }) => {
+      {OPTIONS.map(({ canal, label, icon: Icon }) => {
         const isSelected = canal === selected;
         const isAvailable = available.includes(canal);
         const isDisabled = disabled || !isAvailable || isSelected;
@@ -38,8 +38,7 @@ export function ChannelSelector({ selected, available, disabled = false, onSelec
               !isAvailable && styles.unavailable,
             ]}
           >
-            <MaterialCommunityIcons
-              name={icon}
+            <Icon
               size={14}
               color={isSelected ? colors.primary : colors.text}
             />

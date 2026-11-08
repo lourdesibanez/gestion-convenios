@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FilePenLine } from 'lucide-react-native';
 import { ReactNode } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ export function AuthTemplate({ title, subtitle, children }: Props) {
         >
           <View style={styles.header}>
             <View style={styles.logo}>
-              <MaterialCommunityIcons name="file-sign" size={36} color={colors.background} />
+              <FilePenLine size={36} color={colors.background} />
             </View>
             <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}

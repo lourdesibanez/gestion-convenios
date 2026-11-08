@@ -187,7 +187,7 @@ Ruta (auth:sanctum) → FormRequest (valida) → Policy (autoriza)
 
 * El token no vence y hay uno por dispositivo: eso cubre "múltiples accesos" y "una vez que se loguea no se pide más".
 
-* La biometría no pasa por la API: la app guarda el token cifrado en el celular y pide huella o rostro para usarlo.
+* La biometría no pasa por la API: la app guarda el token cifrado en el celular y pide la huella para usarlo.
 
 * Con APP\_DEBUG=true, el login devuelve el código en codigo\_debug para probar desde la app. En producción ese campo vuelve vacío.
 
@@ -248,6 +248,8 @@ mobile/src/
 * **Accesibilidad:** accessibilityLabel en botones que solo tienen ícono, buen contraste y áreas táctiles de al menos 44 px.
 
 * **TypeScript estricto**, sin any. Imports con el alias @/.
+
+* **Iconos:** usar exclusivamente `lucide-react-native` para los iconos de la app móvil. La dependencia se instala en `mobile/` y requiere `react-native-svg`; no mezclar bibliotecas de iconos en componentes nuevos.
 
 * **Preferencias** (tamaño de letra, tema) y datos biométricos quedan solo en el dispositivo.
 

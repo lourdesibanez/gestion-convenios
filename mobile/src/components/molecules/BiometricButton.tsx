@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Fingerprint } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/atoms';
 import { colors } from '@/theme';
@@ -8,20 +8,14 @@ type Props = {
   onPress: () => void;
 };
 
-const config = {
-  fingerprint: { title: 'Huella', icon: 'fingerprint' },
-} as const;
-
 export function BiometricButton({ type, onPress }: Props) {
-  const { title, icon } = config[type];
-
   return (
     <View style={styles.container}>
       <Button
-        title={title}
+        title="Huella"
         variant="outline"
         onPress={onPress}
-        icon={<MaterialCommunityIcons name={icon} size={20} color={colors.primary} />}
+        icon={<Fingerprint size={20} color={colors.primary} />}
       />
     </View>
   );

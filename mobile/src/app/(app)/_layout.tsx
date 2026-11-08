@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { ClipboardPenLine, House, Search, UserRound } from 'lucide-react-native';
 import { colors } from '@/theme';
 
 export default function AppLayout() {
@@ -24,9 +24,7 @@ export default function AppLayout() {
         options={{
           title: 'Inicio',
           tabBarAccessibilityLabel: 'Inicio',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} color={String(color)} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <House color={String(color)} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -34,7 +32,7 @@ export default function AppLayout() {
         options={{
           title: 'Buscar',
           tabBarAccessibilityLabel: 'Buscar',
-          tabBarIcon: ({ color, size }) => <Ionicons name="search-outline" color={String(color)} size={size} />,
+          tabBarIcon: ({ color, size }) => <Search color={String(color)} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -42,7 +40,7 @@ export default function AppLayout() {
         options={{
           title: 'Firmar',
           tabBarAccessibilityLabel: 'Firmar',
-          tabBarIcon: ({ color, size }) => <Ionicons name="create-outline" color={String(color)} size={size} />,
+          tabBarIcon: ({ color, size }) => <ClipboardPenLine color={String(color)} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -50,9 +48,7 @@ export default function AppLayout() {
         options={{
           title: 'Perfil',
           tabBarAccessibilityLabel: 'Perfil',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} color={String(color)} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <UserRound color={String(color)} size={size} />,
         }}
       />
     </Tabs>

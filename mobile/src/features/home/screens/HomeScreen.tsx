@@ -1,20 +1,14 @@
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ClipboardPenLine } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { StatCard } from '@/components/molecules';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { colors, spacing, typography } from '@/theme';
 import { useHome } from '../hooks/useHome';
 
 export function HomeScreen() {
-  const { signOut } = useAuth();
   const { data, loading, refreshing, error, refresh } = useHome();
-
-  const confirmSignOut = () =>
-    Alert.alert('Cerrar sesión', '¿Querés cerrar la sesión en este dispositivo?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
-    ]);
 
   if (loading) {
     return (
@@ -76,6 +70,14 @@ export function HomeScreen() {
                         {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
                       </Text>
                     </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Firmar ${item.titulo}`}
+                      onPress={() => router.push('/sign')}
+                      style={styles.signIconButton}
+                    >
+                      <ClipboardPenLine size={20} color={colors.primary} />
+                    </Pressable>
                   </View>
                 ))}
               </View>
@@ -83,7 +85,6 @@ export function HomeScreen() {
           </>
         )}
 
-        <Button title="Cerrar sesión" variant="outline" onPress={confirmSignOut} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -152,27 +153,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   pendingHeader: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-},
-pendingList: {
-  backgroundColor: colors.background,
-  borderWidth: 1,
-  borderColor: colors.border,
-  borderRadius: 16,
-  overflow: 'hidden',
-},
-pendingItem: {
-  minHeight: 72,
-  flexDirection: 'row',
-  alignItems: 'center',
-  padding: spacing.md,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.border,
-},
-pendingTitle: {
-  ...typography.label,
-  color: colors.text,
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pendingList: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  pendingItem: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  signIconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  pendingTitle: {
+    ...typography.label,
+    color: colors.text,
+  },
 });
