@@ -45,7 +45,7 @@ export function useVerifyCode(initial: Challenge) {
       if (biometrics.length > 0 && !biometricEnabled) {
         Alert.alert(
           'Ingreso con huella',
-          '¿Querés usar tu huella o rostro para ingresar la próxima vez?',
+          '¿Querés usar tu huella para ingresar la próxima vez?',
           [
             { text: 'Ahora no', style: 'cancel' },
             { text: 'Activar', onPress: () => enableBiometrics() },

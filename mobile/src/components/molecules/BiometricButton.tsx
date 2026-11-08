@@ -4,13 +4,12 @@ import { Button } from '@/components/atoms';
 import { colors } from '@/theme';
 
 type Props = {
-  type: 'fingerprint' | 'face';
+  type: 'fingerprint';
   onPress: () => void;
 };
 
 const config = {
   fingerprint: { title: 'Huella', icon: 'fingerprint' },
-  face: { title: 'Rostro', icon: 'face-recognition' },
 } as const;
 
 export function BiometricButton({ type, onPress }: Props) {

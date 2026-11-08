@@ -12,7 +12,7 @@ export type LoginData = {
 type Props = {
   onSubmit: (data: LoginData) => void;
   onForgotPassword: () => void;
-  biometricTypes?: ('fingerprint' | 'face')[];
+  biometricTypes?: ('fingerprint')[];
   onBiometric: () => void;
   loading?: boolean;
   serverError?: string;

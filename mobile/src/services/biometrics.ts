@@ -1,7 +1,7 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
-export type BiometricType = 'fingerprint' | 'face';
+export type BiometricType = 'fingerprint';
 
 const ENABLED_KEY = 'biometric_enabled';
 
@@ -16,9 +16,6 @@ export async function getAvailableBiometrics(): Promise<BiometricType[]> {
 
   if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
     available.push('fingerprint');
-  }
-  if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-    available.push('face');
   }
 
   return available;
