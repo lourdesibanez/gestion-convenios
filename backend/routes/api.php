@@ -36,3 +36,5 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('convenios', [ConvenioController::class, 'index']);
 Route::get('convenios/{id}', [ConvenioController::class, 'show']);
 Route::get('/revision', [ConvenioController::class, 'revision']);
+Route::get('/instituciones', [ConvenioController::class, 'instituciones']);
+Route::get('/representantes', [ConvenioController::class, 'representantes']);

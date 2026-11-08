@@ -231,7 +231,43 @@ class ConvenioController extends Controller
             ->get();
 
         return response()->json(['ok' => true, 'data' => $items]);
-    } 
+    }
+    
+        public function instituciones()
+    {
+        $items = DB::table('institucion as inst')
+            ->select(
+                'inst.id',
+                'inst.nombre',
+                'inst.identificacion_fiscal',
+                'inst.es_interna',
+                DB::raw('(SELECT COUNT(*) FROM parte_firmante p
+                        WHERE p.id_institucion = inst.id) as total_convenios')
+            )
+            ->orderBy('inst.nombre')
+            ->get();
+
+        return response()->json(['ok' => true, 'data' => $items]);
+    }
+
+    public function representantes()
+    {
+        $items = DB::table('representante as r')
+            ->select(
+                'r.id',
+                'r.nombre',
+                'r.apellido',
+                'r.correo_electronico',
+                'r.telefono',
+                DB::raw('(SELECT COUNT(*) FROM representante_instrumento ri
+                        WHERE ri.id_representante = r.id
+                        AND ri.deleted_at IS NULL) as total_convenios')
+            )
+            ->orderBy('r.apellido')
+            ->get();
+
+        return response()->json(['ok' => true, 'data' => $items]);
+    }
 }
 
 
