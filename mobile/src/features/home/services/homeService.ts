@@ -24,6 +24,13 @@ export type HomeData = {
       asignado_en: string;
     }[];
   };
+  ultimos_movimientos: {
+    uuid: string;
+    codigo: string;
+    titulo: string;
+    estado: string;
+    fecha: string;
+  }[];
 };
 
 export const homeService = {
