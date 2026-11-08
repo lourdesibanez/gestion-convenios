@@ -1,30 +1,27 @@
 import Link from 'next/link'
 
-export default function VinculosCard({ convenio }) {
-  const { marco, adendas = [] } = convenio
+export default function VinculosCard({ vinculos = [], idActual, base }) {
   return (
     <div className="card shadow-sm">
       <div className="card-body small">
         <h2 className="h6 text-primary">Vínculos</h2>
 
-        {marco && (
-          <div className="mb-2">
-            <span className="badge text-bg-primary me-2">MAR</span>
-            <Link href={`/dashboard/convenios/${marco.id}`}>{marco.codigo} · marco</Link>
-          </div>
-        )}
+        {vinculos.length === 0 && <p className="text-muted mb-0">Sin vínculos.</p>}
 
-        <div className="mb-2 ms-3">
-          <span className="badge text-bg-secondary me-2">ESP</span>
-          este instrumento
-        </div>
+        {vinculos.map((v) => {
+          const soyOrigen = Number(v.origen_id) === Number(idActual)
+          const otro = soyOrigen
+            ? { id: v.destino_id, codigo: v.destino_codigo, titulo: v.destino_titulo }
+            : { id: v.origen_id, codigo: v.origen_codigo, titulo: v.origen_titulo }
 
-        {adendas.map((a) => (
-          <div key={a.id} className="mb-1 ms-5">
-            <span className="badge text-bg-warning me-2">ADE</span>
-            <Link href={`/dashboard/convenios/${a.id}`}>{a.codigo}</Link>
-          </div>
-        ))}
+          return (
+            <div key={`${v.origen_id}-${v.destino_id}-${v.tipo_vinculo}`} className="mb-2">
+              <span className="badge text-bg-secondary me-2">{v.tipo_vinculo}</span>
+              <Link href={`${base}/${otro.id}`}>{otro.codigo}</Link>
+              <div className="text-muted">{otro.titulo}</div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

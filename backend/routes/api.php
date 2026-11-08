@@ -32,8 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('documents', ArchivoController::class);
 });
 
-
-
 // por ahora va a estar publica astsa que se haga el login
 Route::get('convenios', [ConvenioController::class, 'index']);
 Route::get('convenios/{id}', [ConvenioController::class, 'show']);

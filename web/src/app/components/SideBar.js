@@ -11,7 +11,7 @@ export default function Sidebar({ abierto, onCerrar }) {
       <nav className="barra-lateral-contenido">
         <ul>
           <li><Link href="#" onClick={onCerrar}>Panel</Link></li>
-          <li><Link href="/convenios" onClick={onCerrar}>Convenios</Link></li>
+          <li><Link href="/admin/convenios" onClick={onCerrar}>Convenios</Link></li>
           <li><Link href="#" onClick={onCerrar}>Revisión</Link></li>
           <li><Link href="#" onClick={onCerrar}>Vencimientos</Link></li>
           <li><Link href="#" onClick={onCerrar}>Partes y Personas</Link></li>
