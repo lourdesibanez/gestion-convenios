@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import '../css/login.css'
+import { useAuth } from '../context/authContext'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -11,6 +12,7 @@ export default function Login() {
   const [datos, setDatos] = useState({ email: '', password: '', recordarme: false })
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState(null)
+  const {login}= useAuth()
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -23,23 +25,26 @@ export default function Login() {
     setCargando(true)
 
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
+      const res = await fetch(`${API}/api/auth/web/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(datos),
+        body: JSON.stringify({ email: datos.email, password: datos.password }),
       })
 
-      res
+      const data = await res.json().catch(() => ({}))
 
-      if (res.status === 401 || res.status === 422) {
-        setError('Correo o contraseña incorrectos.')
+      if (res.status === 422) {
+        setError(data.errors?.email?.[0] ?? 'Revisá los datos ingresados.')
+        return
+      }
+      if (res.status === 403) {
+        setError(data.message ?? 'El usuario está suspendido.')
         return
       }
       if (!res.ok) throw new Error(`Error ${res.status}`)
 
-      const data = await res.json()
-      console.log('respuesta del login:', data)
-      router.push('/admin/convenios') // paso del código; mientras tanto podés usar '/convenios'
+      login(data.usuario, data.token, datos.recordarme)   // ← usuario, no user
+      router.replace('/admin')
     } catch (err) {
       console.error(err)
       setError('No se pudo conectar con el servidor.')
@@ -47,7 +52,6 @@ export default function Login() {
       setCargando(false)
     }
   }
-
   return (
     <div className="login">
       {/* Panel izquierdo */}

@@ -54,8 +54,8 @@ export default function PartesYPersonas() {
     async function cargar() {
       try {
         const [i, p] = await Promise.all([
-          traer('/api/instituciones'),
-          traer('/api/representantes'),
+          traer('/api/auth/instituciones'),
+          traer('/api/auth/representantes'),
         ])
         setInstituciones(i)
         setPersonas(p)

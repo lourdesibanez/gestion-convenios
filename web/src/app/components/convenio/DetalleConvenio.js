@@ -24,14 +24,17 @@ export default function DetalleConvenio({ id, admin = false }) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [pestania, setPestania] = useState('ficha')
+  const {authFetch}= useAuth();
 
   useEffect(() => {
     if (!id) return // todavía no llegó el id
 
     async function cargar() {
-      const url = `${API}/api/convenios/${id}`
+
       try {
-        const res = await fetch(url, { headers: { Accept: 'application/json' } })
+        const res = admin? 
+          await authFetch(`${API}/api/convenios/${id}`): await fetch(`${API}/api/publico/convenios/${id}`, { headers: { Accept: 'application/json' } })
+
 
         if (!res.ok) {
           setError(`El servidor respondió ${res.status} al pedir ${url}`)
