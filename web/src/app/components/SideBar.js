@@ -7,7 +7,7 @@ import '../css/headerfooter.css'
 const items = [
   { href: "/admin", label: "Panel", exacto: true },
   { href: "/admin/convenios", label: "Convenios" },
-  { href: "#", label: "Revisión" },
+  { href: "/admin/revision", label: "Revisión" },
   { href: "#", label: "Vencimientos" },
   { href: "#", label: "Partes y Personas" },
 ];

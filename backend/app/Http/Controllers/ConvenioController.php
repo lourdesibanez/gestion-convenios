@@ -205,6 +205,33 @@ class ConvenioController extends Controller
             ], 500);
         }
     }
+
+
+    //Convenios en Revisión
+    public function revision()
+    {
+        $items = DB::table('instrumento as i')
+            ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
+            ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
+            ->join('estado as e', 'e.id', '=', 'i.id_estado')
+            ->where('e.nombre', 'revision')
+            ->whereNull('i.deleted_at')
+            ->select(
+                'i.id',
+                'i.codigo',
+                'i.titulo',
+                't.nombre as tipo',
+                'u.nombre as unidad',
+                'e.nombre as estado',
+                'i.fecha_fin as vence',
+                DB::raw("(SELECT COUNT(*) FROM observacion o
+                        WHERE o.id_instrumento = i.id AND o.estado <> 'respondida')
+                        as observaciones_pendientes")
+            )
+            ->get();
+
+        return response()->json(['ok' => true, 'data' => $items]);
+    } 
 }
 
 

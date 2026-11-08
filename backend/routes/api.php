@@ -35,3 +35,4 @@ Route::middleware('auth:sanctum')->group(function () {
 // por ahora va a estar publica astsa que se haga el login
 Route::get('convenios', [ConvenioController::class, 'index']);
 Route::get('convenios/{id}', [ConvenioController::class, 'show']);
+Route::get('/revision', [ConvenioController::class, 'revision']);
