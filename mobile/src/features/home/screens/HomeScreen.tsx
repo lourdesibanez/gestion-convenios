@@ -35,7 +35,7 @@ export function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -49,16 +49,6 @@ export function HomeScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.header}>
-              <View style={styles.avatar}>
-                <Text style={styles.initials}>{data.usuario.iniciales}</Text>
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.hello}>Hola, {data.usuario.nombre}</Text>
-                <Text style={styles.unit}>{data.usuario.unidad}</Text>
-              </View>
-            </View>
-
             <Text style={styles.section}>Resumen de convenios</Text>
 
             {/* -------- BOX ------- */}
