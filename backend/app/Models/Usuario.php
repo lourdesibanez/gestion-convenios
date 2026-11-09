@@ -113,4 +113,16 @@ class Usuario extends Authenticatable
                 : $instituciones->unique()->values()->all();
         });
     }
+
+    public function tienePermiso(string $nombre): bool
+    {
+        if ($this->estaSuspendido()) {
+            return false;
+        }
+
+        return $this->perfiles()
+            ->activos()
+            ->whereHas('perfil.permisos', fn ($query) => $query->where('nombre', $nombre))
+            ->exists();
+    }
 }

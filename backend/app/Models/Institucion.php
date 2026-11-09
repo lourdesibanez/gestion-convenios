@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditoria;
 use App\Models\Concerns\Suspendible;
 use Database\Factories\InstitucionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -46,5 +47,10 @@ class Institucion extends Model
     public function representante()
     {
         return $this->belongsTo(Representante::class, 'id_representante');
+    }
+
+    public function partesFirmantes(): HasMany
+    {
+        return $this->hasMany(ParteFirmante::class, 'id_institucion');
     }
 }

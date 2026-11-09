@@ -2,187 +2,87 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Auth\OlvideContrasenaRequest;
-use App\Http\Requests\Auth\RestablecerContrasenaRequest;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\OlvideContrasenaRequest;
 use App\Http\Requests\Auth\ReenviarCodigoRequest;
+use App\Http\Requests\Auth\RestablecerContrasenaRequest;
 use App\Http\Requests\Auth\VerificarCodigoRequest;
-use App\Models\CodigoVerificacion;
-use App\Models\Usuario;
-use App\Services\CodigoVerificacionService;
+use App\Http\Requests\TokenPushRequest;
+use App\Http\Resources\DesafioAutenticacionResource;
+use App\Http\Resources\EsperaReenvioResource;
+use App\Http\Resources\MensajeAutenticacionResource;
+use App\Http\Resources\MensajeResource;
+use App\Http\Resources\TokenAutenticacionResource;
+use App\Http\Resources\UsuarioResource;
+use App\Services\AutenticacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function __construct(private CodigoVerificacionService $codigos) {}
+    public function __construct(private AutenticacionService $autenticacion) {}
 
-    /**
-     * Paso 1: valida email y contraseña y envía un código de verificación por mail.
-     * Todavía no entrega token.
-     */
-    public function login(LoginRequest $request): JsonResponse
+    public function iniciarSesion(LoginRequest $request): DesafioAutenticacionResource
     {
-        $usuario = Usuario::where('email', $request->validated('email'))->first();
+        $datos = $request->validated();
 
-        if (! $usuario || ! Hash::check($request->validated('password'), $usuario->contrasena)) {
-            throw ValidationException::withMessages([
-                'email' => 'Email o contraseña incorrectos.',
-            ]);
-        }
-
-        if ($usuario->estaSuspendido()) {
-            return response()->json(['message' => 'El usuario está suspendido.'], 403);
-        }
-
-        [$desafio, $codigo] = $this->codigos->generarYEnviar($usuario, 'mail');
-
-        return response()->json($this->respuestaDesafio($desafio, $codigo));
+        return new DesafioAutenticacionResource(
+            $this->autenticacion->iniciarSesion($datos['email'], $datos['password'])
+        );
     }
 
-    /**
-     * Anula el código anterior y envía uno nuevo por el canal elegido.
-     */
-    public function reenviarCodigo(ReenviarCodigoRequest $request): JsonResponse
+    public function verificarCodigo(VerificarCodigoRequest $request): TokenAutenticacionResource
     {
-        $anterior = CodigoVerificacion::with('usuario')->find($request->validated('id_desafio'));
+        $datos = $request->validated();
 
-        if (! $anterior || $anterior->usado_en) {
-            throw ValidationException::withMessages([
-                'id_desafio' => 'La verificación ya no es válida. Volvé a iniciar sesión.',
-            ]);
-        }
-
-        $segundos = $this->codigos->segundosParaReenviar($anterior);
-
-        if ($segundos > 0) {
-            return response()->json([
-                'message' => "Esperá {$segundos} segundos para pedir otro código.",
-                'segundos_restantes' => $segundos,
-            ], 429);
-        }
-
-        $canal = $request->validated('canal');
-
-        if (! in_array($canal, $this->codigos->canalesDisponibles($anterior->usuario))) {
-            throw ValidationException::withMessages([
-                'canal' => 'Ese canal no está disponible para tu usuario.',
-            ]);
-        }
-
-        // Un desafío reenviado queda anulado: solo vale el último código.
-        $anterior->update(['usado_en' => now()]);
-
-        [$desafio, $codigo] = $this->codigos->generarYEnviar($anterior->usuario, $canal, $anterior->proposito);
-
-
-        return response()->json($this->respuestaDesafio($desafio, $codigo));
+        return new TokenAutenticacionResource(
+            $this->autenticacion->verificarCodigo(
+                $datos['id_desafio'],
+                $datos['codigo'],
+                $datos['dispositivo'],
+            )
+        );
     }
 
-    /**
-     * Paso 2: valida el código y entrega el token de acceso (sin vencimiento).
-     */
-    public function verificarCodigo(VerificarCodigoRequest $request): JsonResponse
+    public function reenviarCodigo(ReenviarCodigoRequest $request): JsonResponse|DesafioAutenticacionResource
     {
-        $desafio = CodigoVerificacion::with('usuario')->find($request->validated('id_desafio'));
+        $datos = $this->autenticacion->reenviarCodigo(
+            $request->validated('id_desafio'),
+            $request->validated('canal'),
+        );
 
-        if (! $desafio || $desafio->proposito !== 'login' || ! $desafio->estaVigente() || ! Hash::check($request->validated('codigo'), $desafio->hash)) {
-            throw ValidationException::withMessages([
-                'codigo' => 'El código es incorrecto o está vencido.',
-            ]);
+        if ($datos['espera'] ?? false) {
+            return (new EsperaReenvioResource($datos))
+                ->response()
+                ->setStatusCode(429);
         }
 
-        $desafio->update(['usado_en' => now()]);
-
-        $usuario = $desafio->usuario;
-
-        return response()->json([
-            'token' => $usuario->createToken($request->validated('dispositivo'))->plainTextToken,
-            'usuario' => $usuario,
-        ]);
+        return new DesafioAutenticacionResource($datos);
     }
 
-    public function me(Request $request): JsonResponse
+    public function solicitarRestablecimientoContrasena(OlvideContrasenaRequest $request): MensajeAutenticacionResource
     {
-        return response()->json($request->user());
+        return new MensajeAutenticacionResource(
+            $this->autenticacion->solicitarRestablecimientoContrasena($request->validated('email'))
+        );
     }
 
-    /**
-     * Cierra la sesión solo en el dispositivo actual.
-     */
-    public function logout(Request $request): Response
+    public function restablecerContrasena(RestablecerContrasenaRequest $request): MensajeResource
     {
-        $request->user()->currentAccessToken()->delete();
+        $datos = $request->validated();
+        $this->autenticacion->restablecerContrasena(
+            $datos['email'],
+            $datos['codigo'],
+            $datos['password'],
+        );
 
-        return response()->noContent();
-    }
-
-    /**
-     * Datos que necesita la pantalla de verificación.
-     */
-    private function respuestaDesafio(CodigoVerificacion $desafio, string $codigo): array
-    {
-        $usuario = $desafio->usuario;
-
-        return [
-            'id_desafio' => $desafio->id,
-            'canal' => $desafio->canal,
-            'destino' => $this->codigos->destinoEnmascarado($usuario, $desafio->canal),
-            'canales_disponibles' => $this->codigos->canalesDisponibles($usuario),
-            'expira_en' => $desafio->expira_en,
-            'reenviar_en_segundos' => CodigoVerificacionService::SEGUNDOS_ESPERA_REENVIO,
-            // Solo en desarrollo, para probar desde la app sin leer el log.
-            'codigo_debug' => config('app.debug') ? $codigo : null,
-        ];
-    }
-
-    /*Recuperar contraseña, paso 1: envía un código al mail si el usuario existe.
-    Responde lo mismo exista o no, para no revelar qué emails están registrados.*/
-    public function olvideContrasena(OlvideContrasenaRequest $request): JsonResponse {
-        $usuario = Usuario::where('email', $request->validated('email'))->first();
-        $codigo = null;
-
-        if ($usuario && ! $usuario->estaSuspendido()) {
-            [, $codigo] = $this->codigos->generarYEnviar($usuario, 'mail', 'reset');
-        }
-
-        return response()->json([
-            'message' => 'Si el correo está registrado, te enviamos un código para restablecer la contraseña.',
-            'expira_en_minutos' => CodigoVerificacionService::MINUTOS_VALIDEZ,
-            // Solo en desarrollo, para probar desde la app sin leer el log.
-            'codigo_debug' => config('app.debug') ? $codigo : null,
-        ]);
-    }
-
-    /* Recuperar contraseña, paso 2: valida el código, cambia la contraseña
-     * y cierra todas las sesiones abiertas del usuario.*/
-    public function restablecerContrasena(RestablecerContrasenaRequest $request): JsonResponse {
-        $usuario = Usuario::where('email', $request->validated('email'))->first();
-
-        // Solo vale el último código de reset pedido.
-        $desafio = $usuario?->codigosVerificacion()
-            ->where('proposito', 'reset')
-            ->latest('id')
-            ->first();
-
-        if (! $desafio || ! $desafio->estaVigente() || ! Hash::check($request->validated('codigo'), $desafio->hash)) {
-            throw ValidationException::withMessages([
-                'codigo' => 'El código es incorrecto o está vencido.',
-            ]);
-        }
-
-        $desafio->update(['usado_en' => now()]);
-        $usuario->update(['contrasena' => $request->validated('password')]);
-        $usuario->tokens()->delete();
-
-        return response()->json([
+        return new MensajeResource([
             'message' => 'Tu contraseña se actualizó. Ya podés iniciar sesión.',
         ]);
     }
 
+<<<<<<< HEAD
 
     //WEB
     /**
@@ -209,4 +109,24 @@ class AuthController extends Controller
         ]);
     }
 
+=======
+    public function obtenerUsuarioAutenticado(Request $request): UsuarioResource
+    {
+        return new UsuarioResource($request->user());
+    }
+
+    public function cerrarSesion(Request $request): Response
+    {
+        $this->autenticacion->cerrarSesion($request->user());
+
+        return response()->noContent();
+    }
+
+    public function guardarTokenPush(TokenPushRequest $request): Response
+    {
+        $this->autenticacion->guardarTokenPush($request->user(), $request->validated('push_token'));
+
+        return response()->noContent();
+    }
+>>>>>>> main
 }

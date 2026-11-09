@@ -1,9 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { obtenerConvenios } from '../../../model/convenioModel'
-import { contarPorEstado } from '../../../controller/convenioController'
-
+import { obtenerTodos } from '../../lib/api'
 
 const ESTADOS = [
   { clave: 'borrador', label: 'Borrador', color: 'secondary' },
@@ -17,10 +15,14 @@ export default function Panel() {
   const [cargando, setCargando]=useState(true)
 
   useEffect(() => {
-      obtenerConvenios()
-      .then(setConvenios)
-      .catch(console.error)
-      .finally(()=>setCargando(false))
+    async function cargar() {
+      try {
+        setConvenios(await obtenerTodos('/api/agreements'))
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    cargar()
   }, [])
 
   const cuenta = contarPorEstado(convenios);

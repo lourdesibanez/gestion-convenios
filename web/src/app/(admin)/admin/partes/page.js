@@ -1,10 +1,36 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
-import { useAuth } from '@/app/context/authContext'
-import Paginado from '@/app/components/Paginado'
-import { obtenerInstituciones, obtenerRepresentantes } from '@/model/convenioModel'
-import { paginar } from '@/controller/convenioController'
-import { filtrarInstituciones, filtrarPersonas } from '@/controller/partesController'
+import { obtenerTodos } from '../../../lib/api'
+
+const POR_PAGINA = 10
+
+const norm = (t) =>
+  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
+function Paginado({ pagina, total, onCambiar }) {
+  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
+  const desde = total === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1
+  const hasta = Math.min(pagina * POR_PAGINA, total)
+
+  return (
+    <div className="card-footer bg-white d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 py-2">
+      <span className="small text-muted">
+        Mostrando {desde}-{hasta} de {total} resultados
+      </span>
+      <ul className="pagination pagination-sm mb-0">
+        <li className={`page-item ${pagina === 1 ? 'disabled' : ''}`}>
+          <button className="page-link" onClick={() => onCambiar(pagina - 1)}>&lsaquo;</button>
+        </li>
+        <li className="page-item disabled">
+          <span className="page-link">{pagina} / {totalPaginas}</span>
+        </li>
+        <li className={`page-item ${pagina === totalPaginas ? 'disabled' : ''}`}>
+          <button className="page-link" onClick={() => onCambiar(pagina + 1)}>&rsaquo;</button>
+        </li>
+      </ul>
+    </div>
+  )
+}
 
 export default function PartesYPersonas() {
   const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
@@ -20,18 +46,28 @@ export default function PartesYPersonas() {
   const [pagina, setPagina] = useState(1)
 
   useEffect(() => {
-    if (sesionCargando || !isAuth) return
-
-    Promise.all([obtenerInstituciones(authFetch), obtenerRepresentantes(authFetch)])
-      .then(([i, p]) => {
+    async function cargar() {
+      try {
+        const [i, p] = await Promise.all([
+          obtenerTodos('/api/units'),
+          obtenerTodos('/api/people'),
+        ])
         setInstituciones(i)
         setPersonas(p)
-      })
-      .catch(() => setError('No se pudieron cargar los datos.'))
-      .finally(() => setCargando(false))
-  }, [authFetch, isAuth, sesionCargando])
+      } catch (err) {
+        console.error(err)
+        setError('No se pudieron cargar los datos. Revisá que el backend esté disponible y que tu usuario tenga permisos.')
+      } finally {
+        setCargando(false)
+      }
+    }
+    cargar()
+  }, [])
 
-  useEffect(() => setPagina(1), [pestania, buscar, ambito])
+  // Al cambiar de pestaña o de filtro vuelve a la página 1
+  useEffect(() => {
+    setPagina(1)
+  }, [pestania, buscar, ambito])
 
   const cambiarPestania = (id) => {
     setPestania(id)

@@ -3,16 +3,27 @@
 namespace App\Services;
 
 use App\Models\Representante;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class RepresentanteService
 {
-    public function listarTodos(): Collection
+    public function listar(): LengthAwarePaginator
     {
-        return Representante::latest('id')->get();
+        return Representante::query()
+            ->select('representante.*')
+            ->selectSub(
+                DB::table('representante_instrumento')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('id_representante', 'representante.id')
+                    ->whereNull('deleted_at'),
+                'total_convenios',
+            )
+            ->latest('id')
+            ->paginate(15);
     }
 
-    public function obtenerPorId(int $id): Representante
+    public function obtenerDetalle(int $id): Representante
     {
         return Representante::findOrFail($id);
     }
@@ -33,15 +44,4 @@ class RepresentanteService
         $representante->delete();
     }
 
-    public function existeDocumentoDuplicado(string $tipo, string $numero, ?int $idExcluido = null): bool
-    {
-        $query = Representante::where('tipo_documento', $tipo)
-            ->where('numero_documento', $numero);
-
-        if ($idExcluido) {
-            $query->where('id', '!=', $idExcluido);
-        }
-
-        return $query->exists();
-    }
 }

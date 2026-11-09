@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Representante;
+use App\Models\Perfil;
 use App\Models\Usuario;
+use App\Models\UsuarioPerfil;
+use Database\Seeders\CatalogoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,8 +19,13 @@ class RepresentanteTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Asumiendo que usas un factory para el usuario autenticado
-        $this->usuario = Usuario::factory()->create(); 
+        $this->seed(CatalogoSeeder::class);
+        $this->usuario = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $this->usuario->id,
+            'id_perfil' => Perfil::where('nombre', 'administracion')->value('id'),
+            'id_institucion' => null,
+        ]);
     }
 
     public function test_puede_crear_representante(): void
@@ -57,5 +65,18 @@ class RepresentanteTest extends TestCase
             ->postJson('/api/people', $datos)
             ->assertStatus(422)
             ->assertJsonStructure(['message']);
+    }
+
+    public function test_listado_paginado_devuelve_quince_elementos(): void
+    {
+        Representante::factory()->count(16)->create();
+
+        $respuesta = $this->actingAs($this->usuario)
+            ->getJson('/api/people')
+            ->assertOk()
+            ->assertJsonStructure(['data', 'links', 'meta' => ['current_page', 'last_page', 'per_page', 'total']]);
+
+        $this->assertCount(15, $respuesta->json('data'));
+        $this->assertSame(2, $respuesta->json('meta.last_page'));
     }
 }

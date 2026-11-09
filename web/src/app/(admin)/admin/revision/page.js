@@ -2,9 +2,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { fecha } from '../../../components/convenio/Formato'
-import { useAuth } from '../../../context/authContext'
-import { obtenerRevision } from '../../../../model/convenioModel'
-import { filtrarTexto } from '@/controller/convenioController'
+import { obtenerTodos } from '../../../lib/api'
+
+const norm = (t) =>
+  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
 export default function Revision() {
   const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
@@ -15,18 +16,32 @@ export default function Revision() {
   const [buscar, setBuscar] = useState('')
 
   useEffect(() => {
-    if (sesionCargando || !isAuth) return
+    async function cargar() {
+      try {
+        setConvenios(await obtenerTodos('/api/agreements/review'))
+      } catch (err) {
+        console.error(err)
+        setError('No se pudieron cargar los convenios.')
+      } finally {
+        setCargando(false)
+      }
+    }
+    cargar()
+  }, [])
 
-    obtenerRevision(authFetch)
-      .then(setConvenios)
-      .catch(() => setError('No se pudieron cargar los convenios.'))
-      .finally(() => setCargando(false))
-  }, [authFetch, isAuth, sesionCargando])
-
-  const visibles = useMemo(
-    () => filtrarTexto(convenios, buscar, ['codigo', 'titulo', 'tipo', 'unidad']),
-    [convenios, buscar]
+  // Solo los que están en revisión, y que coincidan con la búsqueda
+  const enRevision = useMemo(
+    () => convenios.filter((c) => norm(c.estado) === 'revision'),
+    [convenios]
   )
+
+  const visibles = useMemo(() => {
+    if (!buscar) return enRevision
+    const q = norm(buscar)
+    return enRevision.filter((c) =>
+      norm(`${c.codigo} ${c.titulo} ${c.tipo} ${c.unidad}`).includes(q)
+    )
+  }, [enRevision, buscar])
 
   // La columna aparece sola si el backend envía ese dato
   const hayObs = convenios.some((c) => c.observaciones_pendientes !== undefined)

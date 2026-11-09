@@ -5,6 +5,8 @@ export const colors = {
   emphasis: '#04087A',
   background: '#FFFFFF',
   surface: '#F4F6FA',
+  primarySoft: '#E8EEF7',
+
 
   // Textos y bordes (grises para el formulario)
   text: '#111827',

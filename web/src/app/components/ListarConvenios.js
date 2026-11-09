@@ -2,9 +2,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { obtenerConvenios } from '../../model/convenioModel'
-import { filtrarConvenios, paginar, COLOR_ESTADO, norm } from '../../controller/convenioController'
-import Paginado from './Paginado'
+import { obtenerTodos } from '../lib/api'
+
+const POR_PAGINA = 7
+
+const COLOR_ESTADO = {
+  borrador: 'secondary',
+  revision: 'warning',
+  aprobado: 'primary',
+  firmado: 'success',
+  rescindido: 'danger',
+}
+
+// minúsculas y sin tildes: "Revisión" → "revision"
+const norm = (t) =>
+  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
 export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
   const router = useRouter()
   const [convenios, setConvenios] = useState([])
@@ -15,10 +28,14 @@ export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
   // 1) Se piden los datos UNA sola vez
   useEffect(() => {
     async function cargar() {
-      obtenerConvenios()
-      .then(setConvenios)
-      .catch(()=>setError('No pudimos Cargar los convenios'))
-      .finally(()=> setCargando(false))
+      try {
+        setConvenios(await obtenerTodos('/api/agreements'))
+      } catch (err) {
+        console.error(err)
+        setError('No se pudieron cargar los convenios.')
+      } finally {
+        setCargando(false)
+      }
     }
     cargar()
   }, [])

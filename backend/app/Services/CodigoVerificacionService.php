@@ -13,11 +13,12 @@ use Illuminate\Support\Facades\Mail;
  */
 class CodigoVerificacionService {
     public const MINUTOS_VALIDEZ = 5;
-
     public const SEGUNDOS_ESPERA_REENVIO = 60;
 
+    public function __construct(private PushService $push) {}
+
     /*Crea un código nuevo para el usuario y lo envía por el canal indicado.*/
-    public function generarYEnviar(Usuario $usuario, string $canal, string $proposito = 'login'): array{
+    public function generarYEnviarCodigo(Usuario $usuario, string $canal, string $proposito = 'login'): array{
         $codigo = (string) random_int(100000, 999999);
 
         $desafio = $usuario->codigosVerificacion()->create([
@@ -27,14 +28,14 @@ class CodigoVerificacionService {
             'expira_en' => now()->addMinutes(self::MINUTOS_VALIDEZ),
         ]);
 
-        $this->enviar($usuario, $canal, $codigo, $proposito);
+        $this->enviarCodigo($usuario, $canal, $codigo, $proposito);
 
         return [$desafio, $codigo];
     }
 
 
     /*Canales por los que se le puede mandar el código a este usuario.*/
-    public function canalesDisponibles(Usuario $usuario): array
+    public function obtenerCanalesDisponibles(Usuario $usuario): array
     {
         return array_values(array_filter([
             'mail',
@@ -46,23 +47,23 @@ class CodigoVerificacionService {
     /**
      * Destino para mostrar en pantalla sin exponer el dato completo.
      */
-    public function destinoEnmascarado(Usuario $usuario, string $canal): string
+    public function obtenerDestinoEnmascarado(Usuario $usuario, string $canal): string
     {
         return match ($canal) {
-            'mail' => $this->enmascararEmail($usuario->email),
+            'mail' => $this->enmascararCorreo($usuario->email),
             'sms' => '•••• '.substr($usuario->telefono, -3),
             'push' => 'tu dispositivo registrado',
         };
     }
 
-    public function segundosParaReenviar(CodigoVerificacion $desafio): int
+    public function obtenerSegundosParaReenviar(CodigoVerificacion $desafio): int
     {
         $disponibleDesde = $desafio->created_at->copy()->addSeconds(self::SEGUNDOS_ESPERA_REENVIO);
 
         return max(0, (int) ceil(now()->diffInSeconds($disponibleDesde)));
     }
 
-    private function enviar(Usuario $usuario, string $canal, string $codigo, string $proposito): void {
+    private function enviarCodigo(Usuario $usuario, string $canal, string $codigo, string $proposito): void {
         $motivo = $proposito === 'reset' ? 'para restablecer tu contraseña' : 'de verificación';
         $texto = "Tu código {$motivo} es {$codigo}. Vence en ".self::MINUTOS_VALIDEZ.' minutos.';
 
@@ -71,12 +72,12 @@ class CodigoVerificacionService {
             'mail' => Mail::raw($texto, fn ($mensaje) => $mensaje->to($usuario->email)->subject('Código '.$motivo)),
             // Simulados en el log hasta integrar un proveedor de SMS y Expo Push.
             'sms' => Log::info("SMS simulado a {$usuario->telefono}: {$texto}"),
-            'push' => Log::info("Push simulado al usuario {$usuario->id}: {$texto}"),
+            'push' => $this->push->enviarNotificacionPush($usuario->push_token, 'Código '.$motivo, $texto),
         };
     }
 
 
-    private function enmascararEmail(string $email): string
+    private function enmascararCorreo(string $email): string
     {
         [$nombre, $dominio] = explode('@', $email, 2);
 

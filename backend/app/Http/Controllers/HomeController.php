@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\HomeResource;
 use App\Services\HomeService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    public function __invoke(Request $request, HomeService $home): JsonResponse
+    public function obtenerDatos(Request $request, HomeService $home): HomeResource
     {
-        return response()->json($home->datosPara($request->user()));
+        return new HomeResource($home->obtenerDatos($request->user()));
     }
 }

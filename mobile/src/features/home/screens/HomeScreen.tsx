@@ -1,20 +1,30 @@
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ClipboardPenLine, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { StatCard } from '@/components/molecules';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { colors, spacing, typography } from '@/theme';
 import { useHome } from '../hooks/useHome';
+import { useState } from 'react';
+
+function fechaRelativa(fecha: string) {
+  const diferencia = Date.now() - new Date(fecha).getTime();
+  const horas = Math.floor(diferencia / 3_600_000);
+
+  if (horas < 1) return 'hace 1 h';
+  if (horas < 24) return `hace ${horas} h`;
+  if (horas < 48) return 'ayer';
+
+  const date = new Date(fecha);
+  return `${date.getDate()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+const coloresEstado: Record<string, string> = { ...colors.status };
 
 export function HomeScreen() {
-  const { signOut } = useAuth();
   const { data, loading, refreshing, error, refresh } = useHome();
-
-  const confirmSignOut = () =>
-    Alert.alert('Cerrar sesión', '¿Querés cerrar la sesión en este dispositivo?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
-    ]);
+  const [movimientosAbiertos, setMovimientosAbiertos] = useState(false);
 
   if (loading) {
     return (
@@ -51,16 +61,94 @@ export function HomeScreen() {
 
             <Text style={styles.section}>Resumen de convenios</Text>
 
+            {/* -------- BOX ------- */}
             <View style={styles.grid}>
               <StatCard label="Vigentes" value={data.resumen.vigentes} color={colors.status.firmado} />
               <StatCard label="En trámite" value={data.resumen.en_tramite} color={colors.status.revision} />
               <StatCard label="Vencen en 30 días" value={data.resumen.vencen_30_dias} color={colors.status.rescindido} />
               <StatCard label="Firmados último año" value={data.resumen.firmados_ultimo_anio} color={colors.primary} />
             </View>
+
+            {/* -------- ÚLTIMOS MOVIMIENTOS ------- */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: movimientosAbiertos }}
+              onPress={() => setMovimientosAbiertos((abiertos) => !abiertos)}
+              style={styles.headerList}
+            >
+              <Text style={styles.section}>Últimos movimientos</Text>
+              {movimientosAbiertos ? (
+                <ChevronUp size={20} color={colors.textMuted} />
+              ) : (
+                <ChevronDown size={20} color={colors.textMuted} />
+              )}
+            </Pressable>
+
+            {movimientosAbiertos &&
+              (data.ultimos_movimientos.length === 0 ? (
+                <Text style={styles.unit}>Aún no hay movimientos.</Text>
+              ) : (
+                <View style={styles.list}>
+                  {data.ultimos_movimientos.map((movimiento) => (
+                    <View key={movimiento.uuid} style={styles.itemList}>
+                      <View style={styles.flex}>
+                        <Text style={styles.titleList} numberOfLines={1}>
+                          {movimiento.titulo}
+                        </Text>
+                        <Text style={styles.unit} numberOfLines={1}>
+                          {movimiento.codigo} · {fechaRelativa(movimiento.fecha)}
+                        </Text>
+                      </View>
+
+                      <View style={[styles.statusBadge, { backgroundColor: '#E8EEF7' }]}>
+                        <Text
+                          style={[
+                            styles.statusText,
+                            { color: coloresEstado[movimiento.estado] ?? colors.textMuted },
+                          ]}
+                        >
+                          {movimiento.estado}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ))}
+
+          {/* -------- MIS PENDIENTES ------- */}
+            <View style={styles.headerList}>
+              <Text style={styles.section}>Mis pendientes  ({data.pendientes.total})</Text>
+            </View>
+
+            {data.pendientes.items.length === 0 ? (
+              <Text style={styles.unit}>No tenés firmas pendientes.</Text>
+            ) : (
+              <View style={styles.list}>
+                {data.pendientes.items.map((item) => (
+                  <View key={item.uuid} style={styles.itemList}>
+                    <View style={styles.flex}>
+                      <Text style={styles.titleList} numberOfLines={1}>
+                        {item.titulo}
+                      </Text>
+                      <Text style={styles.unit}>
+                        {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Firmar ${item.titulo}`}
+                      onPress={() => router.push('/sign')}
+                      style={styles.signIconButton}
+                    >
+                      <ClipboardPenLine size={20} color={colors.primary} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
           </>
         )}
 
-        <Button title="Cerrar sesión" variant="outline" onPress={confirmSignOut} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -127,5 +215,45 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.error,
     textAlign: 'center',
+  },
+  headerList: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  list: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  itemList: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  signIconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  titleList: {
+    ...typography.label,
+    color: colors.text,
+  },
+  statusBadge: {
+    borderRadius: 16,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

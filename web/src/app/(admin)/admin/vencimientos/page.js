@@ -1,16 +1,28 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useAuth } from '@/app/context/authContext'
-import { fecha } from '@/app/components/convenio/Formato'
-import { obtenerConvenios, obtenerVencimientos } from '@/model/convenioModel'
-import {
-  HORIZONTES,
-  diasHasta,
-  prepararVencimientos,
-  resumirVencimientos,
-  filtrarPorHorizonte,
-} from '@/controller/convenioController'
+import { fecha } from '../../../components/convenio/Formato'
+import { obtenerTodos } from '../../../lib/api'
+
+const norm = (t) =>
+  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
+// "2026-11-30" → Date local a medianoche
+const aFecha = (s) => {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+// días desde hoy hasta la fecha (negativo = ya venció)
+const diasHasta = (s, hoy) => Math.round((aFecha(s) - hoy) / 86400000)
+
+const HORIZONTES = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'vencidos', label: 'Vencidos' },
+  { id: '30', label: 'Próximos 30 días' },
+  { id: '90', label: 'Próximos 90 días' },
+  { id: '180', label: 'Próximos 180 días' },
+]
 
 function Plazo({ dias }) {
   if (dias < 0) {
@@ -35,6 +47,18 @@ export default function Vencimientos() {
   useEffect(() => {
     const d = new Date()
     setHoy(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
+
+    async function cargar() {
+      try {
+        setConvenios(await obtenerTodos('/api/agreements'))
+      } catch (err) {
+        console.error(err)
+        setError('No se pudieron cargar los convenios.')
+      } finally {
+        setCargando(false)
+      }
+    }
+    cargar()
   }, [])
 
   useEffect(() => {
