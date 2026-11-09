@@ -2,13 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Archivo;
 use App\Models\Firma;
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use App\Models\Archivo;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FirmaService
 {
@@ -32,46 +29,18 @@ class FirmaService
             ]);
     }
 
-    public function obtenerDocumentoPendiente(Usuario $usuario, int $idInstrumento): Archivo
+    public function obtenerDocumentoPendiente(Usuario $usuario, int $id_instrumento): Archivo
     {
         $usuario->firmas()
             ->pendientes()
-            ->where('id_instrumento', $idInstrumento)
+            ->where('id_instrumento', $id_instrumento)
             ->firstOrFail();
 
         return Archivo::query()
-            ->where('id_instrumento', $idInstrumento)
+            ->where('id_instrumento', $id_instrumento)
             ->where('tipo_documento', 'convenio_aprobado')
             ->where('tipo_mime', 'application/pdf')
             ->latest('id')
             ->firstOrFail();
-    }
-
-    public function verPdfPendiente(Usuario $usuario, int $idInstrumento): StreamedResponse
-    {
-        $usuario->firmas()
-            ->pendientes()
-            ->where('id_instrumento', $idInstrumento)
-            ->firstOrFail();
-
-        $archivo = Archivo::query()
-            ->where('id_instrumento', $idInstrumento)
-            ->where('tipo_documento', 'convenio_aprobado')
-            ->latest('id')
-            ->firstOrFail();
-
-        if (! Storage::disk('local')->exists($archivo->ruta)) {
-            throw (new ModelNotFoundException())->setModel(Archivo::class, [$archivo->id]);
-        }
-
-        return Storage::disk('local')->response(
-            $archivo->ruta,
-            $archivo->nombre,
-            [
-                'Content-Type' => 'application/pdf',
-                'X-Content-Type-Options' => 'nosniff',
-            ],
-            'inline',
-        );
     }
 }

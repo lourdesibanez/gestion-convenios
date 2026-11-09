@@ -57,6 +57,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('agreements/{id}',                   [ConvenioController::class, 'obtenerDetalle'])->name('agreements.show');
 
     Route::get('signatures/pending',                                [FirmaController::class, 'listarPendientes'])->name('signatures.pending');
-    Route::get('signatures/pending/{id_instrumento}/document',      [FirmaController::class, 'visualizarDocumentoPendiente'],)->name('signatures.pending.document');
-    Route::get('signatures/{id}/document',                          [FirmaController::class, 'verPdfPendiente'])->name('signatures.document');
+    Route::get('signatures/pending/{id_instrumento}/document',      [FirmaController::class, 'verPdfPendiente'])->name('signatures.pending.document');
 });

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\FirmaService;
+use App\Models\Firma;
 use App\Services\ArchivoService;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\FirmaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FirmaController extends Controller
 {
@@ -24,13 +25,11 @@ class FirmaController extends Controller
 
     public function verPdfPendiente(Request $request, int $id_instrumento): StreamedResponse
     {
-        return $this->firmas->verPdfPendiente($request->user(), $id_instrumento);
-    }
+        $this->authorize('verPdfPendiente', [Firma::class, $id_instrumento]);
 
-    public function visualizarDocumentoPendiente(Request $request, int $id_instrumento): StreamedResponse {
         $archivo = $this->firmas->obtenerDocumentoPendiente(
             $request->user(),
-            $idInstrumento,
+            $id_instrumento,
         );
 
         return $this->archivos->visualizar($archivo, $request->user());

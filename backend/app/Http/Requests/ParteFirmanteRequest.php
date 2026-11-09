@@ -34,15 +34,15 @@ class ParteFirmanteRequest extends FormRequest
             $id = $this->route('id');
             $actual = $id ? ParteFirmante::find($id) : null;
             $idInstitucion = $this->input('id_institucion', $actual?->id_institucion);
-            $idInstrumento = $this->input('id_instrumento', $actual?->id_instrumento);
+            $id_instrumento = $this->input('id_instrumento', $actual?->id_instrumento);
 
-            if ($idInstitucion === null || $idInstrumento === null) {
+            if ($idInstitucion === null || $id_instrumento === null) {
                 return;
             }
 
             $duplicado = ParteFirmante::query()
                 ->where('id_institucion', $idInstitucion)
-                ->where('id_instrumento', $idInstrumento)
+                ->where('id_instrumento', $id_instrumento)
                 ->when($id, fn ($query) => $query->whereKeyNot($id))
                 ->exists();
 
