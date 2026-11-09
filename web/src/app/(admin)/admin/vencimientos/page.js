@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useAuth } from '../../../../app/context/authContext'
 import { fecha } from '../../../components/convenio/Formato'
-import { obtenerTodos } from '../../../lib/api'
+import { obtenerVencimientos } from '../../../../model/convenioModel'
+import {prepararVencimientos,filtrarPorHorizonte, resumirVencimientos} from '../../../../controller/convenioController'
 
 const norm = (t) =>
   (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
@@ -36,7 +38,7 @@ function Plazo({ dias }) {
 }
 
 export default function Vencimientos() {
-  const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
+  const { token, isAuth, cargando: sesionCargando } = useAuth()
 
   const [convenios, setConvenios] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -48,28 +50,27 @@ export default function Vencimientos() {
     const d = new Date()
     setHoy(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
 
+    if (sesionCargando) return
+
+    if (!isAuth) {
+      setCargando(false)
+      return
+    }
+
     async function cargar() {
       try {
-        setConvenios(await obtenerTodos('/api/agreements'))
+        const datos = await obtenerVencimientos(token)
+        setConvenios(datos)
       } catch (err) {
         console.error(err)
-        setError('No se pudieron cargar los convenios.')
+        setError('No se pudieron cargar los vencimientos.')
       } finally {
         setCargando(false)
       }
     }
+
     cargar()
-  }, [])
-
-  useEffect(() => {
-    if (sesionCargando || !isAuth) return
-
-    obtenerConvenios(authFetch)
-      .then(setConvenios)
-      .catch(() => setError('No se pudieron cargar los vencimientos.'))
-      .finally(() => setCargando(false))
-  }, [authFetch, isAuth, sesionCargando])
-
+  }, [token, isAuth, sesionCargando])
   const lista = useMemo(() => prepararVencimientos(convenios, hoy), [convenios, hoy])
   const resumen = useMemo(() => resumirVencimientos(lista), [lista])
   const visibles = useMemo(() => filtrarPorHorizonte(lista, horizonte), [lista, horizonte])

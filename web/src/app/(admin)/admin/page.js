@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { obtenerConvenios } from '@/model/convenioModel'
-import { contarPorEstado } from '@/controller/convenioController'
+import { obtenerConvenios } from '../../../model/convenioModel'
+import { contarPorEstado } from '../../../controller/convenioController'
 
 const ESTADOS = [
   { clave: 'borrador', label: 'Borrador', color: 'secondary' },

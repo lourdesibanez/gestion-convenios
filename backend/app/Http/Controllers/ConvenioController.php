@@ -38,45 +38,4 @@ class ConvenioController extends Controller
 
         return ConvenioResource::collection($this->convenios->listarEnRevision($request->user()));
     }
-
-    //PARA LA WEB ... Por el momento no quiero ves si tiene periso de editar o no
-    
-    public function listarPrivadoWeb(ConvenioIndexRequest $request)
-    {
-           return ConvenioResource::collection(
-            $this->convenios->listarPrivadoWeb($request->validated())
-        );
-    }
-    //en la web hay una parte publica 
-        public function listarPublicos(ConvenioIndexRequest $request)
-    {
-        return ConvenioResource::collection(
-            $this->convenios->listarPublicos($request->validated())
-        );
-    }
-
-    public function obtenerDetallesPublico($id)
-    {
-        try {
-            $data = $this->convenios->ObtenerDetallesPublico((int) $id);
-
-            return response()->json([
-                'ok' => true,
-                'data' => $data,
-            ], 200);
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'ok' => false,
-                'mensaje' => 'Convenio no encontrado',
-            ], 404);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'ok' => false,
-                'mensaje' => 'Error al obtener el convenio',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
-        }
-    }
 }

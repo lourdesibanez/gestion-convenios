@@ -3,10 +3,14 @@
 use App\Http\Controllers\ArchivoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConvenioController;
+use App\Http\Controllers\ConvenioWebController;
+
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstitucionController;
+use App\Http\Controllers\InstitucionWebController;
 use App\Http\Controllers\ParteFirmanteController;
 use App\Http\Controllers\RepresentanteController;
+use App\Http\Controllers\RepresentanteWebController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -25,8 +29,8 @@ Route::prefix('auth')->group(function () {
 });
 
 // ---------- Públicas (cualquiera puede consultar) ----------
-Route::get('convenios', [ConvenioController::class, 'listarPublicos']);
-Route::get('publico/convenios/{id}', [ConvenioController::class, 'obtenerDetallesPublico']);
+Route::get('convenios', [ConvenioWebController::class, 'listarPublicos']);
+Route::get('publico/convenios/{id}', [ConvenioWebController::class, 'obtenerDetallesPublico']);
 
 // ---------- Solo con token (administración) ----------
 Route::middleware('auth:sanctum')->group(function () {
@@ -57,8 +61,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('documents/{id}/download', [ArchivoController::class, 'descargar'])
         ->name('documents.download');
 
-    Route::get('agreementsWeb', [ConvenioController::class, 'listarPrivadoWeb'])->name('agreements.index');
     Route::get('agreements', [ConvenioController::class, 'listar'])->name('agreements.index');
     Route::get('agreements/review', [ConvenioController::class, 'listarEnRevision'])->name('agreements.review');
     Route::get('agreements/{id}', [ConvenioController::class, 'obtenerDetalle'])->name('agreements.show');
+    //WEB
+    Route::get('agreementsWeb', [ConvenioWebController::class, 'listarPrivado'])->name('agreements.index');
+    Route::get('agreementsWeb/review', [ConvenioWebController::class, 'listarEnRevision'])->name('agreements.review');
+    Route::get('agreementsWeb/{id}', [ConvenioWebController::class, 'obtenerDetallePrivado'])->name('agreements.show');
+    Route::get('unitsWeb', [InstitucionWebController::class, 'listar'])->name('units.index');
+    Route::get('peopleWeb', [RepresentanteWebController::class, 'listar'])->name('people.index');
+
 });

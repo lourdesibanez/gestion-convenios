@@ -17,7 +17,7 @@ export async function obtenerConvenioPublico(id) {
 // ---------- Administración (reciben el token del contexto) ----------
 export async function obtenerConvenioAdmin(token, id) {
   try {
-    const json = await obtenerUno(`/api/agreements/${id}`, token)
+    const json = await obtenerUno(`/api/agreementsWeb/${id}`, token)
     return json.data ?? json
   } catch (err) {
     if (err.status === 404) return null
@@ -25,7 +25,7 @@ export async function obtenerConvenioAdmin(token, id) {
   }
 }
 
-export const obtenerRevision = (token) => obtenerTodos('/api/agreements/review', token)
-export const obtenerVencimientos = (token) => obtenerTodos('/api/agreements', token)
-export const obtenerInstituciones = (token) => obtenerTodos('/api/units', token)
-export const obtenerRepresentantes = (token) => obtenerTodos('/api/people', token)
+export const obtenerRevision = (token) => obtenerTodos('/api/agreementsWeb/review', token)
+export const obtenerVencimientos = (token) => obtenerTodos('/api/agreementsWeb', token)
+export const obtenerInstituciones = (token) => obtenerTodos('/api/unitsWeb', token)
+export const obtenerRepresentantes = (token) => obtenerTodos('/api/peopleWeb', token)
