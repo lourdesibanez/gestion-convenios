@@ -138,7 +138,11 @@ export function HomeScreen() {
                     hitSlop={8}
                     onPress={() => router.push({
                       pathname: '/signature/[id]',
-                      params: { id: String(item.id_instrumento) },
+                      params: { 
+                        id: String(item.id_instrumento),
+                        titulo: item.titulo,
+                        codigo: item.codigo,
+                       },
                     })}
                     style={styles.signIconButton}
                   >

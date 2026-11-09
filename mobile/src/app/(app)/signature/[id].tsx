@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Share, Fingerprint, MapPin, Delete, Signature } from 'lucide-react-native';
+import { ChevronLeft, Share, Fingerprint, Delete, Signature } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
@@ -200,7 +200,6 @@ export default function SignatureScreen() {
                 </Pressable>
 
                 <View style={styles.locationRow}>
-                    <MapPin size={17} color={colors.primary} />
                     <Text style={styles.locationText}>
                     Se registrará fecha, hora y ubicación del acto de firma.
                     </Text>
