@@ -69,6 +69,58 @@ class ConvenioTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_consulta_publica_solo_expone_convenios_firmados(): void
+    {
+        $firmado = Instrumento::factory()->vigente()->create([
+            'id_institucion' => $this->unidad->id,
+        ]);
+        $borrador = Instrumento::factory()->create(['id_institucion' => $this->unidad->id]);
+
+        $listado = $this->getJson('/api/public/agreements')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [['id', 'codigo', 'titulo', 'estado']],
+                'links',
+                'meta',
+            ])
+            ->assertJsonPath('data.0.id', $firmado->id);
+        $this->assertCount(1, $listado->json('data'));
+
+        $this->getJson('/api/public/agreements/'.$firmado->id)
+            ->assertOk()
+            ->assertJsonStructure(['convenio' => ['id', 'codigo', 'version'], 'partes', 'archivos'])
+            ->assertJsonMissingPath('ok')
+            ->assertJsonMissingPath('data');
+
+        $this->getJson('/api/public/agreements/'.$borrador->id)->assertNotFound();
+    }
+
+    public function test_perfil_revision_puede_listar_solo_instrumentos_de_su_institucion(): void
+    {
+        $unidadAjena = Institucion::factory()->interna()->create();
+        $propio = Instrumento::factory()->enEstado('revision')->create([
+            'id_institucion' => $this->unidad->id,
+        ]);
+        Instrumento::factory()->enEstado('revision')->create([
+            'id_institucion' => $unidadAjena->id,
+        ]);
+
+        UsuarioPerfil::create([
+            'id_usuario' => $this->usuario->id,
+            'id_perfil' => Perfil::where('nombre', 'revision')->value('id'),
+            'id_institucion' => $this->unidad->id,
+        ]);
+
+        $respuesta = $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/review')
+            ->assertOk();
+
+        $this->assertSame(
+            [$propio->id],
+            collect($respuesta->json('data'))->pluck('id')->all(),
+        );
+    }
+
     private function asignarPerfil(Usuario $usuario, string $perfil, ?int $idInstitucion): void
     {
         UsuarioPerfil::create([

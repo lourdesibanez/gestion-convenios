@@ -8,18 +8,12 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class InstitucionService
 {
-    public function listar(Usuario $usuario): LengthAwarePaginator
+    public function listar(): LengthAwarePaginator
     {
-        $query = Institucion::with('representante')
+        return Institucion::with('representante')
             ->withCount('partesFirmantes as total_convenios')
-            ->latest('id');
-        $visibles = $usuario->institucionesVisibles();
-
-        if ($visibles !== null) {
-            $query->whereIn('id', $visibles);
-        }
-
-        return $query->paginate(15);
+            ->latest('id')
+            ->paginate(15);
     }
 
     public function obtenerDetalle(Usuario $usuario, int $id): Institucion
@@ -55,5 +49,4 @@ class InstitucionService
     {
         $institucion->delete();
     }
-
 }

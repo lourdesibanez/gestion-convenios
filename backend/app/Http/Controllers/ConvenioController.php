@@ -13,6 +13,18 @@ class ConvenioController extends Controller
 {
     public function __construct(private ConvenioService $convenios) {}
 
+    public function listarPublicos(ConvenioIndexRequest $request)
+    {
+        return ConvenioResource::collection(
+            $this->convenios->listarPublicos($request->validated())
+        );
+    }
+
+    public function obtenerDetallePublico(int $id): ConvenioDetalleResource
+    {
+        return new ConvenioDetalleResource($this->convenios->obtenerDetallePublico($id));
+    }
+
     public function listar(ConvenioIndexRequest $request)
     {
         $this->authorize('viewAny', Instrumento::class);

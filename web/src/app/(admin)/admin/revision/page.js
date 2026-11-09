@@ -1,68 +1,41 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { fecha } from '../../../components/convenio/Formato'
-import { obtenerTodos } from '../../../lib/api'
+import useDatosAdmin from '../../../../app/hooks/useDatosAdmin'
+import { fecha } from '../../../../app/components/convenio/Formato'
+import { obtenerRevision } from '../../../../model/convenioModel'
+import { filtrarTexto } from '../../../../controller/convenioController'
 
-const norm = (t) =>
-  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+const VACIO = []
 
 export default function Revision() {
-  const [convenios, setConvenios] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState(null)
+  const { datos, cargando, error } = useDatosAdmin(obtenerRevision)
+  const convenios = datos ?? VACIO
   const [buscar, setBuscar] = useState('')
 
-  useEffect(() => {
-    async function cargar() {
-      try {
-        setConvenios(await obtenerTodos('/api/agreements/review'))
-      } catch (err) {
-        console.error(err)
-        setError('No se pudieron cargar los convenios.')
-      } finally {
-        setCargando(false)
-      }
-    }
-    cargar()
-  }, [])
-
-  // Solo los que están en revisión, y que coincidan con la búsqueda
-  const enRevision = useMemo(
-    () => convenios.filter((c) => norm(c.estado) === 'revision'),
-    [convenios]
+  const visibles = useMemo(
+    () => filtrarTexto(convenios, buscar, ['codigo', 'titulo', 'tipo', 'unidad']),
+    [convenios, buscar]
   )
 
-  const visibles = useMemo(() => {
-    if (!buscar) return enRevision
-    const q = norm(buscar)
-    return enRevision.filter((c) =>
-      norm(`${c.codigo} ${c.titulo} ${c.tipo} ${c.unidad}`).includes(q)
-    )
-  }, [enRevision, buscar])
-
-  // La columna de observaciones solo aparece si el backend la envía
-  const hayObservaciones = enRevision.some((c) => c.observaciones_pendientes !== undefined)
+  const hayObs = convenios.some((c) => c.observaciones_pendientes !== undefined)
+  const columnas = hayObs ? 7 : 6
 
   return (
     <div>
       <div className="mb-3">
         <h1 className="h4 text-primary mb-0">Revisión</h1>
         <p className="small text-muted mb-0">
-          {cargando
-            ? 'Cargando...'
-            : `${enRevision.length} instrumento${enRevision.length === 1 ? '' : 's'} esperando revisión`}
+          {cargando ? 'Cargando...' : `${convenios.length} instrumento${convenios.length === 1 ? '' : 's'} esperando revisión`}
         </p>
       </div>
 
       <div className="card shadow-sm mb-3">
         <div className="card-body py-3">
-          <label htmlFor="buscar-revision" className="form-label small fw-semibold">
-            Buscar
-          </label>
+          <label htmlFor="buscar-revision" className="form-label small fw-semibold">Buscar</label>
           <input
-            type="text"
             id="buscar-revision"
+            type="text"
             className="form-control"
             placeholder="Código, título, tipo o unidad"
             value={buscar}
@@ -83,26 +56,18 @@ export default function Revision() {
                   <th>Título</th>
                   <th>Tipo</th>
                   <th>Unidad</th>
-                  {hayObservaciones && <th className="text-center">Obs. pendientes</th>}
+                  {hayObs && <th className="text-center">Obs. pendientes</th>}
                   <th>Vence</th>
                   <th />
                 </tr>
               </thead>
-
               <tbody>
                 {cargando ? (
-                  <tr>
-                    <td colSpan={7} className="text-center text-muted py-4">
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Cargando...
-                    </td>
-                  </tr>
+                  <tr><td colSpan={columnas} className="text-center text-muted py-4">Cargando...</td></tr>
                 ) : visibles.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-muted py-4">
-                      {enRevision.length === 0
-                        ? 'No hay convenios pendientes de revisión.'
-                        : 'Ningún convenio coincide con la búsqueda.'}
+                    <td colSpan={columnas} className="text-center text-muted py-4">
+                      {convenios.length === 0 ? 'No hay convenios pendientes de revisión.' : 'Ningún convenio coincide con la búsqueda.'}
                     </td>
                   </tr>
                 ) : (
@@ -114,29 +79,16 @@ export default function Revision() {
                       <td>{c.titulo}</td>
                       <td className="text-muted">{c.tipo}</td>
                       <td className="text-muted">{c.unidad}</td>
-
-                      {hayObservaciones && (
+                      {hayObs && (
                         <td className="text-center">
-                          <span
-                            className={`badge rounded-pill ${
-                              Number(c.observaciones_pendientes) > 0
-                                ? 'text-bg-warning'
-                                : 'text-bg-light border'
-                            }`}
-                          >
+                          <span className={`badge rounded-pill ${Number(c.observaciones_pendientes) > 0 ? 'text-bg-warning' : 'text-bg-light border'}`}>
                             {c.observaciones_pendientes ?? 0}
                           </span>
                         </td>
                       )}
-
                       <td className="text-nowrap">{fecha(c.vence)}</td>
                       <td className="text-end pe-3">
-                        <Link
-                          href={`/admin/convenios/${c.id}`}
-                          className="btn btn-outline-primary btn-sm"
-                        >
-                          Revisar
-                        </Link>
+                        <Link href={`/admin/convenios/${c.id}`} className="btn btn-outline-primary btn-sm">Revisar</Link>
                       </td>
                     </tr>
                   ))
@@ -144,12 +96,6 @@ export default function Revision() {
               </tbody>
             </table>
           </div>
-
-          {!cargando && visibles.length > 0 && (
-            <div className="card-footer bg-white small text-muted py-2">
-              Mostrando {visibles.length} de {enRevision.length}
-            </div>
-          )}
         </div>
       )}
     </div>

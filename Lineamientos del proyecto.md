@@ -144,9 +144,10 @@ Ruta (auth:sanctum) → FormRequest (valida) → Policy (autoriza)
 
 * **Validación siempre en la API**, aunque la web o la app también validen. Cada endpoint que recibe datos usa un FormRequest y el controlador trabaja con `validated()`.
 
-* **Autenticación:** todas las rutas usan auth:sanctum, salvo POST /auth/login, /auth/verify-code, /auth/resend-code, /auth/forgot-password y /auth/reset-password.
+* **Autenticación:** las rutas privadas usan auth:sanctum. Son públicas POST /auth/login, /auth/verify-code, /auth/resend-code, /auth/forgot-password y /auth/reset-password, además de GET /public/agreements y GET /public/agreements/{id}.
 
 * **Autorización en el servidor:** los controladores autorizan cada acción con una Policy. Las consultas también se filtran por el alcance del usuario. Un usuario ve solo los instrumentos de las instituciones de su usuario\_perfil, salvo que tenga alcance global (id\_institucion \= null).
+* **Directorios:** los listados autorizados de instituciones y representantes muestran todos los registros activos; consultar un detalle y realizar cambios sigue sujeto a las Policies y al alcance del usuario.
 
 * **Respuestas:** los recursos individuales devuelven sus campos directamente; los listados paginados usan `data`, `links` y `meta`. No se agrega un envoltorio `ok` ni se duplica `data`.
 

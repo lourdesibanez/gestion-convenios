@@ -18,7 +18,7 @@ export default function ConveniosAdmin() {
       </div>
 
       <Buscador onBuscar={setFiltros} />
-      <ListarConvenios filtros={filtros} base="/admin/convenios" />
+      <ListarConvenios filtros={filtros} base="/admin/convenios" admin/>
     </>
   )
 }

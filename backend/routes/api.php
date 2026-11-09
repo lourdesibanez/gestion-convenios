@@ -11,11 +11,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FirmaController;
 
 Route::prefix('auth')->group(function () {
-    Route::post('login',                            [AuthController::class, 'iniciarSesion'])->middleware('throttle:5,1,login');
-    Route::post('verify-code',                      [AuthController::class, 'verificarCodigo'])->middleware('throttle:5,1,verify-code');
-    Route::post('resend-code',                      [AuthController::class, 'reenviarCodigo'])->middleware('throttle:5,1,resend-code');
-    Route::post('forgot-password',                  [AuthController::class, 'solicitarRestablecimientoContrasena'])->middleware('throttle:5,1,forgot-password');
-    Route::post('reset-password',                   [AuthController::class, 'restablecerContrasena'])->middleware('throttle:5,1,reset-password');
+    Route::post('login', [AuthController::class, 'iniciarSesion'])->middleware('throttle:5,1,login');
+    Route::post('verify-code', [AuthController::class, 'verificarCodigo'])->middleware('throttle:5,1,verify-code');
+    Route::post('resend-code', [AuthController::class, 'reenviarCodigo'])->middleware('throttle:5,1,resend-code');
+    Route::post('forgot-password', [AuthController::class, 'solicitarRestablecimientoContrasena'])->middleware('throttle:5,1,forgot-password');
+    Route::post('reset-password', [AuthController::class, 'restablecerContrasena'])->middleware('throttle:5,1,reset-password');
+    Route::post('web/login', [AuthController::class, 'iniciarSesionWeb'])->middleware('throttle:5,1,web-login');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me',                            [AuthController::class, 'obtenerUsuarioAutenticado']);
@@ -24,6 +25,11 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// ---------- Consulta pública ----------
+Route::get('public/agreements', [ConvenioController::class, 'listarPublicos']);
+Route::get('public/agreements/{id}', [ConvenioController::class, 'obtenerDetallePublico']);
+
+// ---------- Solo con token (administración) ----------
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('home',                              [HomeController::class, 'obtenerDatos']);
 
