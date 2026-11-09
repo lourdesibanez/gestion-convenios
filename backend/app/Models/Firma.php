@@ -27,6 +27,7 @@ class Firma extends Model
         'longitud',
         'ruta_imagen_firma',
         'hash_documento',
+        'token_verificacion',
     ];
 
     /**

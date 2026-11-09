@@ -14,4 +14,13 @@ class FirmaPolicy
                 ->where('id_instrumento', $id_instrumento)
                 ->exists();
     }
+
+    public function registrar(Usuario $usuario, int $id_instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.firmar')
+            && $usuario->firmas()
+                ->pendientes()
+                ->where('id_instrumento', $id_instrumento)
+                ->exists();
+    }
 }

@@ -58,4 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('signatures/pending',                                [FirmaController::class, 'listarPendientes'])->name('signatures.pending');
     Route::get('signatures/pending/{id_instrumento}/document',      [FirmaController::class, 'verPdfPendiente'])->name('signatures.pending.document');
+    Route::post('signatures/pending/{id_instrumento}/sign',         [FirmaController::class, 'registrar'])->name('signatures.pending.sign');
+
+
 });
