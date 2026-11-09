@@ -47,4 +47,15 @@ class FirmaController extends Controller
             ),
             201);
     }
+
+    public function verPdfFirmado(Request $request, int $id_instrumento): StreamedResponse {
+        $this->authorize('verDocumentoFirmado', [Firma::class, $id_instrumento]);
+
+        $archivo = $this->firmas->obtenerDocumentoFirmado(
+            $request->user(),
+            $id_instrumento,
+        );
+
+        return $this->archivos->visualizar($archivo, $request->user());
+    }
 }

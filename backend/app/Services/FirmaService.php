@@ -228,4 +228,18 @@ class FirmaService
             ->latest('id')
             ->firstOrFail();
     }
+
+    public function obtenerDocumentoFirmado(Usuario $usuario, int $id_instrumento): Archivo
+    {
+        $usuario->firmas()
+            ->where('id_instrumento', $id_instrumento)
+            ->firstOrFail();
+
+        return Archivo::query()
+            ->where('id_instrumento', $id_instrumento)
+            ->where('tipo_documento', 'convenio_firmado')
+            ->where('tipo_mime', 'application/pdf')
+            ->latest('id')
+            ->firstOrFail();
+    }
 }

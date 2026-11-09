@@ -23,4 +23,12 @@ class FirmaPolicy
                 ->where('id_instrumento', $id_instrumento)
                 ->exists();
     }
+
+    public function verDocumentoFirmado(Usuario $usuario, int $id_instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.ver')
+            && $usuario->firmas()
+                ->where('id_instrumento', $id_instrumento)
+                ->exists();
+    }
 }
