@@ -1,49 +1,31 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { fecha } from '../../../components/convenio/Formato'
-
-const API = process.env.NEXT_PUBLIC_API_URL
-
-const norm = (t) =>
-  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-
-// "2026-11-30" → Date local a medianoche
-const aFecha = (s) => {
-  const [y, m, d] = s.slice(0, 10).split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-
-// días desde hoy hasta la fecha (negativo = ya venció)
-const diasHasta = (s, hoy) => Math.round((aFecha(s) - hoy) / 86400000)
-
-const HORIZONTES = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'vencidos', label: 'Vencidos' },
-  { id: '30', label: 'Próximos 30 días' },
-  { id: '90', label: 'Próximos 90 días' },
-  { id: '180', label: 'Próximos 180 días' },
-]
+import { useAuth } from '@/app/context/authContext'
+import { fecha } from '@/app/components/convenio/Formato'
+import { obtenerConvenios, obtenerVencimientos } from '@/model/convenioModel'
+import {
+  HORIZONTES,
+  diasHasta,
+  prepararVencimientos,
+  resumirVencimientos,
+  filtrarPorHorizonte,
+} from '@/controller/convenioController'
 
 function Plazo({ dias }) {
   if (dias < 0) {
-    return (
-      <span className="badge rounded-pill text-bg-danger">
-        Vencido hace {Math.abs(dias)} {Math.abs(dias) === 1 ? 'día' : 'días'}
-      </span>
-    )
+    const n = Math.abs(dias)
+    return <span className="badge rounded-pill text-bg-danger">Vencido hace {n} {n === 1 ? 'día' : 'días'}</span>
   }
   if (dias === 0) return <span className="badge rounded-pill text-bg-danger">Vence hoy</span>
 
   const color = dias <= 30 ? 'danger' : dias <= 90 ? 'warning' : 'secondary'
-  return (
-    <span className={`badge rounded-pill text-bg-${color}`}>
-      En {dias} {dias === 1 ? 'día' : 'días'}
-    </span>
-  )
+  return <span className={`badge rounded-pill text-bg-${color}`}>En {dias} {dias === 1 ? 'día' : 'días'}</span>
 }
 
 export default function Vencimientos() {
+  const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
+
   const [convenios, setConvenios] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
@@ -53,53 +35,24 @@ export default function Vencimientos() {
   useEffect(() => {
     const d = new Date()
     setHoy(new Date(d.getFullYear(), d.getMonth(), d.getDate()))
-
-    async function cargar() {
-      try {
-        const res = await fetch(`${API}/api/convenios`, {
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        const json = await res.json()
-        setConvenios(Array.isArray(json) ? json : json.data ?? json.convenios ?? [])
-      } catch (err) {
-        console.error(err)
-        setError('No se pudieron cargar los convenios.')
-      } finally {
-        setCargando(false)
-      }
-    }
-    cargar()
   }, [])
 
-  // Solo instrumentos con fecha de vencimiento y que sigan vivos
-  const conVencimiento = useMemo(() => {
-    if (!hoy) return []
-    return convenios
-      .filter((c) => c.vence && !['borrador', 'rescindido'].includes(norm(c.estado)))
-      .map((c) => ({ ...c, dias: diasHasta(c.vence, hoy) }))
-      .sort((a, b) => a.dias - b.dias)
-  }, [convenios, hoy])
+  useEffect(() => {
+    if (sesionCargando || !isAuth) return
 
-  const resumen = useMemo(
-    () => ({
-      vencidos: conVencimiento.filter((c) => c.dias < 0).length,
-      d30: conVencimiento.filter((c) => c.dias >= 0 && c.dias <= 30).length,
-      d90: conVencimiento.filter((c) => c.dias > 30 && c.dias <= 90).length,
-      despues: conVencimiento.filter((c) => c.dias > 90).length,
-    }),
-    [conVencimiento]
-  )
+    obtenerConvenios(authFetch)
+      .then(setConvenios)
+      .catch(() => setError('No se pudieron cargar los vencimientos.'))
+      .finally(() => setCargando(false))
+  }, [authFetch, isAuth, sesionCargando])
 
-  const visibles = useMemo(() => {
-    if (horizonte === 'todos') return conVencimiento
-    if (horizonte === 'vencidos') return conVencimiento.filter((c) => c.dias < 0)
-    const limite = Number(horizonte)
-    return conVencimiento.filter((c) => c.dias >= 0 && c.dias <= limite)
-  }, [conVencimiento, horizonte])
+  const lista = useMemo(() => prepararVencimientos(convenios, hoy), [convenios, hoy])
+  const resumen = useMemo(() => resumirVencimientos(lista), [lista])
+  const visibles = useMemo(() => filtrarPorHorizonte(lista, horizonte), [lista, horizonte])
 
-  // La columna de preaviso aparece sola si el backend la envía
-  const hayPreaviso = conVencimiento.some((c) => c.preaviso !== undefined)
+  const hayPreaviso = lista.some((c) => c.preaviso !== undefined)
+  const columnas = hayPreaviso ? 7 : 6
+  const esperando = cargando || !hoy
 
   const TARJETAS = [
     { label: 'Vencidos', valor: resumen.vencidos, color: 'danger', filtro: 'vencidos' },
@@ -117,7 +70,6 @@ export default function Vencimientos() {
         </p>
       </div>
 
-      {/* Resumen: cada tarjeta aplica su filtro al hacer clic */}
       <div className="row g-3 mb-3">
         {TARJETAS.map((t) => (
           <div className="col-6 col-lg-3" key={t.label}>
@@ -128,9 +80,7 @@ export default function Vencimientos() {
             >
               <div className="card-body">
                 <div className="small text-muted">{t.label}</div>
-                <div className={`display-6 fw-bold text-${t.color}`}>
-                  {cargando ? '…' : t.valor}
-                </div>
+                <div className={`display-6 fw-bold text-${t.color}`}>{esperando ? '…' : t.valor}</div>
               </div>
             </button>
           </div>
@@ -139,9 +89,7 @@ export default function Vencimientos() {
 
       <div className="card shadow-sm mb-3">
         <div className="card-body py-3">
-          <label htmlFor="horizonte" className="form-label small fw-semibold">
-            Mostrar
-          </label>
+          <label htmlFor="horizonte" className="form-label small fw-semibold">Mostrar</label>
           <select
             id="horizonte"
             className="form-select"
@@ -173,26 +121,20 @@ export default function Vencimientos() {
                   <th />
                 </tr>
               </thead>
-
               <tbody>
-                {cargando || !hoy ? (
+                {esperando ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-muted py-4">
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      Cargando...
-                    </td>
+                    <td colSpan={columnas} className="text-center text-muted py-4">Cargando...</td>
                   </tr>
                 ) : visibles.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-muted py-4">
+                    <td colSpan={columnas} className="text-center text-muted py-4">
                       No hay vencimientos en este período.
                     </td>
                   </tr>
                 ) : (
                   visibles.map((c) => {
-                    const enPreaviso =
-                      c.preaviso && c.dias >= 0 && diasHasta(c.preaviso, hoy) <= 0
-
+                    const enPreaviso = c.preaviso && c.dias >= 0 && diasHasta(c.preaviso, hoy) <= 0
                     return (
                       <tr key={c.id}>
                         <td className="ps-3 fw-semibold">
@@ -201,26 +143,15 @@ export default function Vencimientos() {
                         <td>{c.titulo}</td>
                         <td className="text-muted">{c.unidad}</td>
                         <td className="text-nowrap">{fecha(c.vence)}</td>
-
                         {hayPreaviso && (
                           <td className="text-nowrap">
                             {fecha(c.preaviso)}
-                            {enPreaviso && (
-                              <span className="badge rounded-pill text-bg-warning ms-2">
-                                En preaviso
-                              </span>
-                            )}
+                            {enPreaviso && <span className="badge rounded-pill text-bg-warning ms-2">En preaviso</span>}
                           </td>
                         )}
-
                         <td><Plazo dias={c.dias} /></td>
                         <td className="text-end pe-3">
-                          <Link
-                            href={`/admin/convenios/${c.id}`}
-                            className="btn btn-outline-primary btn-sm"
-                          >
-                            Ver
-                          </Link>
+                          <Link href={`/admin/convenios/${c.id}`} className="btn btn-outline-primary btn-sm">Ver</Link>
                         </td>
                       </tr>
                     )
@@ -229,12 +160,6 @@ export default function Vencimientos() {
               </tbody>
             </table>
           </div>
-
-          {!cargando && visibles.length > 0 && (
-            <div className="card-footer bg-white small text-muted py-2">
-              Mostrando {visibles.length} de {conVencimiento.length}
-            </div>
-          )}
         </div>
       )}
     </div>

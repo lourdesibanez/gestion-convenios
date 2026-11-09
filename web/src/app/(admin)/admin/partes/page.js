@@ -1,45 +1,14 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
-
-const API = process.env.NEXT_PUBLIC_API_URL
-const POR_PAGINA = 10
-
-const norm = (t) =>
-  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-
-const traer = async (ruta) => {
-  const res = await fetch(`${API}${ruta}`, { headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error(`Error ${res.status} en ${ruta}`)
-  const json = await res.json()
-  return Array.isArray(json) ? json : json.data ?? []
-}
-
-function Paginado({ pagina, total, onCambiar }) {
-  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
-  const desde = total === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1
-  const hasta = Math.min(pagina * POR_PAGINA, total)
-
-  return (
-    <div className="card-footer bg-white d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 py-2">
-      <span className="small text-muted">
-        Mostrando {desde}-{hasta} de {total} resultados
-      </span>
-      <ul className="pagination pagination-sm mb-0">
-        <li className={`page-item ${pagina === 1 ? 'disabled' : ''}`}>
-          <button className="page-link" onClick={() => onCambiar(pagina - 1)}>&lsaquo;</button>
-        </li>
-        <li className="page-item disabled">
-          <span className="page-link">{pagina} / {totalPaginas}</span>
-        </li>
-        <li className={`page-item ${pagina === totalPaginas ? 'disabled' : ''}`}>
-          <button className="page-link" onClick={() => onCambiar(pagina + 1)}>&rsaquo;</button>
-        </li>
-      </ul>
-    </div>
-  )
-}
+import { useAuth } from '@/app/context/authContext'
+import Paginado from '@/app/components/Paginado'
+import { obtenerInstituciones, obtenerRepresentantes } from '@/model/convenioModel'
+import { paginar } from '@/controller/convenioController'
+import { filtrarInstituciones, filtrarPersonas } from '@/controller/partesController'
 
 export default function PartesYPersonas() {
+  const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
+
   const [instituciones, setInstituciones] = useState([])
   const [personas, setPersonas] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -51,28 +20,18 @@ export default function PartesYPersonas() {
   const [pagina, setPagina] = useState(1)
 
   useEffect(() => {
-    async function cargar() {
-      try {
-        const [i, p] = await Promise.all([
-          traer('/api/auth/instituciones'),
-          traer('/api/auth/representantes'),
-        ])
+    if (sesionCargando || !isAuth) return
+
+    Promise.all([obtenerInstituciones(authFetch), obtenerRepresentantes(authFetch)])
+      .then(([i, p]) => {
         setInstituciones(i)
         setPersonas(p)
-      } catch (err) {
-        console.error(err)
-        setError('No se pudieron cargar los datos. ¿Existen los endpoints /api/instituciones y /api/representantes?')
-      } finally {
-        setCargando(false)
-      }
-    }
-    cargar()
-  }, [])
+      })
+      .catch(() => setError('No se pudieron cargar los datos.'))
+      .finally(() => setCargando(false))
+  }, [authFetch, isAuth, sesionCargando])
 
-  // Al cambiar de pestaña o de filtro vuelve a la página 1
-  useEffect(() => {
-    setPagina(1)
-  }, [pestania, buscar, ambito])
+  useEffect(() => setPagina(1), [pestania, buscar, ambito])
 
   const cambiarPestania = (id) => {
     setPestania(id)
@@ -80,35 +39,23 @@ export default function PartesYPersonas() {
     setAmbito('todas')
   }
 
-  const instFiltradas = useMemo(() => {
-    const q = norm(buscar)
-    return instituciones.filter((i) => {
-      if (ambito === 'internas' && !i.es_interna) return false
-      if (ambito === 'externas' && i.es_interna) return false
-      if (q && !norm(`${i.nombre} ${i.identificacion_fiscal}`).includes(q)) return false
-      return true
-    })
-  }, [instituciones, buscar, ambito])
-
-  const personasFiltradas = useMemo(() => {
-    const q = norm(buscar)
-    if (!q) return personas
-    return personas.filter((p) =>
-      norm(`${p.nombre} ${p.apellido} ${p.correo_electronico}`).includes(q)
-    )
-  }, [personas, buscar])
+  const instFiltradas = useMemo(
+    () => filtrarInstituciones(instituciones, buscar, ambito),
+    [instituciones, buscar, ambito]
+  )
+  const personasFiltradas = useMemo(
+    () => filtrarPersonas(personas, buscar),
+    [personas, buscar]
+  )
 
   const lista = pestania === 'instituciones' ? instFiltradas : personasFiltradas
-  const total = lista.length
-  const visibles = lista.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
+  const { items, total, totalPaginas, desde, hasta } = paginar(lista, pagina)
 
   return (
     <div>
       <div className="mb-3">
         <h1 className="h4 text-primary mb-0">Partes y personas</h1>
-        <p className="small text-muted mb-0">
-          Instituciones firmantes y representantes registrados.
-        </p>
+        <p className="small text-muted mb-0">Instituciones firmantes y representantes registrados.</p>
       </div>
 
       <ul className="nav nav-tabs small mb-3">
@@ -136,14 +83,10 @@ export default function PartesYPersonas() {
             <div className="col-12 col-md-6">
               <label htmlFor="buscar-partes" className="form-label small fw-semibold">Buscar</label>
               <input
-                type="text"
                 id="buscar-partes"
+                type="text"
                 className="form-control"
-                placeholder={
-                  pestania === 'instituciones'
-                    ? 'Nombre o CUIT'
-                    : 'Nombre, apellido o correo'
-                }
+                placeholder={pestania === 'instituciones' ? 'Nombre o CUIT' : 'Nombre, apellido o correo'}
                 value={buscar}
                 onChange={(e) => setBuscar(e.target.value)}
               />
@@ -152,12 +95,7 @@ export default function PartesYPersonas() {
             {pestania === 'instituciones' && (
               <div className="col-12 col-md-3">
                 <label htmlFor="ambito" className="form-label small fw-semibold">Tipo</label>
-                <select
-                  id="ambito"
-                  className="form-select"
-                  value={ambito}
-                  onChange={(e) => setAmbito(e.target.value)}
-                >
+                <select id="ambito" className="form-select" value={ambito} onChange={(e) => setAmbito(e.target.value)}>
                   <option value="todas">Todas</option>
                   <option value="internas">Internas</option>
                   <option value="externas">Externas</option>
@@ -186,10 +124,10 @@ export default function PartesYPersonas() {
                 <tbody>
                   {cargando ? (
                     <tr><td colSpan={4} className="text-center text-muted py-4">Cargando...</td></tr>
-                  ) : visibles.length === 0 ? (
+                  ) : items.length === 0 ? (
                     <tr><td colSpan={4} className="text-center text-muted py-4">No hay instituciones que coincidan.</td></tr>
                   ) : (
-                    visibles.map((i) => (
+                    items.map((i) => (
                       <tr key={i.id}>
                         <td className="ps-3 fw-semibold">{i.nombre}</td>
                         <td className="text-muted">{i.identificacion_fiscal ?? '—'}</td>
@@ -217,10 +155,10 @@ export default function PartesYPersonas() {
                 <tbody>
                   {cargando ? (
                     <tr><td colSpan={4} className="text-center text-muted py-4">Cargando...</td></tr>
-                  ) : visibles.length === 0 ? (
+                  ) : items.length === 0 ? (
                     <tr><td colSpan={4} className="text-center text-muted py-4">No hay personas que coincidan.</td></tr>
                   ) : (
-                    visibles.map((p) => (
+                    items.map((p) => (
                       <tr key={p.id}>
                         <td className="ps-3 fw-semibold">{p.apellido}, {p.nombre}</td>
                         <td>
@@ -238,7 +176,16 @@ export default function PartesYPersonas() {
             )}
           </div>
 
-          {!cargando && <Paginado pagina={pagina} total={total} onCambiar={setPagina} />}
+          {!cargando && (
+            <Paginado
+              pagina={pagina}
+              totalPaginas={totalPaginas}
+              desde={desde}
+              hasta={hasta}
+              total={total}
+              onCambiar={setPagina}
+            />
+          )}
         </div>
       )}
     </div>

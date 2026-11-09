@@ -2,22 +2,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-const API = process.env.NEXT_PUBLIC_API_URL // http://127.0.0.1:8000
-const POR_PAGINA = 7
-
-const COLOR_ESTADO = {
-  borrador: 'secondary',
-  revision: 'warning',
-  aprobado: 'primary',
-  firmado: 'success',
-  rescindido: 'danger',
-}
-
-// minúsculas y sin tildes: "Revisión" → "revision"
-const norm = (t) =>
-  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-
+import { obtenerConvenios } from '../../model/convenioModel'
+import { filtrarConvenios, paginar, COLOR_ESTADO, norm } from '../../controller/convenioController'
+import Paginado from './Paginado'
 export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
   const router = useRouter()
   const [convenios, setConvenios] = useState([])
@@ -28,53 +15,18 @@ export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
   // 1) Se piden los datos UNA sola vez
   useEffect(() => {
     async function cargar() {
-      try {
-        const res = await fetch(`${API}/api/convenios`, {
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        const data = await res.json()
-        setConvenios(Array.isArray(data) ? data : data.data ?? data.convenios ?? [])
-      } catch (err) {
-        console.error(err)
-        setError('No se pudieron cargar los convenios.')
-      } finally {
-        setCargando(false)
-      }
+      obtenerConvenios()
+      .then(setConvenios)
+      .catch(()=>setError('No pudimos Cargar los convenios'))
+      .finally(()=> setCargando(false))
     }
     cargar()
   }, [])
 
+
   // 2) Se filtra sobre los datos que ya están en memoria
-  const filtrados = useMemo(() => {
-    const { buscar, tipo, estado, unidad, firmadoDesde } = filtros
-
-    return convenios.filter((c) => {
-      if (buscar) {
-        const texto = norm(`${c.codigo} ${c.titulo} ${c.tipo} ${c.unidad}`)
-        if (!texto.includes(norm(buscar))) return false
-      }
-      if (tipo && !norm(c.tipo).includes(norm(tipo))) return false
-      if (estado && norm(c.estado) !== norm(estado)) return false
-      if (unidad && norm(c.unidad) !== norm(unidad)) return false
-      if (firmadoDesde && (!c.fecha_firma || c.fecha_firma < firmadoDesde)) return false
-      return true
-    })
-  }, [convenios, filtros])
-
-  // 3) Al cambiar los filtros vuelve a la página 1
-  useEffect(() => {
-    setPagina(1)
-  }, [filtros])
-
-  // 4) Paginado en el cliente
-  const total = filtrados.length
-  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
-
-  const visibles = useMemo(() => {
-    const inicio = (pagina - 1) * POR_PAGINA
-    return filtrados.slice(inicio, inicio + POR_PAGINA)
-  }, [filtrados, pagina])
+  const filtrados = useMemo(() => filtrarConvenios(convenios, filtros), [convenios, filtros])
+  const { items, total, totalPaginas, desde, hasta } = paginar(filtrados, pagina)
 
   // ventana de hasta 5 números de página alrededor de la actual
   const numeros = useMemo(() => {
@@ -82,9 +34,6 @@ export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
     const hasta = Math.min(totalPaginas, desde + 4)
     return Array.from({ length: hasta - desde + 1 }, (_, i) => desde + i)
   }, [pagina, totalPaginas])
-
-  const desdeNum = total === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1
-  const hastaNum = Math.min(pagina * POR_PAGINA, total)
 
   if (cargando) {
     return (
@@ -117,14 +66,14 @@ export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
           </thead>
 
           <tbody>
-            {visibles.length === 0 ? (
+            {items.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center text-muted py-4">
                   No hay convenios que coincidan con la búsqueda.
                 </td>
               </tr>
             ) : (
-              visibles.map((c) => {
+              items.map((c) => {
                 const color = COLOR_ESTADO[norm(c.estado)] ?? 'secondary'
                 const ruta = `${base}/${c.id}`
 
@@ -156,35 +105,14 @@ export default function ListarConvenios({ filtros = {}, base = '/convenios' }) {
         </table>
       </div>
 
-      <div className="card-footer bg-white d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 py-2">
-        <span className="small text-muted">
-          Mostrando {desdeNum}-{hastaNum} de {total} resultados
-        </span>
-
-        <nav aria-label="Paginado de convenios">
-          <ul className="pagination pagination-sm mb-0">
-            <li className={`page-item ${pagina === 1 ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => setPagina(pagina - 1)}>
-                &lsaquo;
-              </button>
-            </li>
-
-            {numeros.map((n) => (
-              <li key={n} className={`page-item ${n === pagina ? 'active' : ''}`}>
-                <button className="page-link" onClick={() => setPagina(n)}>
-                  {n}
-                </button>
-              </li>
-            ))}
-
-            <li className={`page-item ${pagina === totalPaginas ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => setPagina(pagina + 1)}>
-                &rsaquo;
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
+      <Paginado
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        desde={desde}
+        hasta={hasta}
+        total={total}
+        onCambiar={setPagina}
+      />
     </div>
   )
 }

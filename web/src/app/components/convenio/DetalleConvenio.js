@@ -1,6 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@/app/context/authContext'
+import { obtenerConvenioAdmin, obtenerConvenioPublico } from '@/model/convenioModel'
+
 import LineaEstados from './LineaEstados'
 import FichaConvenio from './FichaConvenio'
 import PlazosCard from './PlazosCard'
@@ -18,46 +21,27 @@ import ObservacionesTab from './tabs/ObservacionesTab'
 const API = process.env.NEXT_PUBLIC_API_URL
 
 export default function DetalleConvenio({ id, admin = false }) {
+  const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
   const base = admin ? '/admin/convenios' : '/convenios'
   
   const [datos, setDatos] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [pestania, setPestania] = useState('ficha')
-  const {authFetch}= useAuth();
-
   useEffect(() => {
-    if (!id) return // todavía no llegó el id
+    if (!id) return
+    if (admin && (sesionCargando || !isAuth)) return // en admin hace falta el token
 
-    async function cargar() {
+    const pedir = admin ? obtenerConvenioAdmin(authFetch, id) : obtenerConvenioPublico(id)
 
-      try {
-        const res = admin? 
-          await authFetch(`${API}/api/convenios/${id}`): await fetch(`${API}/api/publico/convenios/${id}`, { headers: { Accept: 'application/json' } })
-
-
-        if (!res.ok) {
-          setError(`El servidor respondió ${res.status} al pedir ${url}`)
-          return
-        }
-
-        const json = await res.json()
-        const info = json.data ?? json // ← desenvuelve { ok, data }
-
-        if (!info?.convenio) {
-          setError(`La respuesta de ${url} no trae el campo "convenio".`)
-          return
-        }
-        setDatos(info)
-      } catch (err) {
-        console.error(err)
-        setError(`No se pudo conectar con ${url}. ¿Está corriendo el backend? ¿CORS?`)
-      } finally {
-        setCargando(false)
-      }
-    }
-    cargar()
-  }, [id])
+    pedir
+      .then((info) => {
+        if (!info?.convenio) setError('El convenio no existe.')
+        else setDatos(info)
+      })
+      .catch(() => setError('No se pudo cargar el convenio.'))
+      .finally(() => setCargando(false))
+  }, [id, admin, authFetch, isAuth, sesionCargando])
 
   if (!id) return <div className="alert alert-warning small">No llegó el id del convenio.</div>
   if (cargando) return <p className="small text-muted">Cargando convenio...</p>
