@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Share } from 'lucide-react-native';
+import { ChevronLeft, Share, Fingerprint, MapPin } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { firmaService } from '@/features/firma/services/firmaService';
 import { colors } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 export default function SignatureScreen() {
   const { id, titulo, codigo } = useLocalSearchParams<{
@@ -21,6 +23,7 @@ export default function SignatureScreen() {
   const [error, setError] = useState<string>();
   const [shareError, setShareError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
+  const [acepta, setAcepta] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -104,21 +107,84 @@ export default function SignatureScreen() {
 
       {shareError ? <Text style={styles.shareError}>{shareError}</Text> : null}
 
-      {loading ? (
+        {loading ? (
         <View style={styles.message}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.messageText}>Descargando convenio…</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.messageText}>Descargando convenio…</Text>
         </View>
-      ) : error ? (
+        ) : error ? (
         <View style={styles.message}>
-          <Text style={styles.error}>{error}</Text>
-          <Pressable onPress={() => setAttempt((value) => value + 1)}>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable onPress={() => setAttempt((value) => value + 1)}>
             <Text style={styles.retry}>Reintentar</Text>
-          </Pressable>
+            </Pressable>
         </View>
-      ) : file ? (
-        <PdfJsViewer file={file} />
-      ) : null}
+        ) : file ? (
+        <>
+            <ScrollView contentContainerStyle={styles.content}>
+            <View style={styles.pdfFrame}>
+                <PdfJsViewer file={file} />
+            </View>
+
+            <View style={styles.signatureCard}>
+                <View style={styles.signatureHeader}>
+                <Text style={styles.signatureTitle}>Tu firma</Text>
+                <Text style={styles.clearText}>Borrar</Text>
+                </View>
+
+                <View style={styles.signatureBox}>
+                <Svg width="220" height="70" viewBox="0 0 220 70">
+                    <Path
+                    d="M8 48 C18 10, 28 12, 24 48 S45 20, 52 28 C58 38, 63 48, 73 32 S88 24, 91 39 C96 52, 106 44, 112 27 S127 22, 130 40 C134 54, 146 40, 154 25 S171 20, 176 38 C181 49, 194 37, 210 30"
+                    fill="none"
+                    stroke="#315B96"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    />
+                    <Path
+                    d="M28 60 L184 60"
+                    fill="none"
+                    stroke="#315B96"
+                    strokeWidth="2"
+                    />
+                </Svg>
+                <Text style={styles.signatureHint}>
+                    Firmá con el dedo dentro del recuadro
+                </Text>
+                </View>
+
+                <Pressable
+                style={styles.acceptRow}
+                onPress={() => setAcepta((actual) => !actual)}
+                >
+                <View style={[styles.checkbox, acepta && styles.checkboxChecked]}>
+                    {acepta ? <Text style={styles.checkmark}>✓</Text> : null}
+                </View>
+                <Text style={styles.acceptText}>
+                    Leí el documento completo y acepto firmarlo.
+                </Text>
+                </Pressable>
+
+                <View style={styles.locationRow}>
+                <MapPin size={17} color={colors.primary} />
+                <Text style={styles.locationText}>
+                    Se registrará fecha, hora y ubicación (lat/long) del acto de firma.
+                </Text>
+                </View>
+            </View>
+            </ScrollView>
+
+            <View style={styles.footer}>
+            <Pressable
+                disabled={!acepta}
+                style={[styles.confirmButton, !acepta && styles.confirmButtonDisabled]}
+            >
+                <Fingerprint size={19} color="#FFFFFF" />
+                <Text style={styles.confirmText}>Confirmar firma con huella</Text>
+            </Pressable>
+            </View>
+        </>
+        ) : null}
     </SafeAreaView>
   );
 }
@@ -155,4 +221,118 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     },
+    content: {
+  padding: 16,
+  paddingBottom: 24,
+},
+pdfFrame: {
+  height: 420,
+  overflow: 'hidden',
+  borderRadius: 12,
+  marginBottom: 16,
+},
+signatureCard: {
+  padding: 16,
+  backgroundColor: colors.background,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 18,
+  gap: 14,
+},
+signatureHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+signatureTitle: {
+  color: colors.primary,
+  fontSize: 16,
+  fontWeight: '700',
+},
+clearText: {
+  color: colors.primary,
+  fontSize: 14,
+  fontWeight: '600',
+},
+signatureBox: {
+  minHeight: 134,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: colors.surface,
+  borderWidth: 1.5,
+  borderColor: '#B9CBE5',
+  borderStyle: 'dashed',
+  borderRadius: 12,
+  padding: 10,
+},
+signatureHint: {
+  alignSelf: 'flex-start',
+  color: colors.textMuted,
+  fontSize: 12,
+},
+acceptRow: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  gap: 10,
+},
+checkbox: {
+  width: 21,
+  height: 21,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderWidth: 2,
+  borderColor: colors.primary,
+  borderRadius: 4,
+},
+checkboxChecked: {
+  backgroundColor: colors.primary,
+},
+checkmark: {
+  color: '#FFFFFF',
+  fontSize: 15,
+  fontWeight: '700',
+  lineHeight: 18,
+},
+acceptText: {
+  flex: 1,
+  color: colors.text,
+  fontSize: 14,
+  lineHeight: 20,
+},
+locationRow: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  gap: 8,
+},
+locationText: {
+  flex: 1,
+  color: colors.textMuted,
+  fontSize: 13,
+  lineHeight: 19,
+},
+footer: {
+  paddingHorizontal: 16,
+  paddingTop: 12,
+  paddingBottom: 12,
+  backgroundColor: colors.background,
+  borderTopWidth: 1,
+  borderTopColor: colors.border,
+},
+confirmButton: {
+  minHeight: 54,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 10,
+  backgroundColor: colors.primary,
+  borderRadius: 12,
+},
+confirmButtonDisabled: {
+  opacity: 0.5,
+},
+confirmText: {
+  color: '#FFFFFF',
+  fontSize: 15,
+  fontWeight: '700',
+},
 });
