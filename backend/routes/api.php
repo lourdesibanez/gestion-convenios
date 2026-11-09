@@ -15,7 +15,8 @@ Route::prefix('auth')->group(function () {
     Route::post('resend-code', [AuthController::class, 'reenviarCodigo'])->middleware('throttle:5,1,resend-code');
     Route::post('forgot-password', [AuthController::class, 'solicitarRestablecimientoContrasena'])->middleware('throttle:5,1,forgot-password');
     Route::post('reset-password', [AuthController::class, 'restablecerContrasena'])->middleware('throttle:5,1,reset-password');
-
+    Route::post('web/login', [AuthController::class, 'iniciarSesionWeb'])->middleware('throttle:5,1,web-login');
+    
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [AuthController::class, 'obtenerUsuarioAutenticado']);
         Route::post('logout', [AuthController::class, 'cerrarSesion']);
@@ -24,8 +25,8 @@ Route::prefix('auth')->group(function () {
 });
 
 // ---------- Públicas (cualquiera puede consultar) ----------
-Route::get('convenios', [ConvenioController::class, 'index']);
-Route::get('publico/convenios/{id}', [ConvenioController::class, 'showPublico']);
+Route::get('convenios', [ConvenioController::class, 'listarPublicos']);
+Route::get('publico/convenios/{id}', [ConvenioController::class, 'obtenerDetallesPublico']);
 
 // ---------- Solo con token (administración) ----------
 Route::middleware('auth:sanctum')->group(function () {
@@ -56,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('documents/{id}/download', [ArchivoController::class, 'descargar'])
         ->name('documents.download');
 
+    Route::get('agreementsWeb', [ConvenioController::class, 'listarPrivadoWeb'])->name('agreements.index');
     Route::get('agreements', [ConvenioController::class, 'listar'])->name('agreements.index');
     Route::get('agreements/review', [ConvenioController::class, 'listarEnRevision'])->name('agreements.review');
     Route::get('agreements/{id}', [ConvenioController::class, 'obtenerDetalle'])->name('agreements.show');

@@ -216,4 +216,147 @@ class ConvenioService
             ->orderByDesc('i.id')
             ->paginate(15);
     }
+
+    // Estados que se pueden ver sin login
+    private const ESTADOS_PUBLICOS = ['firmado'];
+
+
+    public function listarPublicos(array $filtros = []): LengthAwarePaginator
+    {
+        $query = DB::table('instrumento as i')
+            ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
+            ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
+            ->join('estado as e', 'e.id', '=', 'i.id_estado')
+            ->whereNull('i.deleted_at')
+            ->whereIn('e.nombre', self::ESTADOS_PUBLICOS)
+            ->select(
+                'i.id',
+                'i.codigo',
+                'i.titulo',
+                't.nombre as tipo',
+                'u.nombre as unidad',
+                'e.nombre as estado',
+                'i.fecha_fin as vence',
+                'i.fecha_firma',
+            )
+            ->orderByDesc('i.created_at')
+            ->orderByDesc('i.id');
+
+        if (isset($filtros['q'])) {
+            $busqueda = '%'.$filtros['q'].'%';
+            $query->where(fn ($c) => $c
+                ->where('i.titulo', 'like', $busqueda)
+                ->orWhere('i.codigo', 'like', $busqueda));
+        }
+
+        return $query->paginate(15);
+    }
+    public function ObtenerDetallesPublico(int $id): array
+    {
+        $convenio = DB::table('instrumento as i')
+            ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
+            ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
+            ->join('estado as e', 'e.id', '=', 'i.id_estado')
+            ->leftJoin('convenio as c', 'c.id_instrumento', '=', 'i.id')
+            ->where('i.id', $id)
+            ->whereNull('i.deleted_at')
+            ->whereIn('e.nombre', ['firmado'])
+            ->select(
+                'i.id', 'i.uuid', 'i.codigo', 'i.titulo',
+                't.nombre as tipo', 't.categoria', 't.ambito',
+                'u.id as id_unidad', 'u.nombre as unidad',
+                'e.nombre as estado',
+                'i.fecha_inicio', 'i.fecha_fin as vencimiento', 'i.fecha_firma', 'i.numero_resolucion',
+                'c.objeto', 'c.marco_legal', 'c.obligaciones', 'c.condiciones_terminacion',
+                'c.condiciones_renovacion', 'c.confidencialidad', 'c.alcance_actividades'
+            )
+            ->firstOrFail();   // lanza ModelNotFoundException si no existe o no es público
+
+        $partes = DB::table('parte_firmante as p')
+            ->join('institucion as inst', 'inst.id', '=', 'p.id_institucion')
+            ->where('p.id_instrumento', $id)
+            ->select('inst.id', 'inst.nombre', 'inst.identificacion_fiscal', 'inst.es_interna', 'p.fecha_firma')
+            ->get();
+
+        $archivos = DB::table('archivo')
+            ->where('id_instrumento', $id)
+            ->whereNull('deleted_at')
+            ->select('id', 'nombre', 'tipo_documento', 'tipo_mime', 'tamanio_bytes', 'created_at')
+            ->get();
+
+        $vinculos = DB::table('instrumento_vinculo as v')
+            ->join('instrumento as io', 'io.id', '=', 'v.id_instrumento_origen')
+            ->join('instrumento as id', 'id.id', '=', 'v.id_instrumento_destino')
+            ->join('estado as eo', 'eo.id', '=', 'io.id_estado')
+            ->join('estado as ed', 'ed.id', '=', 'id.id_estado')
+            ->where(fn ($q) => $q
+                ->where('v.id_instrumento_origen', $id)
+                ->orWhere('v.id_instrumento_destino', $id))
+            ->whereIn('eo.nombre', ['firmado'])
+            ->whereIn('ed.nombre', ['firmado'])
+            ->whereNull('io.deleted_at')
+            ->whereNull('id.deleted_at')
+            ->select(
+                'v.tipo_vinculo',
+                'io.id as origen_id', 'io.codigo as origen_codigo', 'io.titulo as origen_titulo',
+                'id.id as destino_id', 'id.codigo as destino_codigo', 'id.titulo as destino_titulo'
+            )
+            ->get();
+
+        return [
+            'convenio' => $convenio,
+            'partes'   => $partes,
+            'archivos' => $archivos,
+            'vinculos' => $vinculos,
+        ];
+    }
+
+
+
+    public function listarPrivadoWeb(array $filtros): LengthAwarePaginator
+    {
+        $query = DB::table('instrumento as i')
+            ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
+            ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
+            ->join('estado as e', 'e.id', '=', 'i.id_estado')
+            ->whereNull('i.deleted_at')
+            ->select(
+                'i.id',
+                'i.codigo',
+                'i.titulo',
+                't.nombre as tipo',
+                'u.nombre as unidad',
+                'e.nombre as estado',
+                'i.fecha_fin as vence',
+                'i.fecha_firma',
+                'i.fecha_preaviso as preaviso',
+            )
+            ->orderByDesc('i.created_at')
+            ->orderByDesc('i.id');
+
+        if (isset($filtros['estado'])) {
+            $query->where('e.nombre', $filtros['estado']);
+        }
+
+        if (isset($filtros['tipo'])) {
+            $query->where('i.id_tipo_instrumento', $filtros['tipo']);
+        }
+
+        if (isset($filtros['unidad'])) {
+            $query->where('i.id_institucion', $filtros['unidad']);
+        }
+
+        if (isset($filtros['q'])) {
+            $busqueda = '%' . $filtros['q'] . '%';
+
+            $query->where(fn ($consulta) => $consulta
+                ->where('i.titulo', 'like', $busqueda)
+                ->orWhere('i.codigo', 'like', $busqueda));
+        }
+
+        return $query->paginate(15);
+    }
+
+
+
 }

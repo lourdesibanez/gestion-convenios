@@ -1,44 +1,31 @@
-const API = process.env.NEXT_PUBLIC_API_URL
-
-// Laravel a veces devuelve [..] y a veces { data: [..] }
-const lista = (json) => (Array.isArray(json) ? json : json.data ?? [])
-
-const pedir = async (res) => {
-  if (!res.ok) throw new Error(`Error ${res.status}`)
-  return res.json()
-}
+import { obtenerUno, obtenerTodos } from '../app/lib/api'
 
 // ---------- Públicos ----------
-export async function obtenerConvenios() {
-  const res = await fetch(`${API}/api/convenios`, { headers: { Accept: 'application/json' } })
-  return lista(await pedir(res))
-}
+export const obtenerConvenios = () => obtenerTodos('/api/convenios')
+export const obtenerConveniosAdmin = (token) => obtenerTodos('/api/agreementsWeb', token)  // admin: según su alcance
 
 export async function obtenerConvenioPublico(id) {
-  const res = await fetch(`${API}/api/publico/convenios/${id}`, { headers: { Accept: 'application/json' } })
-  if (res.status === 404) return null
-  const json = await pedir(res)
-  return json.data ?? json
+  try {
+    const json = await obtenerUno(`/api/publico/convenios/${id}`)
+    return json.data ?? json
+  } catch (err) {
+    if (err.status === 404) return null
+    throw err
+  }
 }
 
-// ---------- Administración (reciben authFetch del contexto) ----------
-export async function obtenerConvenioAdmin(authFetch, id) {
-  const res = await authFetch(`${API}/api/convenios/${id}`)
-  if (res.status === 404) return null
-  const json = await pedir(res)
-  return json.data ?? json
+// ---------- Administración (reciben el token del contexto) ----------
+export async function obtenerConvenioAdmin(token, id) {
+  try {
+    const json = await obtenerUno(`/api/agreements/${id}`, token)
+    return json.data ?? json
+  } catch (err) {
+    if (err.status === 404) return null
+    throw err
+  }
 }
 
-export async function obtenerRevision(authFetch){
-  const res = await authFetch(`${API}/api/revision`, { headers: { Accept: 'application/json' } })
-  if (res.status=== 404) return null
-  const json = await pedir(res);
-  console.log(json);
-  return json.data ?? json;
-}
-
-export const obtenerInstituciones = async (authFetch) =>
-  lista(await pedir(await authFetch(`${API}/api/instituciones`)))
-
-export const obtenerRepresentantes = async (authFetch) =>
-  lista(await pedir(await authFetch(`${API}/api/representantes`)))
+export const obtenerRevision = (token) => obtenerTodos('/api/agreements/review', token)
+export const obtenerVencimientos = (token) => obtenerTodos('/api/agreements', token)
+export const obtenerInstituciones = (token) => obtenerTodos('/api/units', token)
+export const obtenerRepresentantes = (token) => obtenerTodos('/api/people', token)

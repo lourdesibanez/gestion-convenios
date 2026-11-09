@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useAuth } from '@/app/context/authContext'
-import { obtenerConvenioAdmin, obtenerConvenioPublico } from '@/model/convenioModel'
+import { useAuth } from '../../../app/context/authContext'
+import { obtenerConvenioAdmin, obtenerConvenioPublico } from '../../../model/convenioModel'
 
 import LineaEstados from './LineaEstados'
 import FichaConvenio from './FichaConvenio'
@@ -19,35 +19,32 @@ import ObservacionesTab from './tabs/ObservacionesTab'
 import { obtenerUno } from '@/app/lib/api'
 
 export default function DetalleConvenio({ id, admin = false }) {
-  const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
+  const { token, isAuth, cargando: sesionCargando, logout } = useAuth()
   const base = admin ? '/admin/convenios' : '/convenios'
-  
+
   const [datos, setDatos] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [pestania, setPestania] = useState('ficha')
+
   useEffect(() => {
-    if (!id) return // todavía no llegó el id
+    if (!id) return
+    if (admin && (sesionCargando || !isAuth)) return // en admin hace falta el token
 
-    async function cargar() {
-      const ruta = `/api/agreements/${id}`
-      try {
-        const info = await obtenerUno(ruta)
+    const pedir = admin ? obtenerConvenioAdmin(token, id) : obtenerConvenioPublico(id)
 
-        if (!info?.convenio) {
-          setError(`La respuesta de ${ruta} no trae el campo "convenio".`)
-          return
-        }
-        setDatos(info)
-      } catch (err) {
-        console.error(err)
-        setError(err instanceof Error ? err.message : 'No se pudo consultar el convenio.')
-      } finally {
-        setCargando(false)
-      }
-    }
-    cargar()
-  }, [id])
+    pedir
+      .then((info) => {
+        if (!info?.convenio) setError('El convenio no existe.')
+        else setDatos(info)
+      })
+      .catch((err) => {
+        if (err.status === 401) logout()
+        else setError('No se pudo cargar el convenio.')
+      })
+      .finally(() => setCargando(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, admin, token, isAuth, sesionCargando])
 
   if (!id) return <div className="alert alert-warning small">No llegó el id del convenio.</div>
   if (cargando) return <p className="small text-muted">Cargando convenio...</p>

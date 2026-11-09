@@ -1,49 +1,23 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { fecha } from '../../../components/convenio/Formato'
-import { obtenerTodos } from '../../../lib/api'
+import useDatosAdmin from '../../../../app/hooks/useDatosAdmin'
+import { fecha } from '../../../../app/components/convenio/Formato'
+import { obtenerRevision } from '../../../../model/convenioModel'
+import { filtrarTexto } from '../../../../controller/convenioController'
 
-const norm = (t) =>
-  (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+const VACIO = []
 
 export default function Revision() {
-  const { authFetch, isAuth, cargando: sesionCargando } = useAuth()
-
-  const [convenios, setConvenios] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState(null)
+  const { datos, cargando, error } = useDatosAdmin(obtenerRevision)
+  const convenios = datos ?? VACIO
   const [buscar, setBuscar] = useState('')
 
-  useEffect(() => {
-    async function cargar() {
-      try {
-        setConvenios(await obtenerTodos('/api/agreements/review'))
-      } catch (err) {
-        console.error(err)
-        setError('No se pudieron cargar los convenios.')
-      } finally {
-        setCargando(false)
-      }
-    }
-    cargar()
-  }, [])
-
-  // Solo los que están en revisión, y que coincidan con la búsqueda
-  const enRevision = useMemo(
-    () => convenios.filter((c) => norm(c.estado) === 'revision'),
-    [convenios]
+  const visibles = useMemo(
+    () => filtrarTexto(convenios, buscar, ['codigo', 'titulo', 'tipo', 'unidad']),
+    [convenios, buscar]
   )
 
-  const visibles = useMemo(() => {
-    if (!buscar) return enRevision
-    const q = norm(buscar)
-    return enRevision.filter((c) =>
-      norm(`${c.codigo} ${c.titulo} ${c.tipo} ${c.unidad}`).includes(q)
-    )
-  }, [enRevision, buscar])
-
-  // La columna aparece sola si el backend envía ese dato
   const hayObs = convenios.some((c) => c.observaciones_pendientes !== undefined)
   const columnas = hayObs ? 7 : 6
 
@@ -52,9 +26,7 @@ export default function Revision() {
       <div className="mb-3">
         <h1 className="h4 text-primary mb-0">Revisión</h1>
         <p className="small text-muted mb-0">
-          {cargando
-            ? 'Cargando...'
-            : `${convenios.length} instrumento${convenios.length === 1 ? '' : 's'} esperando revisión`}
+          {cargando ? 'Cargando...' : `${convenios.length} instrumento${convenios.length === 1 ? '' : 's'} esperando revisión`}
         </p>
       </div>
 
@@ -91,15 +63,11 @@ export default function Revision() {
               </thead>
               <tbody>
                 {cargando ? (
-                  <tr>
-                    <td colSpan={columnas} className="text-center text-muted py-4">Cargando...</td>
-                  </tr>
+                  <tr><td colSpan={columnas} className="text-center text-muted py-4">Cargando...</td></tr>
                 ) : visibles.length === 0 ? (
                   <tr>
                     <td colSpan={columnas} className="text-center text-muted py-4">
-                      {convenios.length === 0
-                        ? 'No hay convenios pendientes de revisión.'
-                        : 'Ningún convenio coincide con la búsqueda.'}
+                      {convenios.length === 0 ? 'No hay convenios pendientes de revisión.' : 'Ningún convenio coincide con la búsqueda.'}
                     </td>
                   </tr>
                 ) : (
@@ -113,18 +81,14 @@ export default function Revision() {
                       <td className="text-muted">{c.unidad}</td>
                       {hayObs && (
                         <td className="text-center">
-                          <span className={`badge rounded-pill ${
-                            Number(c.observaciones_pendientes) > 0 ? 'text-bg-warning' : 'text-bg-light border'
-                          }`}>
+                          <span className={`badge rounded-pill ${Number(c.observaciones_pendientes) > 0 ? 'text-bg-warning' : 'text-bg-light border'}`}>
                             {c.observaciones_pendientes ?? 0}
                           </span>
                         </td>
                       )}
                       <td className="text-nowrap">{fecha(c.vence)}</td>
                       <td className="text-end pe-3">
-                        <Link href={`/admin/convenios/${c.id}`} className="btn btn-outline-primary btn-sm">
-                          Revisar
-                        </Link>
+                        <Link href={`/admin/convenios/${c.id}`} className="btn btn-outline-primary btn-sm">Revisar</Link>
                       </td>
                     </tr>
                   ))

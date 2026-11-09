@@ -18,6 +18,8 @@ use App\Services\AutenticacionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Models\Usuario;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -82,34 +84,13 @@ class AuthController extends Controller
         ]);
     }
 
-<<<<<<< HEAD
 
     //WEB
     /**
      * Login directo para la web: valida email y contraseña y entrega el token,
      * sin código de verificación.
      */
-    public function loginWeb(LoginRequest $request): JsonResponse
-    {
-        $usuario = Usuario::where('email', $request->validated('email'))->first();
-
-        if (! $usuario || ! Hash::check($request->validated('password'), $usuario->contrasena)) {
-            throw ValidationException::withMessages([
-                'email' => 'Email o contraseña incorrectos.',
-            ]);
-        }
-
-        if ($usuario->estaSuspendido()) {
-            return response()->json(['message' => 'El usuario está suspendido.'], 403);
-        }
-
-        return response()->json([
-            'token' => $usuario->createToken('web')->plainTextToken,
-            'usuario' => $usuario,
-        ]);
-    }
-
-=======
+    
     public function obtenerUsuarioAutenticado(Request $request): UsuarioResource
     {
         return new UsuarioResource($request->user());
@@ -128,5 +109,24 @@ class AuthController extends Controller
 
         return response()->noContent();
     }
->>>>>>> main
+
+    public function iniciarSesionWeb(LoginRequest $request): JsonResponse
+    {
+        $usuario = Usuario::where('email', $request->validated('email'))->first();
+
+        if (! $usuario || ! Hash::check($request->validated('password'), $usuario->contrasena)) {
+            throw ValidationException::withMessages([
+                'email' => 'Email o contraseña incorrectos.',
+            ]);
+        }
+
+        if ($usuario->estaSuspendido()) {
+            return response()->json(['message' => 'El usuario está suspendido.'], 403);
+        }
+
+        return response()->json([
+            'token' => $usuario->createToken('web')->plainTextToken,
+            'usuario' => $usuario,
+        ]);
+    }
 }

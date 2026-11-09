@@ -1,45 +1,50 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { enviarJson } from '@/app/lib/api'
+import { useAuth } from '../../app/context/authContext'
+import { enviarJson } from '../lib/api'
 import '../css/login.css'
 
 export default function Login() {
-  const router = useRouter()
-  const [datos, setDatos] = useState({ email: '', password: '', recordarme: false })
-  const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState(null)
-  const {login}= useAuth()
+    const router = useRouter()
+    const { login, isAuth, cargando: sesionCargando } = useAuth()
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    setDatos((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
-  }
+    const [datos, setDatos] = useState({ email: '', password: '', recordarme: false })
+    const [cargando, setCargando] = useState(false)
+    const [error, setError] = useState(null)
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-    setCargando(true)
+    // Si ya hay sesión, no tiene sentido ver el login
+    useEffect(() => {
+      if (!sesionCargando && isAuth) router.replace('/admin')
+    }, [sesionCargando, isAuth, router])
 
-    try {
-      const data = await enviarJson('/api/auth/login', {
-        email: datos.email,
-        password: datos.password,
-      })
-
-      console.log('respuesta del login:', data)
-      router.push('/admin/convenios') // paso del código; mientras tanto podés usar '/convenios'
-    } catch (err) {
-      console.error(err)
-      setError(err.status === 401 || err.status === 422
-        ? 'Correo o contraseña incorrectos.'
-        : 'No se pudo conectar con el servidor.')
-    } finally {
-      setCargando(false)
+    const handleChange = (e) => {
+      const { name, value, type, checked } = e.target
+      setDatos((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
     }
-  }
-  return (
+
+    const handleSubmit = async (e) => {
+      e.preventDefault()
+      setError(null)
+      setCargando(true)
+
+      try {
+        const data = await enviarJson('/api/auth/web/login', {
+          email: datos.email,
+          password: datos.password,
+        })
+        login(data.usuario, data.token, datos.recordarme)
+        router.replace('/admin')
+      } catch (err) {
+        if (err.status === 422) setError(err.datos?.errors?.email?.[0] ?? 'Revisá los datos ingresados.')
+        else if (err.status === 403) setError(err.datos?.message ?? 'El usuario está suspendido.')
+        else setError('No se pudo conectar con el servidor.')
+      } finally {
+        setCargando(false)
+      }
+    }
+    return (
     <div className="login">
       {/* Panel izquierdo */}
       <section className="login-panel">
