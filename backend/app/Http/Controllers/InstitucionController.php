@@ -19,7 +19,7 @@ class InstitucionController extends Controller
         $this->authorize('viewAny', Institucion::class);
 
         return InstitucionResource::collection(
-            $this->instituciones->listar($request->user())
+            $this->instituciones->listar()
         )->response();
     }
 

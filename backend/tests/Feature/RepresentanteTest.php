@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Representante;
+use App\Models\Institucion;
 use App\Models\Perfil;
+use App\Models\Representante;
 use App\Models\Usuario;
 use App\Models\UsuarioPerfil;
 use Database\Seeders\CatalogoSeeder;
@@ -51,7 +52,7 @@ class RepresentanteTest extends TestCase
     {
         Representante::factory()->create([
             'tipo_documento' => 'DNI',
-            'numero_documento' => '11111111'
+            'numero_documento' => '11111111',
         ]);
 
         $datos = [
@@ -78,5 +79,23 @@ class RepresentanteTest extends TestCase
 
         $this->assertCount(15, $respuesta->json('data'));
         $this->assertSame(2, $respuesta->json('meta.last_page'));
+    }
+
+    public function test_usuario_con_perfil_gestion_puede_listar_representantes(): void
+    {
+        $usuario = Usuario::factory()->create();
+        $institucion = Institucion::factory()->interna()->create();
+        Representante::factory()->count(16)->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $usuario->id,
+            'id_perfil' => Perfil::where('nombre', 'gestion')->value('id'),
+            'id_institucion' => $institucion->id,
+        ]);
+
+        $this->actingAs($usuario)
+            ->getJson('/api/people?page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 16)
+            ->assertJsonPath('meta.last_page', 2);
     }
 }

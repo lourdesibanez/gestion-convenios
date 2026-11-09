@@ -19,6 +19,8 @@ class UsuarioPerfilSeeder extends SeederIdempotente
                 [7, 12, 4, null, 1],
                 [8, 3, 4, null, 1],
                 [9, 1, 3, 2, 1],
+                [10, 2, 2, 2, 1],
+                [11, 2, 3, 2, 1],
             ],
         ));
     }

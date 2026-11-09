@@ -5,51 +5,112 @@ namespace App\Services;
 use App\Models\Instrumento;
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 class ConvenioService
 {
+    private const ESTADOS_PUBLICOS = ['firmado'];
+
     /**
-     * @param array{estado?: string, tipo?: int, unidad?: int, q?: string} $filtros
+     * @param  array{estado?: string, tipo?: int, unidad?: int, q?: string}  $filtros
      */
     public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator
     {
-        $query = DB::table('instrumento as i')
+        return $this->consultaListado($filtros, $usuario)->paginate(15);
+    }
+
+    /**
+     * @param  array{q?: string}  $filtros
+     */
+    public function listarPublicos(array $filtros): LengthAwarePaginator
+    {
+        return $this->consultaListado($filtros)->paginate(15);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function obtenerDetallePublico(int $id): array
+    {
+        $convenio = DB::table('instrumento as i')
             ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
             ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
             ->join('estado as e', 'e.id', '=', 'i.id_estado')
-            ->whereIn('i.id', Instrumento::visiblePara($usuario)->select('id'))
+            ->leftJoin('convenio as c', 'c.id_instrumento', '=', 'i.id')
+            ->where('i.id', $id)
+            ->whereNull('i.deleted_at')
+            ->whereIn('e.nombre', self::ESTADOS_PUBLICOS)
             ->select(
                 'i.id',
+                'i.uuid',
                 'i.codigo',
                 'i.titulo',
                 't.nombre as tipo',
+                't.categoria',
+                't.ambito',
+                'u.id as id_unidad',
                 'u.nombre as unidad',
                 'e.nombre as estado',
-                'i.fecha_fin as vence',
+                'i.fecha_inicio',
+                'i.fecha_fin as vencimiento',
                 'i.fecha_firma',
-                'i.fecha_preaviso as preaviso',
+                'i.numero_resolucion',
+                'i.version',
+                'c.objeto',
+                'c.marco_legal',
+                'c.obligaciones',
+                'c.condiciones_terminacion',
+                'c.condiciones_renovacion',
+                'c.confidencialidad',
+                'c.alcance_actividades',
             )
-            ->orderByDesc('i.created_at')
-            ->orderByDesc('i.id');
+            ->firstOrFail();
 
-        if (isset($filtros['estado'])) {
-            $query->where('e.nombre', $filtros['estado']);
-        }
-        if (isset($filtros['tipo'])) {
-            $query->where('i.id_tipo_instrumento', $filtros['tipo']);
-        }
-        if (isset($filtros['unidad'])) {
-            $query->where('i.id_institucion', $filtros['unidad']);
-        }
-        if (isset($filtros['q'])) {
-            $busqueda = '%'.$filtros['q'].'%';
-            $query->where(fn ($consulta) => $consulta
-                ->where('i.titulo', 'like', $busqueda)
-                ->orWhere('i.codigo', 'like', $busqueda));
-        }
+        $partes = DB::table('parte_firmante as p')
+            ->join('institucion as inst', 'inst.id', '=', 'p.id_institucion')
+            ->where('p.id_instrumento', $id)
+            ->select('inst.id', 'inst.nombre', 'inst.identificacion_fiscal', 'inst.es_interna', 'p.fecha_firma')
+            ->get();
 
-        return $query->paginate(15);
+        $archivos = DB::table('archivo')
+            ->where('id_instrumento', $id)
+            ->whereNull('deleted_at')
+            ->select('id', 'nombre', 'tipo_documento', 'tipo_mime', 'tamanio_bytes', 'created_at')
+            ->get();
+
+        $vinculos = DB::table('instrumento_vinculo as v')
+            ->join('instrumento as io', 'io.id', '=', 'v.id_instrumento_origen')
+            ->join('instrumento as id', 'id.id', '=', 'v.id_instrumento_destino')
+            ->join('estado as eo', 'eo.id', '=', 'io.id_estado')
+            ->join('estado as ed', 'ed.id', '=', 'id.id_estado')
+            ->where(fn ($query) => $query
+                ->where('v.id_instrumento_origen', $id)
+                ->orWhere('v.id_instrumento_destino', $id))
+            ->whereIn('eo.nombre', self::ESTADOS_PUBLICOS)
+            ->whereIn('ed.nombre', self::ESTADOS_PUBLICOS)
+            ->whereNull('io.deleted_at')
+            ->whereNull('id.deleted_at')
+            ->select(
+                'v.tipo_vinculo',
+                'io.id as origen_id',
+                'io.codigo as origen_codigo',
+                'io.titulo as origen_titulo',
+                'id.id as destino_id',
+                'id.codigo as destino_codigo',
+                'id.titulo as destino_titulo',
+            )
+            ->get();
+
+        return [
+            'convenio' => $convenio,
+            'partes' => $partes,
+            'representantes' => collect(),
+            'archivos' => $archivos,
+            'historial' => collect(),
+            'observaciones' => collect(),
+            'vinculos' => $vinculos,
+        ];
     }
 
     /**
@@ -215,5 +276,54 @@ class ConvenioService
             ->orderByDesc('i.created_at')
             ->orderByDesc('i.id')
             ->paginate(15);
+    }
+
+    /**
+     * @param  array{estado?: string, tipo?: int, unidad?: int, q?: string}  $filtros
+     */
+    private function consultaListado(array $filtros, ?Usuario $usuario = null): Builder
+    {
+        $query = DB::table('instrumento as i')
+            ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
+            ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
+            ->join('estado as e', 'e.id', '=', 'i.id_estado')
+            ->select(
+                'i.id',
+                'i.codigo',
+                'i.titulo',
+                't.nombre as tipo',
+                'u.nombre as unidad',
+                'e.nombre as estado',
+                'i.fecha_fin as vence',
+                'i.fecha_firma',
+            )
+            ->orderByDesc('i.created_at')
+            ->orderByDesc('i.id');
+
+        if ($usuario) {
+            $query->whereIn('i.id', Instrumento::visiblePara($usuario)->select('id'))
+                ->addSelect('i.fecha_preaviso as preaviso');
+        } else {
+            $query->whereNull('i.deleted_at')
+                ->whereIn('e.nombre', self::ESTADOS_PUBLICOS);
+        }
+
+        if (isset($filtros['estado'])) {
+            $query->where('e.nombre', $filtros['estado']);
+        }
+        if (isset($filtros['tipo'])) {
+            $query->where('i.id_tipo_instrumento', $filtros['tipo']);
+        }
+        if (isset($filtros['unidad'])) {
+            $query->where('i.id_institucion', $filtros['unidad']);
+        }
+        if (isset($filtros['q'])) {
+            $busqueda = '%'.$filtros['q'].'%';
+            $query->where(fn ($consulta) => $consulta
+                ->where('i.titulo', 'like', $busqueda)
+                ->orWhere('i.codigo', 'like', $busqueda));
+        }
+
+        return $query;
     }
 }
