@@ -1,7 +1,7 @@
 import { api } from '@/services/api';
 
 export type FirmaPendiente = {
-  id: number;
+  id_instrumento: number;
   uuid: string;
   codigo: string;
   titulo: string;

@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '@/services/api';
 import { colors, spacing, typography } from '@/theme';
 import {FirmaPendiente, firmaService,} from '../services/firmaService';
+import { router } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 
 export function FirmarScreen() {
   const [items, setItems] = useState<FirmaPendiente[]>([]);
@@ -91,15 +93,40 @@ export function FirmarScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.list}>
             {items.map((item) => (
-              <View key={item.id} style={styles.row}>
-                <View style={styles.rowContent}>
-                  <Text style={styles.code}>{item.codigo}</Text>
-                  <Text style={styles.name}>{item.titulo}</Text>
-                  <Text style={styles.meta}>
-                    {item.tipo} · Asignado el{' '}
-                    {new Date(item.asignado_en).toLocaleDateString('es-AR')}
+              <View key={item.id_instrumento} style={styles.row}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ver detalle de ${item.titulo}`}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/agreement/[id]',
+                      params: { id: String(item.id_instrumento) },
+                    })
+                  }
+                  style={styles.rowContent}
+                >
+                  <Text style={styles.name} numberOfLines={1}>
+                    {item.titulo}
                   </Text>
-                </View>
+                  <Text style={styles.meta}>
+                    {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ver detalle de ${item.titulo}`}
+                  hitSlop={8}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/agreement/[id]',
+                      params: { id: String(item.id_instrumento) },
+                    })
+                  }
+                  style={styles.row}
+                >
+                  <ChevronRight size={20} color={colors.primary} />
+                </Pressable>
               </View>
             ))}
           </View>
@@ -156,12 +183,15 @@ const styles = StyleSheet.create({
   },
   row: {
     minHeight: 88,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   rowContent: {
+    flex: 1,
+    justifyContent: 'center',
     gap: spacing.xs,
   },
   code: {
@@ -203,5 +233,5 @@ const styles = StyleSheet.create({
   loadMore: {
     alignItems: 'center',
     padding: spacing.lg,
-  },
+  }
 });

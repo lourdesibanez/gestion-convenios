@@ -1,4 +1,4 @@
-import { ClipboardPenLine, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ChevronRight, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -126,11 +126,14 @@ export function HomeScreen() {
                     </View>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Firmar ${item.titulo}`}
-                      onPress={() => router.push('/sign')}
-                      style={styles.signIconButton}
+                      accessibilityLabel={`Ver detalle de ${item.titulo}`}
+                      onPress={() => router.push({
+                        pathname: '/agreement/[id]',
+                        params: { id: String(item.id_instrumento) },
+                      })}
+                      style={styles.itemList}
                     >
-                      <ClipboardPenLine size={20} color={colors.primary} />
+                      <ChevronRight size={20} color={colors.primary} />
                     </Pressable>
                   </View>
                 ))}
@@ -225,13 +228,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  signIconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
   },
   titleList: {
     ...typography.label,

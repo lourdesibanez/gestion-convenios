@@ -18,6 +18,7 @@ export type HomeData = {
     total: number;
     items: {
       uuid: string;
+      id_instrumento: number;
       codigo: string;
       titulo: string;
       tipo: string;
