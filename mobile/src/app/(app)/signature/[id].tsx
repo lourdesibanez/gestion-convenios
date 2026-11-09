@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Share, Fingerprint, Delete, Signature } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -9,6 +9,8 @@ import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { firmaService } from '@/features/firma/services/firmaService';
 import { colors } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
+import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
 
 
 export default function SignatureScreen() {
@@ -23,8 +25,37 @@ export default function SignatureScreen() {
   const [error, setError] = useState<string>();
   const [shareError, setShareError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
-  const [acepta, setAcepta] = useState(true);
+  const [acepta, setAcepta] = useState(false);
   const [firmaModalVisible, setFirmaModalVisible] = useState(false);
+  const [firmaPath, setFirmaPath] = useState('');
+  const firmaSvgRef = useRef<Svg | null>(null);
+const firmaPathRef = useRef('');
+const canvasSize = useRef({ width: 300, height: 100 });
+const [registrando, setRegistrando] = useState(false);
+const [firmaError, setFirmaError] = useState<string>();
+
+    const dibujoResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: (event) => {
+            const { locationX, locationY } = event.nativeEvent;
+            const x = (locationX / canvasSize.current.width) * 300;
+            const y = (locationY / canvasSize.current.height) * 100;
+
+            firmaPathRef.current += ` M ${x} ${y}`;
+            setFirmaPath(firmaPathRef.current);
+            },
+            onPanResponderMove: (event) => {
+            const { locationX, locationY } = event.nativeEvent;
+            const x = (locationX / canvasSize.current.width) * 300;
+            const y = (locationY / canvasSize.current.height) * 100;
+
+            firmaPathRef.current += ` L ${x} ${y}`;
+            setFirmaPath(firmaPathRef.current);
+            },
+        }),
+    ).current;
 
   useEffect(() => {
     let active = true;
@@ -57,6 +88,89 @@ export default function SignatureScreen() {
       active = false;
     };
   }, [id, attempt]);
+
+  const exportarFirmaPng = (): Promise<string> =>
+    new Promise((resolve, reject) => {
+        const svg = firmaSvgRef.current;
+
+        if (!svg) {
+        reject(new Error('No se pudo acceder al área de firma.'));
+        return;
+        }
+
+        svg.toDataURL(
+        (base64) => {
+            if (!base64) {
+            reject(new Error('No se pudo convertir la firma.'));
+            return;
+            }
+
+            resolve(`data:image/png;base64,${base64}`);
+        },
+        { width: 900, height: 300 },
+        );
+    });
+
+    const confirmarFirma = async () => {
+    setFirmaError(undefined);
+
+    if (!acepta || !firmaPathRef.current.trim()) {
+        setFirmaError('Dibujá tu firma y aceptá el documento para continuar.');
+        return;
+    }
+
+    setRegistrando(true);
+
+    try {
+        const biometrías = await getAvailableBiometrics();
+
+        if (!biometrías.includes('fingerprint')) {
+        Alert.alert(
+            'Huella no configurada',
+            'Para firmar, configurá una huella en los ajustes de seguridad o biometría del dispositivo.',
+            [{ text: 'Entendido' }],
+        );
+        return;
+        }
+
+        const permiso = await Location.requestForegroundPermissionsAsync();
+
+        if (permiso.status !== 'granted') {
+        throw new Error('Necesitamos permiso de ubicación para registrar la firma.');
+        }
+
+        const ubicación = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        });
+
+        const autenticado = await authenticate('Confirmá la firma del convenio');
+
+        if (!autenticado) return;
+
+        const firma = await exportarFirmaPng();
+
+        const resultado = await firmaService.registrarFirma(Number(id), {
+        firma,
+        acepta: true,
+        latitud: ubicación.coords.latitude,
+        longitud: ubicación.coords.longitude,
+        });
+
+        setFirmaModalVisible(false);
+
+        Alert.alert(
+        'Firma registrada',
+        `Fecha: ${new Date(resultado.firmado_en).toLocaleString('es-AR')}\n` +
+            `Ubicación: ${resultado.latitud}, ${resultado.longitud}`,
+        );
+    } catch (cause) {
+        setFirmaError(
+        cause instanceof Error ? cause.message : 'No se pudo registrar la firma.',
+        );
+    } finally {
+        setRegistrando(false);
+    }
+    };
 
   const compartir = async () => {
     if (!file) return;
@@ -159,29 +273,46 @@ export default function SignatureScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Borrar firma"
                     style={styles.clearButton}
+                    onPress={() => {
+                        firmaPathRef.current = '';
+                        setFirmaPath('');
+                    }} 
                     >
-                    <Delete size={20} color="#DC2626" />
+                    <Delete size={20} color="#DC2626"/>
                     </Pressable>
                 </View>
 
-                <View style={styles.signatureBox}>
-                    <Svg width="220" height="70" viewBox="0 0 220 70">
-                    <Path
-                        d="M8 48 C18 10, 28 12, 24 48 S45 20, 52 28 C58 38, 63 48, 73 32 S88 24, 91 39 C96 52, 106 44, 112 27 S127 22, 130 40 C134 54, 146 40, 154 25 S171 20, 176 38 C181 49, 194 37, 210 30"
-                        fill="none"
-                        stroke="#315B96"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                    />
-                    <Path
-                        d="M28 60 L184 60"
-                        fill="none"
-                        stroke="#315B96"
-                        strokeWidth="2"
-                    />
-                    </Svg>
+                <View
+                    {...dibujoResponder.panHandlers}
+                    onLayout={(event) => {
+                        canvasSize.current = {
+                        width: event.nativeEvent.layout.width,
+                        height: event.nativeEvent.layout.height,
+                        };
+                    }}
+                    style={styles.signatureBox}
+                    >
+                    <View style={styles.signatureCanvas}>
+                        <Svg
+                        ref={firmaSvgRef}
+                        width="100%"
+                        height="100%"
+                        viewBox="0 0 300 100"
+                        preserveAspectRatio="none"
+                        >
+                        <Path
+                            d={firmaPath}
+                            fill="none"
+                            stroke="#315B96"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                        </Svg>
+                    </View>
+
                     <Text style={styles.signatureHint}>
-                    Firmá con el dedo dentro del recuadro
+                        Firmá con el dedo dentro del recuadro
                     </Text>
                 </View>
 
@@ -206,17 +337,24 @@ export default function SignatureScreen() {
                 </View>
 
                 <Pressable
-                    disabled={!acepta}
+                    disabled={!acepta || !firmaPath.trim() || registrando}
+                    onPress={() => void confirmarFirma()}
                     style={[
-                    styles.confirmButton,
-                    !acepta && styles.confirmButtonDisabled,
+                        styles.confirmButton,
+                        (!acepta || !firmaPath.trim() || registrando) &&
+                        styles.confirmButtonDisabled,
                     ]}
-                >
-                    <Fingerprint size={19} color="#FFFFFF" />
+                    >
+                    {registrando ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                        <Fingerprint size={19} color="#FFFFFF" />
+                    )}
                     <Text style={styles.confirmText}>
-                    Confirmar firma con huella
+                        {registrando ? 'Registrando firma…' : 'Confirmar firma con huella'}
                     </Text>
                 </Pressable>
+                {firmaError ? <Text style={styles.error}>{firmaError}</Text> : null}
                 </View>
             </View>
             </Modal>
@@ -370,5 +508,9 @@ footer: {
   backgroundColor: colors.background,
   borderTopWidth: 1,
   borderTopColor: colors.border,
+},
+signatureCanvas: {
+  width: '100%',
+  height: 100,
 },
 });
