@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Share2 } from 'lucide-react-native';
+import { ChevronLeft, Share } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { firmaService } from '@/features/firma/services/firmaService';
 import { colors } from '@/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignatureScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, titulo, codigo } = useLocalSearchParams<{
+    id: string;
+    titulo: string;
+    codigo: string;
+    }>();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +75,7 @@ export default function SignatureScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView edges={['top']} style={styles.screen}>
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
@@ -81,7 +86,10 @@ export default function SignatureScreen() {
           <ChevronLeft color={colors.text} size={24} />
         </Pressable>
 
-        <Text style={styles.title}>Leer convenio</Text>
+        <View style={styles.headerText}>
+            <Text numberOfLines={1} style={styles.title}>{titulo}</Text>
+            <Text style={styles.code}>{codigo}</Text>
+        </View>
 
         <Pressable
           accessibilityRole="button"
@@ -90,7 +98,7 @@ export default function SignatureScreen() {
           onPress={() => void compartir()}
           style={styles.iconButton}
         >
-          <Share2 color={file ? colors.primary : colors.textMuted} size={22} />
+          <Share color={file ? colors.primary : colors.textMuted} size={22} />
         </Pressable>
       </View>
 
@@ -111,7 +119,7 @@ export default function SignatureScreen() {
       ) : file ? (
         <PdfJsViewer file={file} />
       ) : null}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -133,10 +141,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 14, fontWeight: '700' },
   message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   messageText: { color: colors.textMuted },
   error: { color: colors.error, textAlign: 'center' },
   retry: { color: colors.primary, fontWeight: '700', padding: 8 },
   shareError: { color: colors.error, padding: 8, textAlign: 'center' },
+  headerText: {
+    flex: 1,
+    marginLeft: 4,
+    },
+    code: {
+    color: colors.textMuted,
+    fontSize: 12,
+    },
 });
