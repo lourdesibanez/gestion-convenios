@@ -7,6 +7,8 @@ use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Models\Archivo;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FirmaService
 {
@@ -43,5 +45,33 @@ class FirmaService
             ->where('tipo_mime', 'application/pdf')
             ->latest('id')
             ->firstOrFail();
+    }
+
+    public function verPdfPendiente(Usuario $usuario, int $idInstrumento): StreamedResponse
+    {
+        $usuario->firmas()
+            ->pendientes()
+            ->where('id_instrumento', $idInstrumento)
+            ->firstOrFail();
+
+        $archivo = Archivo::query()
+            ->where('id_instrumento', $idInstrumento)
+            ->where('tipo_documento', 'convenio_aprobado')
+            ->latest('id')
+            ->firstOrFail();
+
+        if (! Storage::disk('local')->exists($archivo->ruta)) {
+            throw (new ModelNotFoundException())->setModel(Archivo::class, [$archivo->id]);
+        }
+
+        return Storage::disk('local')->response(
+            $archivo->ruta,
+            $archivo->nombre,
+            [
+                'Content-Type' => 'application/pdf',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+            'inline',
+        );
     }
 }

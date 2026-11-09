@@ -22,6 +22,11 @@ class FirmaController extends Controller
         );
     }
 
+    public function verPdfPendiente(Request $request, int $id_instrumento): StreamedResponse
+    {
+        return $this->firmas->verPdfPendiente($request->user(), $id_instrumento);
+    }
+
     public function visualizarDocumentoPendiente(Request $request, int $id_instrumento): StreamedResponse {
         $archivo = $this->firmas->obtenerDocumentoPendiente(
             $request->user(),
