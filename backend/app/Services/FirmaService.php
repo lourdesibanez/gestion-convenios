@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Firma;
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Models\Archivo;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FirmaService
 {
@@ -26,5 +28,20 @@ class FirmaService
                 'tipo' => $firma->instrumento->tipo->nombre,
                 'asignado_en' => $firma->created_at,
             ]);
+    }
+
+    public function obtenerDocumentoPendiente(Usuario $usuario, int $idInstrumento): Archivo
+    {
+        $usuario->firmas()
+            ->pendientes()
+            ->where('id_instrumento', $idInstrumento)
+            ->firstOrFail();
+
+        return Archivo::query()
+            ->where('id_instrumento', $idInstrumento)
+            ->where('tipo_documento', 'convenio_aprobado')
+            ->where('tipo_mime', 'application/pdf')
+            ->latest('id')
+            ->firstOrFail();
     }
 }

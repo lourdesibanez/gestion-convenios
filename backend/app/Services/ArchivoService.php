@@ -107,4 +107,20 @@ class ArchivoService
 
         return $archivo->ruta;
     }
+
+    public function visualizar(Archivo $archivo, Usuario $usuario): StreamedResponse
+    {
+        $ruta = $this->obtenerRuta($archivo);
+        $this->registrarDescarga($archivo, $usuario);
+
+        return Storage::disk('local')->response(
+            $ruta,
+            $archivo->nombre,
+            [
+                'Content-Type' => $archivo->tipo_mime,
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+            'inline',
+        );
+    }
 }
