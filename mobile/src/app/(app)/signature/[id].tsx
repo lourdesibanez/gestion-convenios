@@ -150,18 +150,41 @@ const [firmaError, setFirmaError] = useState<string>();
         const firma = await exportarFirmaPng();
 
         const resultado = await firmaService.registrarFirma(Number(id), {
-        firma,
-        acepta: true,
-        latitud: ubicación.coords.latitude,
-        longitud: ubicación.coords.longitude,
+            firma,
+            acepta: true,
+            latitud: ubicación.coords.latitude,
+            longitud: ubicación.coords.longitude,
         });
+
+        let direccionTexto = '';
+        try {
+            const [direccion] = await Location.reverseGeocodeAsync({
+                latitude: resultado.latitud,
+                longitude: resultado.longitud,
+            });
+
+            if (direccion) {
+                direccionTexto = [
+                    direccion.streetNumber,
+                    direccion.street,
+                    direccion.district,
+                    direccion.city,
+                    direccion.region,
+                    direccion.country,
+                ]
+                    .filter(Boolean)
+                    .join(', ');
+            }
+        } catch {
+            // Si no se puede resolver la dirección, se muestran las coordenadas.
+        }
 
         setFirmaModalVisible(false);
 
         Alert.alert(
         'Firma registrada',
         `Fecha: ${new Date(resultado.firmado_en).toLocaleString('es-AR')}\n` +
-            `Ubicación: ${resultado.latitud}, ${resultado.longitud}`,
+            `Ubicación: ${direccionTexto || `${resultado.latitud}, ${resultado.longitud}`}`,
         );
     } catch (cause) {
         setFirmaError(
