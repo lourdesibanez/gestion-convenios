@@ -20,6 +20,16 @@ export type PaginaFirmasPendientes = {
   per_page: number;
 };
 
+export type RegistrarFirmaRespuesta = {
+  mensaje: string;
+  firmado_en: string;
+  latitud: number;
+  longitud: number;
+  hash_documento: string;
+  documento: string;
+  convenio_completo: boolean;
+};
+
 export const firmaService = {
   listarPendientes: (pagina = 1) =>
     api.get<PaginaFirmasPendientes>(`/signatures/pending?page=${pagina}`),
@@ -95,4 +105,18 @@ export const firmaService = {
 
     return archivo;
   },
+  
+  registrarFirma: (
+    idInstrumento: number,
+    datos: {
+      firma: string;
+      acepta: true;
+      latitud: number;
+      longitud: number;
+    },
+  ) =>
+    api.post<RegistrarFirmaRespuesta>(
+      `/signatures/pending/${idInstrumento}/sign`,
+      datos,
+    ),
 };

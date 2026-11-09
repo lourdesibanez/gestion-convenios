@@ -22,13 +22,10 @@ export async function getAvailableBiometrics(): Promise<BiometricType[]> {
 }
 
 /** Abre el lector del sistema. Devuelve true si el dueño del celular se identificó. */
-export async function authenticate(): Promise<boolean> {
+export async function authenticate(promptMessage = 'Ingresá a Gestión de Convenios'): Promise<boolean> {
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: 'Ingresá a Gestión de Convenios',
-    cancelLabel: 'Usar contraseña',
-    disableDeviceFallback: true,
+    promptMessage,
   });
-
   return result.success;
 }
 
