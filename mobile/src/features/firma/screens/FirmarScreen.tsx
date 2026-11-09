@@ -5,7 +5,7 @@ import { ApiError } from '@/services/api';
 import { colors, spacing, typography } from '@/theme';
 import {FirmaPendiente, firmaService,} from '../services/firmaService';
 import { router } from 'expo-router';
-import { ClipboardPenLine } from 'lucide-react-native';
+import { Signature } from 'lucide-react-native';
 
 export function FirmarScreen() {
   const [items, setItems] = useState<FirmaPendiente[]>([]);
@@ -129,7 +129,7 @@ export function FirmarScreen() {
                   }
                   style={styles.signButton}
                 >
-                  <ClipboardPenLine size={20} color={colors.primary} />
+                  <Signature size={20} color={colors.primary} />
                 </Pressable>
               </View>
             ))}

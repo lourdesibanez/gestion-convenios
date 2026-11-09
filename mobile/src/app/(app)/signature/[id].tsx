@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, ScrollView } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Share, Fingerprint, MapPin } from 'lucide-react-native';
+import { ChevronLeft, Share, Fingerprint, MapPin, Delete, Signature } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
@@ -24,6 +24,7 @@ export default function SignatureScreen() {
   const [shareError, setShareError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   const [acepta, setAcepta] = useState(true);
+  const [firmaModalVisible, setFirmaModalVisible] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -107,7 +108,8 @@ export default function SignatureScreen() {
 
       {shareError ? <Text style={styles.shareError}>{shareError}</Text> : null}
 
-        {loading ? (
+    
+    {loading ? (
         <View style={styles.message}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.messageText}>Descargando convenio…</Text>
@@ -121,68 +123,104 @@ export default function SignatureScreen() {
         </View>
         ) : file ? (
         <>
-            <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.pdfFrame}>
-                <PdfJsViewer file={file} />
+            <PdfJsViewer file={file} />
             </View>
-
-            <View style={styles.signatureCard}>
-                <View style={styles.signatureHeader}>
-                <Text style={styles.signatureTitle}>Tu firma</Text>
-                <Text style={styles.clearText}>Borrar</Text>
-                </View>
-
-                <View style={styles.signatureBox}>
-                <Svg width="220" height="70" viewBox="0 0 220 70">
-                    <Path
-                    d="M8 48 C18 10, 28 12, 24 48 S45 20, 52 28 C58 38, 63 48, 73 32 S88 24, 91 39 C96 52, 106 44, 112 27 S127 22, 130 40 C134 54, 146 40, 154 25 S171 20, 176 38 C181 49, 194 37, 210 30"
-                    fill="none"
-                    stroke="#315B96"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    />
-                    <Path
-                    d="M28 60 L184 60"
-                    fill="none"
-                    stroke="#315B96"
-                    strokeWidth="2"
-                    />
-                </Svg>
-                <Text style={styles.signatureHint}>
-                    Firmá con el dedo dentro del recuadro
-                </Text>
-                </View>
-
-                <Pressable
-                style={styles.acceptRow}
-                onPress={() => setAcepta((actual) => !actual)}
-                >
-                <View style={[styles.checkbox, acepta && styles.checkboxChecked]}>
-                    {acepta ? <Text style={styles.checkmark}>✓</Text> : null}
-                </View>
-                <Text style={styles.acceptText}>
-                    Leí el documento completo y acepto firmarlo.
-                </Text>
-                </Pressable>
-
-                <View style={styles.locationRow}>
-                <MapPin size={17} color={colors.primary} />
-                <Text style={styles.locationText}>
-                    Se registrará fecha, hora y ubicación (lat/long) del acto de firma.
-                </Text>
-                </View>
-            </View>
-            </ScrollView>
 
             <View style={styles.footer}>
             <Pressable
-                disabled={!acepta}
-                style={[styles.confirmButton, !acepta && styles.confirmButtonDisabled]}
+                accessibilityRole="button"
+                onPress={() => setFirmaModalVisible(true)}
+                style={styles.confirmButton}
             >
-                <Fingerprint size={19} color="#FFFFFF" />
-                <Text style={styles.confirmText}>Confirmar firma con huella</Text>
+                <Signature size={19} color="#FFFFFF" />
+                <Text style={styles.confirmText}>Firmar convenio</Text>
             </Pressable>
             </View>
+
+            <Modal
+            visible={firmaModalVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setFirmaModalVisible(false)}
+            >
+            <View style={styles.modalOverlay}>
+                <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar firma"
+                onPress={() => setFirmaModalVisible(false)}
+                style={StyleSheet.absoluteFill}
+                />
+
+                <View style={styles.signatureCard}>
+                <View style={styles.signatureHeader}>
+                    <Text style={styles.signatureTitle}>Tu firma</Text>
+                    <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Borrar firma"
+                    style={styles.clearButton}
+                    >
+                    <Delete size={20} color="#DC2626" />
+                    </Pressable>
+                </View>
+
+                <View style={styles.signatureBox}>
+                    <Svg width="220" height="70" viewBox="0 0 220 70">
+                    <Path
+                        d="M8 48 C18 10, 28 12, 24 48 S45 20, 52 28 C58 38, 63 48, 73 32 S88 24, 91 39 C96 52, 106 44, 112 27 S127 22, 130 40 C134 54, 146 40, 154 25 S171 20, 176 38 C181 49, 194 37, 210 30"
+                        fill="none"
+                        stroke="#315B96"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                    />
+                    <Path
+                        d="M28 60 L184 60"
+                        fill="none"
+                        stroke="#315B96"
+                        strokeWidth="2"
+                    />
+                    </Svg>
+                    <Text style={styles.signatureHint}>
+                    Firmá con el dedo dentro del recuadro
+                    </Text>
+                </View>
+
+                <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: acepta }}
+                    style={styles.acceptRow}
+                    onPress={() => setAcepta((actual) => !actual)}
+                >
+                    <View style={[styles.checkbox, acepta && styles.checkboxChecked]}>
+                    {acepta ? <Text style={styles.checkmark}>✓</Text> : null}
+                    </View>
+                    <Text style={styles.acceptText}>
+                    Leí el documento completo y acepto firmarlo.
+                    </Text>
+                </Pressable>
+
+                <View style={styles.locationRow}>
+                    <MapPin size={17} color={colors.primary} />
+                    <Text style={styles.locationText}>
+                    Se registrará fecha, hora y ubicación del acto de firma.
+                    </Text>
+                </View>
+
+                <Pressable
+                    disabled={!acepta}
+                    style={[
+                    styles.confirmButton,
+                    !acepta && styles.confirmButtonDisabled,
+                    ]}
+                >
+                    <Fingerprint size={19} color="#FFFFFF" />
+                    <Text style={styles.confirmText}>
+                    Confirmar firma con huella
+                    </Text>
+                </Pressable>
+                </View>
+            </View>
+            </Modal>
         </>
         ) : null}
     </SafeAreaView>
@@ -226,18 +264,8 @@ const styles = StyleSheet.create({
   paddingBottom: 24,
 },
 pdfFrame: {
-  height: 420,
+  flex: 1,
   overflow: 'hidden',
-  borderRadius: 12,
-  marginBottom: 16,
-},
-signatureCard: {
-  padding: 16,
-  backgroundColor: colors.background,
-  borderWidth: 1,
-  borderColor: colors.border,
-  borderRadius: 18,
-  gap: 14,
 },
 signatureHeader: {
   flexDirection: 'row',
@@ -249,10 +277,8 @@ signatureTitle: {
   fontSize: 16,
   fontWeight: '700',
 },
-clearText: {
-  color: colors.primary,
-  fontSize: 14,
-  fontWeight: '600',
+clearButton: {
+  padding: 6,
 },
 signatureBox: {
   minHeight: 134,
@@ -307,16 +333,8 @@ locationRow: {
 locationText: {
   flex: 1,
   color: colors.textMuted,
-  fontSize: 13,
+  fontSize: 11,
   lineHeight: 19,
-},
-footer: {
-  paddingHorizontal: 16,
-  paddingTop: 12,
-  paddingBottom: 12,
-  backgroundColor: colors.background,
-  borderTopWidth: 1,
-  borderTopColor: colors.border,
 },
 confirmButton: {
   minHeight: 54,
@@ -334,5 +352,24 @@ confirmText: {
   color: '#FFFFFF',
   fontSize: 15,
   fontWeight: '700',
+},
+modalOverlay: {
+  flex: 1,
+  justifyContent: 'flex-end',
+  backgroundColor: 'rgba(0, 0, 0, 0.45)',
+},
+signatureCard: {
+  maxHeight: '90%',
+  padding: 16,
+  backgroundColor: colors.background,
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  gap: 14,
+},
+footer: {
+  padding: 12,
+  backgroundColor: colors.background,
+  borderTopWidth: 1,
+  borderTopColor: colors.border,
 },
 });

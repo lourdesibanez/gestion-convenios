@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { ClipboardPenLine, House, Search, UserRound } from 'lucide-react-native';
+import { House, Search, Signature, UserRound } from 'lucide-react-native';
 import { colors } from '@/theme';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,7 +47,7 @@ export default function AppLayout() {
           options={{
             title: 'Firmar',
             tabBarAccessibilityLabel: 'Firmar',
-            tabBarIcon: ({ color, size }) => <ClipboardPenLine color={String(color)} size={size} />,
+            tabBarIcon: ({ color, size }) => <Signature color={String(color)} size={size} />,
           }}
         />
         <Tabs.Screen

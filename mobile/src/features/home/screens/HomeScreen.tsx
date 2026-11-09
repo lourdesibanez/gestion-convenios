@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, ClipboardPenLine } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Signature } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -142,7 +142,7 @@ export function HomeScreen() {
                     })}
                     style={styles.signIconButton}
                   >
-                    <ClipboardPenLine size={20} color={colors.primary} />
+                    <Signature size={20} color={colors.primary} />
                   </Pressable>
                 </View>
               ))}
