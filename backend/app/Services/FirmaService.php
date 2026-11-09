@@ -21,12 +21,12 @@ class FirmaService
             ->orderByDesc('id')
             ->paginate(self::POR_PAGINA)
             ->through(fn (Firma $firma): array => [
-                'id' => $firma->id,
-                'uuid' => $firma->instrumento->uuid,
-                'codigo' => $firma->instrumento->codigo,
-                'titulo' => $firma->instrumento->titulo,
-                'tipo' => $firma->instrumento->tipo->nombre,
-                'asignado_en' => $firma->created_at,
+                'uuid'              => $firma->instrumento->uuid,
+                'id_instrumento'    => $firma->instrumento->id,
+                'codigo'            => $firma->instrumento->codigo,
+                'titulo'            => $firma->instrumento->titulo,
+                'tipo'              => $firma->instrumento->tipo->nombre,
+                'asignado_en'       => $firma->created_at,
             ]);
     }
 

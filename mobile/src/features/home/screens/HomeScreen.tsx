@@ -1,4 +1,4 @@
-import { ClipboardPenLine, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, ClipboardPenLine } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -35,7 +35,7 @@ export function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -49,16 +49,6 @@ export function HomeScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.header}>
-              <View style={styles.avatar}>
-                <Text style={styles.initials}>{data.usuario.iniciales}</Text>
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.hello}>Hola, {data.usuario.nombre}</Text>
-                <Text style={styles.unit}>{data.usuario.unidad}</Text>
-              </View>
-            </View>
-
             <Text style={styles.section}>Resumen de convenios</Text>
 
             {/* -------- BOX ------- */}
@@ -126,24 +116,36 @@ export function HomeScreen() {
               <View style={styles.list}>
                 {data.pendientes.items.map((item) => (
                   <View key={item.uuid} style={styles.itemList}>
-                    <View style={styles.flex}>
-                      <Text style={styles.titleList} numberOfLines={1}>
-                        {item.titulo}
-                      </Text>
-                      <Text style={styles.unit}>
-                        {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
-                      </Text>
-                    </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Firmar ${item.titulo}`}
-                      onPress={() => router.push('/sign')}
-                      style={styles.signIconButton}
-                    >
-                      <ClipboardPenLine size={20} color={colors.primary} />
-                    </Pressable>
-                  </View>
-                ))}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver detalle de ${item.titulo}`}
+                    onPress={() => router.push({
+                      pathname: '/agreement/[id]',
+                      params: { id: String(item.id_instrumento) },
+                    })}
+                    style={styles.flex}
+                  >
+                    <Text style={styles.titleList} numberOfLines={1}>
+                      {item.titulo}
+                    </Text>
+                    <Text style={styles.unit}>
+                      {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ir a firmar ${item.titulo}`}
+                    hitSlop={8}
+                    onPress={() => router.push({
+                      pathname: '/signature/[id]',
+                      params: { id: String(item.id_instrumento) },
+                    })}
+                    style={styles.signIconButton}
+                  >
+                    <ClipboardPenLine size={20} color={colors.primary} />
+                  </Pressable>
+                </View>
+              ))}
               </View>
             )}
           </>
