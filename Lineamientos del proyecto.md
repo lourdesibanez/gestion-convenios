@@ -160,6 +160,8 @@ Ruta (auth:sanctum) → FormRequest (valida) → Policy (autoriza)
 
 * **Archivos:** se guardan en un disco privado; solo PDF de hasta 20 MB (mimes:pdf\|max:20480); se calcula el SHA-256 al subirlos; se descargan solo por un endpoint que verifica permisos. La marca en los metadatos del PDF la hace la API.
 
+* **PDF firmado:** la API conserva el PDF original y genera una copia firmada agregando al final una página con los datos del acto: imagen de firma manuscrita, firmante, fecha y hora, y ubicación cuando esté disponible. Si hay varios firmantes, cada acto de firma debe quedar identificado en el documento. No se requiere configurar posiciones de firma en el ABM para el alcance base. Como posible innovación, el ABM puede permitir definir una ubicación para estampar cada firma sobre una página existente.
+
 * **Exportación CSV:** las celdas que empiezan con \=, \+, \- o @ se escriben con un ' adelante, para que no se ejecuten como fórmulas.
 
 * **Secretos:** solo en .env. .env.example lleva todas las variables, pero sin valores secretos.
@@ -348,6 +350,7 @@ Una funcionalidad está terminada cuando cumple todo esto:
 | Firma | Tabla firma: autoridad (id\_usuario), firmado\_en (null \= pendiente), latitud, longitud, imagen y hash. | Firma en la app con fecha, hora y ubicación |
 | Login | Email y contraseña → código MFA (mail simulado) → token Sanctum sin vencimiento, uno por dispositivo. Biometría local. | TP móvil: múltiples accesos, MFA, no volver a pedir login |
 | QR | El QR lleva instrumento.uuid, no el id ni el código. | Referencia segura y no adivinable |
+| Innovación: comprobante verificable | El PDF firmado incluye un QR para consultar su registro y verificar su integridad mediante SHA-256, junto con la trazabilidad de firmantes, fecha, hora y ubicación. No se presenta como firma digital certificada. | Aporta verificación y trazabilidad del documento firmado |
 | Concurrencia | instrumento.version (bloqueo optimista, respuesta 409). | El TP pide no pisar cambios más recientes |
 | Archivos | Sin updated\_at; la fecha de carga es created\_at. | Se conservan las cargas anteriores |
 | URLs | En inglés, como las nombra el TP. | Pedido explícito del TP |

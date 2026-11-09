@@ -8,6 +8,7 @@ use App\Services\FirmaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Http\Requests\RegistrarFirmaRequest;
 
 class FirmaController extends Controller
 {
@@ -28,6 +29,29 @@ class FirmaController extends Controller
         $this->authorize('verPdfPendiente', [Firma::class, $id_instrumento]);
 
         $archivo = $this->firmas->obtenerDocumentoPendiente(
+            $request->user(),
+            $id_instrumento,
+        );
+
+        return $this->archivos->visualizar($archivo, $request->user());
+    }
+
+    public function registrar(RegistrarFirmaRequest $request, int $id_instrumento): JsonResponse {
+        $this->authorize('registrar', [Firma::class, $id_instrumento]);
+
+        return response()->json(
+            $this->firmas->registrar(
+                $request->user(),
+                $id_instrumento,
+                $request->validated(),
+            ),
+            201);
+    }
+
+    public function verPdfFirmado(Request $request, int $id_instrumento): StreamedResponse {
+        $this->authorize('verDocumentoFirmado', [Firma::class, $id_instrumento]);
+
+        $archivo = $this->firmas->obtenerDocumentoFirmado(
             $request->user(),
             $id_instrumento,
         );
