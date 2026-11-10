@@ -27,6 +27,8 @@ class PermisoSeeder extends SeederIdempotente
         20 => 'reporte.ver',
         21 => 'notificacion.ver',
         22 => 'historial.ver',
+        23 => 'instrumento.vincular',
+        24 => 'reporte.exportar',
     ];
 
     public function run(): void

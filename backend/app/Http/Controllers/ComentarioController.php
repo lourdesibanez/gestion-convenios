@@ -7,6 +7,7 @@ use App\Http\Resources\ComentarioResource;
 use App\Models\Instrumento;
 use App\Services\ComentarioService;
 use Illuminate\Http\Request;
+use App\Models\Comentario;
 
 class ComentarioController extends Controller
 {
@@ -26,6 +27,7 @@ class ComentarioController extends Controller
     public function crear(ComentarioRequest $request, int $id)
     {
         $instrumento = $this->instrumentoAutorizado($request, $id);
+        $this->authorize('create', [Comentario::class, $instrumento]);
 
         $comentario = $this->comentarios->crear(
             $instrumento,

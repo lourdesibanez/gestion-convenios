@@ -231,9 +231,7 @@ class FirmaService
 
     public function obtenerDocumentoFirmado(Usuario $usuario, int $id_instrumento): Archivo
     {
-        $usuario->firmas()
-            ->where('id_instrumento', $id_instrumento)
-            ->firstOrFail();
+        Instrumento::query()->visiblePara($usuario)->findOrFail($id_instrumento);
 
         return Archivo::query()
             ->where('id_instrumento', $id_instrumento)
