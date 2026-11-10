@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -5,13 +6,26 @@ type Props = {
   label: string;
   value: number;
   color: string;
+  icon?: ReactNode;
 };
 
-export function StatCard({ label, value, color }: Props) {
+export function StatCard({ label, value, color, icon }: Props) {
   return (
-    <View style={[styles.card, { borderLeftColor: color }]}>
-      <Text style={[styles.value, { color }]}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[styles.card, icon && styles.iconCard, { borderLeftColor: color }]}>
+      {icon ? (
+        <>
+          <View style={styles.iconValueRow}>
+            <Text style={[styles.value, { color }]}>{value}</Text>
+            <View style={styles.iconSlot}>{icon}</View>
+          </View>
+          <Text style={styles.label}>{label}</Text>
+        </>
+      ) : (
+        <>
+          <Text style={[styles.value, { color }]}>{value}</Text>
+          <Text style={styles.label}>{label}</Text>
+        </>
+      )}
     </View>
   );
 }
@@ -27,6 +41,17 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     padding: spacing.md,
     gap: spacing.xs,
+  },
+  iconCard: {
+    justifyContent: 'space-between',
+  },
+  iconValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  iconSlot: {
+    alignItems: 'flex-end',
   },
   value: {
     fontSize: 28,
