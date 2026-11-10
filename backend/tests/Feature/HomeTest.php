@@ -173,6 +173,7 @@ class HomeTest extends TestCase
 
         $this->assertCount(10, $movimientos);
         $this->assertSame(['M-REP', 'M-11', 'M-10'], array_column(array_slice($movimientos, 0, 3), 'codigo'));
+        $this->assertSame($repetido->id, $movimientos[0]['id']);
         $this->assertSame('aprobado', $movimientos[0]['estado']);
         $this->assertNotContains('AJENO', array_column($movimientos, 'codigo'));
     }
