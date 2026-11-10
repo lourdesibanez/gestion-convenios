@@ -100,16 +100,23 @@ class FirmaService
 
                 $firmadoEn = now();
                 $nombreFirmante = trim($usuario->nombre . ' ' . $usuario->apellido);
+
+                //Generamos un token
+                $tokenVerificacion = (string) Str::uuid();
+                $urlVerificacion = rtrim(config('app.web_url'), '/') . '/verificar/' . $tokenVerificacion;
+
+                //Generamos una pagina extra para la firma
                 $contenidoPdf = $this->pdfFirmado->agregarPaginaFirma(
                     $disco->path($documentoAnterior->ruta),
                     $disco->path($rutaImagen),
                     [
-                        'titulo' => $instrumento->titulo,
-                        'codigo' => $instrumento->codigo,
-                        'firmante' => $nombreFirmante,
-                        'firmado_en' => $firmadoEn->format('d/m/Y H:i:s'),
-                        'latitud' => $datos['latitud'],
-                        'longitud' => $datos['longitud'],
+                        'titulo'            => $instrumento->titulo,
+                        'codigo'            => $instrumento->codigo,
+                        'firmante'          => $nombreFirmante,
+                        'firmado_en'        => $firmadoEn->format('d/m/Y H:i:s'),
+                        'latitud'           => $datos['latitud'],
+                        'longitud'          => $datos['longitud'],
+                        'url_verificacion'  => $urlVerificacion,
                     ],
                 );
 
