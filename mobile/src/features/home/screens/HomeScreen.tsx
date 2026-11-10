@@ -108,7 +108,16 @@ export function HomeScreen() {
               ) : (
                 <View style={styles.list}>
                   {data.ultimos_movimientos.map((movimiento) => (
-                    <View key={movimiento.uuid} style={styles.itemList}>
+                    <Pressable
+                      key={movimiento.uuid}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver detalle de ${movimiento.titulo}`}
+                      onPress={() => router.push({
+                        pathname: '/agreement/[id]',
+                        params: { id: String(movimiento.id) },
+                      })}
+                      style={styles.itemList}
+                    >
                       <View style={styles.flex}>
                         <Text style={styles.titleList} numberOfLines={1}>
                           {movimiento.titulo}
@@ -128,7 +137,7 @@ export function HomeScreen() {
                           {movimiento.estado}
                         </Text>
                       </View>
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
               ))}
