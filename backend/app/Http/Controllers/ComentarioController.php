@@ -23,7 +23,7 @@ class ComentarioController extends Controller
         );
     }
 
-    public function crear(ComentarioRequest $request, int $id): ComentarioResource
+    public function crear(ComentarioRequest $request, int $id)
     {
         $instrumento = $this->instrumentoAutorizado($request, $id);
 
