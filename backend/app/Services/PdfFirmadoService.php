@@ -4,8 +4,6 @@ namespace App\Services;
 
 use RuntimeException;
 use setasign\Fpdi\Fpdi;
-use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\PngWriter;
 
 class PdfFirmadoService
 {
@@ -18,8 +16,7 @@ class PdfFirmadoService
      *     firmante: string,
      *     firmado_en: string,
      *     latitud: float|int|string,
-     *     longitud: float|int|string,
-     *      url_verificacion: string
+     *     longitud: float|int|string
      * } $datos
      */
     public function agregarPaginaFirma(string $pdfOriginal, string $rutaImagenFirma, array $datos): string {
@@ -78,28 +75,6 @@ class PdfFirmadoService
             $altoImagen,
             'PNG',
         );
-
-        //Agregamos el QR de verificación
-        $rutaQr = tempnam(sys_get_temp_dir(), 'qr-');
-
-        if ($rutaQr === false) {
-            throw new RuntimeException('No se pudo crear el QR de verificación.');
-        }
-
-        try {
-            (new PngWriter())
-                ->write(QrCode::create($datos['url_verificacion']))
-                ->saveToFile($rutaQr);
-
-            $pdf->SetFont('Arial', '', 9);
-            $pdf->SetXY(150, 210);
-            $pdf->Cell(40, 6, $this->texto('Verificar documento'), 0, 1, 'C');
-            $pdf->Image($rutaQr, 155, 218, 35, 35, 'PNG');
-        } finally {
-            if (is_file($rutaQr)) {
-                unlink($rutaQr);
-            }
-        }
 
         return $pdf->Output('S');
     }

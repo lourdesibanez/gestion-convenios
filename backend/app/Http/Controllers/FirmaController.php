@@ -9,7 +9,6 @@ use App\Services\FirmaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use App\Models\Archivo;
 
 class FirmaController extends Controller
 {
@@ -61,30 +60,5 @@ class FirmaController extends Controller
         );
 
         return $this->archivos->visualizar($archivo, $request->user());
-    }
-
-    //Endpoint publico para que cualquier pueda verificar la validez de la firma mediante un qr
-    public function verificar(string $token): JsonResponse
-    {
-        $firma = Firma::query()
-            ->with('instrumento')
-            ->where('token_verificacion', $token)
-            ->whereNotNull('firmado_en')
-            ->firstOrFail();
-
-        $archivo = Archivo::query()
-            ->where('id_instrumento', $firma->id_instrumento)
-            ->where('tipo_documento', 'convenio_firmado')
-            ->where('hash_sha256', $firma->hash_documento)
-            ->firstOrFail();
-
-        return response()->json([
-            'data' => [
-                'titulo' => $firma->instrumento->titulo,
-                'codigo' => $firma->instrumento->codigo,
-                'firmado_en' => $firma->firmado_en->toIso8601String(),
-                'hash_documento' => $archivo->hash_sha256,
-            ],
-        ]);
     }
 }

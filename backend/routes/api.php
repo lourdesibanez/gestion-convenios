@@ -27,9 +27,8 @@ Route::prefix('auth')->group(function () {
 });
 
 // ---------- Consulta pública ----------
-Route::get('public/agreements',                     [ConvenioController::class, 'listarPublicos']);
-Route::get('public/agreements/{id}',                [ConvenioController::class, 'obtenerDetallePublico']);
-Route::get('public/verifications/{token}',          [FirmaController::class, 'verificar']);
+Route::get('public/agreements', [ConvenioController::class, 'listarPublicos']);
+Route::get('public/agreements/{id}', [ConvenioController::class, 'obtenerDetallePublico']);
 
 // ---------- Solo con token (administración) ----------
 Route::middleware('auth:sanctum')->group(function () {
