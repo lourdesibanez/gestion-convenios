@@ -1,4 +1,12 @@
-import { ChevronDown, ChevronUp, Signature } from 'lucide-react-native';
+import {
+  ChevronDown,
+  ChevronUp,
+  ClipboardCheck,
+  ClipboardClock,
+  ClipboardPenLine,
+  ClipboardX,
+  Signature,
+} from 'lucide-react-native';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,10 +61,30 @@ export function HomeScreen() {
 
             {/* -------- BOX ------- */}
             <View style={styles.grid}>
-              <StatCard label="Vigentes" value={data.resumen.vigentes} color={colors.status.firmado} />
-              <StatCard label="En trámite" value={data.resumen.en_tramite} color={colors.status.revision} />
-              <StatCard label="Vencen en 30 días" value={data.resumen.vencen_30_dias} color={colors.status.rescindido} />
-              <StatCard label="Firmados último año" value={data.resumen.firmados_ultimo_anio} color={colors.primary} />
+              <StatCard
+                label="Vigentes"
+                value={data.resumen.vigentes}
+                color={colors.status.firmado}
+                icon={<ClipboardCheck size={20} color={colors.status.firmado} />}
+              />
+              <StatCard
+                label="En trámite"
+                value={data.resumen.en_tramite}
+                color={colors.status.revision}
+                icon={<ClipboardClock size={20} color={colors.status.revision} />}
+              />
+              <StatCard
+                label="Vencen en 30 días"
+                value={data.resumen.vencen_30_dias}
+                color={colors.status.rescindido}
+                icon={<ClipboardX size={20} color={colors.status.rescindido} />}
+              />
+              <StatCard
+                label="Firmados último año"
+                value={data.resumen.firmados_ultimo_anio}
+                color={colors.primary}
+                icon={<ClipboardPenLine size={20} color={colors.primary} />}
+              />
             </View>
 
             {/* -------- ÚLTIMOS MOVIMIENTOS ------- */}
@@ -80,7 +108,16 @@ export function HomeScreen() {
               ) : (
                 <View style={styles.list}>
                   {data.ultimos_movimientos.map((movimiento) => (
-                    <View key={movimiento.uuid} style={styles.itemList}>
+                    <Pressable
+                      key={movimiento.uuid}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver detalle de ${movimiento.titulo}`}
+                      onPress={() => router.push({
+                        pathname: '/agreement/[id]',
+                        params: { id: String(movimiento.id) },
+                      })}
+                      style={styles.itemList}
+                    >
                       <View style={styles.flex}>
                         <Text style={styles.titleList} numberOfLines={1}>
                           {movimiento.titulo}
@@ -100,7 +137,7 @@ export function HomeScreen() {
                           {movimiento.estado}
                         </Text>
                       </View>
-                    </View>
+                    </Pressable>
                   ))}
                 </View>
               ))}

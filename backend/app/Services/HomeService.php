@@ -114,6 +114,7 @@ class HomeService
             $instrumento = $instrumentos[$movimiento->id_instrumento];
 
             return [
+                'id' => $instrumento->id,
                 'uuid' => $instrumento->uuid,
                 'codigo' => $instrumento->codigo,
                 'titulo' => $instrumento->titulo,

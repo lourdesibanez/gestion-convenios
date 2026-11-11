@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Usuario;
+use App\Models\Instrumento;
 
 class FirmaPolicy
 {
@@ -27,8 +28,9 @@ class FirmaPolicy
     public function verDocumentoFirmado(Usuario $usuario, int $id_instrumento): bool
     {
         return $usuario->tienePermiso('instrumento.ver')
-            && $usuario->firmas()
-                ->where('id_instrumento', $id_instrumento)
-                ->exists();
+        && Instrumento::query()
+            ->visiblePara($usuario)
+            ->whereKey($id_instrumento)
+            ->exists();
     }
 }

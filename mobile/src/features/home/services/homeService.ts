@@ -26,6 +26,7 @@ export type HomeData = {
     }[];
   };
   ultimos_movimientos: {
+    id: number;
     uuid: string;
     codigo: string;
     titulo: string;

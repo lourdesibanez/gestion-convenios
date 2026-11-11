@@ -21,6 +21,10 @@ class UsuarioPerfilSeeder extends SeederIdempotente
                 [9, 1, 3, 2, 1],
                 [10, 2, 2, 2, 1],
                 [11, 2, 3, 2, 1],
+                [12, 13, 1, null, 1], // administración: alcance global
+                [13, 14, 2, 2, 1],    // gestión: Secretaría Legal y Técnica
+                [14, 15, 3, 2, 1],    // revisión: Secretaría Legal y Técnica
+                [15, 16, 4, 2, 1],    // consulta: Secretaría Legal y Técnica
             ],
         ));
     }

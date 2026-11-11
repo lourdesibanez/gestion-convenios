@@ -22,6 +22,11 @@ class ComentarioSeeder extends SeederIdempotente
             [12, 13, 12, 'Esto es una pérdida de tiempo, quién redactó esta basura.', true, '2026-11-01 18:30:00', '2026-11-01 19:00:00', 7],
             [13, 13, 11, 'Definir cupo de pasantes y responsables antes de enviar a revisión.', false, '2026-11-02 08:50:00', null, null],
             [14, 15, 8, 'Primera firma de la Facultad con la Cooperativa. Archivo cargado.', false, '2026-10-17 12:40:00', null, null],
+            [15, 12, 13, 'Revisaré el convenio desde Administración.', false, '2026-11-03 09:00:00', null, null],
+            [16, 12, 14, 'Gestión: ya incorporé los datos de la contraparte.', false, '2026-11-03 09:15:00', null, null],
+            [17, 12, 15, 'Revisión: falta aclarar la titularidad de los resultados.', false, '2026-11-03 09:30:00', null, null],
+            [18, 12, 16, 'Consulta: ¿cuándo quedará disponible la versión final?', false, '2026-11-03 09:45:00', null, null],
+            [19, 12, 15, 'Esto es una basura.', true, '2026-11-03 10:00:00', null, null],
         ]);
     }
 }

@@ -9,14 +9,15 @@ use App\Http\Controllers\ParteFirmanteController;
 use App\Http\Controllers\RepresentanteController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FirmaController;
+use App\Http\Controllers\ComentarioController;
 
 Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'iniciarSesion'])->middleware('throttle:5,1,login');
-    Route::post('verify-code', [AuthController::class, 'verificarCodigo'])->middleware('throttle:5,1,verify-code');
-    Route::post('resend-code', [AuthController::class, 'reenviarCodigo'])->middleware('throttle:5,1,resend-code');
-    Route::post('forgot-password', [AuthController::class, 'solicitarRestablecimientoContrasena'])->middleware('throttle:5,1,forgot-password');
-    Route::post('reset-password', [AuthController::class, 'restablecerContrasena'])->middleware('throttle:5,1,reset-password');
-    Route::post('web/login', [AuthController::class, 'iniciarSesionWeb'])->middleware('throttle:5,1,web-login');
+    Route::post('login',                            [AuthController::class, 'iniciarSesion'])->middleware('throttle:5,1,login');
+    Route::post('verify-code',                      [AuthController::class, 'verificarCodigo'])->middleware('throttle:5,1,verify-code');
+    Route::post('resend-code',                      [AuthController::class, 'reenviarCodigo'])->middleware('throttle:5,1,resend-code');
+    Route::post('forgot-password',                  [AuthController::class, 'solicitarRestablecimientoContrasena'])->middleware('throttle:5,1,forgot-password');
+    Route::post('reset-password',                   [AuthController::class, 'restablecerContrasena'])->middleware('throttle:5,1,reset-password');
+    Route::post('web/login',                        [AuthController::class, 'iniciarSesionWeb'])->middleware('throttle:5,1,web-login');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me',                            [AuthController::class, 'obtenerUsuarioAutenticado']);
@@ -67,4 +68,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('signatures/pending/{id_instrumento}/sign',         [FirmaController::class, 'registrar'])->name('signatures.pending.sign');
     Route::get('signatures/{id_instrumento}/signed-document',       [FirmaController::class, 'verPdfFirmado'])->name('signatures.signed-document');
 
-});
+    Route::get('agreements/{id}/comments',                          [ComentarioController::class, 'listar'],)->name('agreements.comments.index');
+    Route::post('agreements/{id}/comments',                         [ComentarioController::class, 'crear'],)->name('agreements.comments.store');});
