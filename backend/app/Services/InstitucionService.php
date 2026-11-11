@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Institucion;
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Models\Instrumento;
 
 class InstitucionService
 {
@@ -14,6 +15,17 @@ class InstitucionService
             ->withCount('partesFirmantes as total_convenios')
             ->latest('id')
             ->paginate(15);
+    }
+
+    public function listarParaBusqueda(Usuario $usuario) {
+        $institucionesVisibles = Instrumento::query()
+            ->visiblePara($usuario)
+            ->select('id_institucion');
+
+        return Institucion::query()
+            ->whereIn('id', $institucionesVisibles)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
     }
 
     public function obtenerDetalle(Usuario $usuario, int $id): Institucion

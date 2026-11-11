@@ -18,10 +18,23 @@ class ConvenioIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'estado' => ['sometimes', 'string', 'max:100', Rule::exists('estado', 'nombre')],
-            'tipo' => ['sometimes', 'integer', Rule::exists('tipo_instrumento', 'id')],
-            'unidad' => ['sometimes', 'integer', Rule::exists('institucion', 'id')],
-            'q' => ['sometimes', 'string', 'max:100'],
+            'tipo' => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::exists('tipo_instrumento', 'ambito'),
+            ],
+            'categoria' => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::exists('tipo_instrumento', 'categoria'),
+            ],
+            'unidad'    => ['sometimes', 'nullable', 'integer', Rule::exists('institucion', 'id')],
+            'anio'      => ['sometimes', 'nullable', 'integer', 'min:1900', 'max:2100'],
+            'q'         => ['sometimes', 'nullable', 'string', 'max:100'],
+            'orden'     => ['sometimes', 'nullable', 'in:recientes,antiguos,titulo'],
+            'per_page'  => ['sometimes', 'integer', 'min:1', 'max:50'],
         ];
     }
 }
