@@ -70,3 +70,4 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('agreements/{id}/comments',                          [ComentarioController::class, 'listar'],)->name('agreements.comments.index');
     Route::post('agreements/{id}/comments',                         [ComentarioController::class, 'crear'],)->name('agreements.comments.store');});
+

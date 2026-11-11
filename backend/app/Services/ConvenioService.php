@@ -7,17 +7,102 @@ use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 class ConvenioService
 {
     private const ESTADOS_PUBLICOS = ['firmado'];
 
-    /**
-     * @param  array{estado?: string, tipo?: int, unidad?: int, q?: string}  $filtros
-     */
-    public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator
-    {
-        return $this->consultaListado($filtros, $usuario)->paginate(15);
+    public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator {
+        // Primero identificamos todos los instrumentos que coinciden con la búsqueda.
+        $idsCoincidentes = (clone $this->consultaListado($filtros, $usuario))
+            ->pluck('i.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($idsCoincidentes === []) {
+            return new Paginator(
+                [],
+                0,
+                $filtros['per_page'] ?? 15,
+                Paginator::resolveCurrentPage('page'),
+                [
+                    'path' => Paginator::resolveCurrentPath(),
+                    'query' => request()->query(),
+                ],
+            );
+        }
+
+        // Los vínculos se leen como: origen = hijo, destino = padre.
+        $idsVisibles = Instrumento::query()
+            ->visiblePara($usuario)
+            ->select('id');
+
+        $relaciones = DB::table('instrumento_vinculo as v')
+            ->whereIn('v.id_instrumento_origen', clone $idsVisibles)
+            ->whereIn('v.id_instrumento_destino', clone $idsVisibles)
+            ->orderBy('v.id_instrumento_destino')
+            ->orderBy('v.id_instrumento_origen')
+            ->get([
+                'v.id_instrumento_origen as hijo_id',
+                'v.id_instrumento_destino as padre_id',
+            ]);
+
+        $padresPorHijo = [];
+
+        foreach ($relaciones as $relacion) {
+            $padresPorHijo[(int) $relacion->hijo_id][] = (int) $relacion->padre_id;
+        }
+
+        // Agrupamos las coincidencias por su raíz visible para no duplicar hijos.
+        $raices = [];
+
+        foreach ($idsCoincidentes as $id) {
+            $this->agregarRaices($id, $padresPorHijo, [], $raices);
+        }
+
+        $idsRaiz = array_keys($raices);
+        $porPagina = $filtros['per_page'] ?? 15;
+        $pagina = Paginator::resolveCurrentPage('page');
+        $idsPagina = array_slice($idsRaiz, ($pagina - 1) * $porPagina, $porPagina);
+
+        $arboles = collect($idsPagina)
+            ->map(fn (int $id) => $this->obtenerArbol($usuario, $id));
+
+        return new Paginator(
+            $arboles,
+            count($idsRaiz),
+            $porPagina,
+            $pagina,
+            [
+                'path' => Paginator::resolveCurrentPath(),
+                'query' => request()->query(),
+            ],
+        );
+    }
+
+
+
+    private function agregarRaices(int $id, array $padresPorHijo, array $ruta, array &$raices): void {
+        // Previene ciclos en los vínculos.
+        if (isset($ruta[$id])) {
+            $raices[$id] = true;
+
+            return;
+        }
+
+        $ruta[$id] = true;
+        $padres = $padresPorHijo[$id] ?? [];
+
+        if ($padres === []) {
+            $raices[$id] = true;
+
+            return;
+        }
+
+        foreach ($padres as $padreId) {
+            $this->agregarRaices($padreId, $padresPorHijo, $ruta, $raices);
+        }
     }
 
     /**
@@ -278,11 +363,7 @@ class ConvenioService
             ->paginate(15);
     }
 
-    /**
-     * @param  array{estado?: string, tipo?: int, unidad?: int, q?: string}  $filtros
-     */
-    private function consultaListado(array $filtros, ?Usuario $usuario = null): Builder
-    {
+    private function consultaListado(array $filtros, ?Usuario $usuario = null): Builder {
         $query = DB::table('instrumento as i')
             ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
             ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
@@ -291,39 +372,200 @@ class ConvenioService
                 'i.id',
                 'i.codigo',
                 'i.titulo',
+                'i.id_tipo_instrumento as id_tipo',
                 't.nombre as tipo',
+                't.categoria as categoria_tipo',
+                't.ambito',
+                'i.id_institucion as id_unidad',
                 'u.nombre as unidad',
                 'e.nombre as estado',
                 'i.fecha_fin as vence',
                 'i.fecha_firma',
-            )
-            ->orderByDesc('i.created_at')
-            ->orderByDesc('i.id');
+            );
 
         if ($usuario) {
             $query->whereIn('i.id', Instrumento::visiblePara($usuario)->select('id'))
-                ->addSelect('i.fecha_preaviso as preaviso');
+                ->addSelect('i.fecha_preaviso as preaviso')
+                ->selectSub(
+                    DB::table('instrumento_vinculo as v')
+                        ->join('instrumento as hijo', 'hijo.id', '=', 'v.id_instrumento_origen')
+                        ->whereColumn('v.id_instrumento_destino', 'i.id')
+                        ->whereNull('hijo.deleted_at')
+                        ->whereIn(
+                            'hijo.id',
+                            Instrumento::query()->visiblePara($usuario)->select('id')
+                        )
+                        ->selectRaw('COUNT(DISTINCT hijo.id)'),
+                    'hijos_count'
+                )
+                ->selectSub(
+                    DB::table('archivo as a')
+                        ->whereColumn('a.id_instrumento', 'i.id')
+                        ->whereNull('a.deleted_at')
+                        ->selectRaw('COUNT(*)'),
+                    'documentos_count'
+                );
         } else {
             $query->whereNull('i.deleted_at')
                 ->whereIn('e.nombre', self::ESTADOS_PUBLICOS);
         }
 
-        if (isset($filtros['estado'])) {
-            $query->where('e.nombre', $filtros['estado']);
+        if (!empty($filtros['tipo'])) {
+            $query->where('t.ambito', $filtros['tipo']);
         }
-        if (isset($filtros['tipo'])) {
-            $query->where('i.id_tipo_instrumento', $filtros['tipo']);
+
+        if (!empty($filtros['categoria'])) {
+            $query->where('t.categoria', $filtros['categoria']);
         }
-        if (isset($filtros['unidad'])) {
+
+        if (!empty($filtros['unidad'])) {
             $query->where('i.id_institucion', $filtros['unidad']);
         }
-        if (isset($filtros['q'])) {
-            $busqueda = '%'.$filtros['q'].'%';
-            $query->where(fn ($consulta) => $consulta
-                ->where('i.titulo', 'like', $busqueda)
-                ->orWhere('i.codigo', 'like', $busqueda));
+
+        if (!empty($filtros['anio'])) {
+            $inicio = sprintf('%04d-01-01', $filtros['anio']);
+            $fin = sprintf('%04d-12-31', $filtros['anio']);
+
+            $query->whereBetween('i.fecha_firma', [$inicio, $fin]);
+        }
+
+        if (!empty($filtros['q'])) {
+            $busqueda = '%' . trim($filtros['q']) . '%';
+
+            $query->where(function ($consulta) use ($busqueda) {
+                $consulta->where('i.titulo', 'like', $busqueda)
+                    ->orWhere('i.codigo', 'like', $busqueda)
+                    ->orWhere('t.nombre', 'like', $busqueda)
+                    ->orWhere('u.nombre', 'like', $busqueda);
+            });
+        }
+
+        switch ($filtros['orden'] ?? 'recientes') {
+            case 'antiguos':
+                $query->orderBy('i.fecha_firma')
+                    ->orderBy('i.id');
+                break;
+
+            case 'titulo':
+                $query->orderBy('i.titulo')
+                    ->orderBy('i.id');
+                break;
+
+            default:
+                $query->orderByDesc('i.fecha_firma')
+                    ->orderByDesc('i.id');
+                break;
         }
 
         return $query;
+    }
+
+    public function obtenerArbol(Usuario $usuario, int $id): array {
+        $instrumento = Instrumento::query()
+            ->visiblePara($usuario)
+            ->findOrFail($id);
+
+        $visitados = [];
+
+        return $this->construirNodoArbol($usuario, $instrumento->id, $visitados);
+    }
+
+    private function construirNodoArbol(Usuario $usuario, int $id, array &$visitados ): array {
+        $visitados[$id] = true;
+
+        $convenio = DB::table('instrumento as i')
+            ->join('tipo_instrumento as t', 't.id', '=', 'i.id_tipo_instrumento')
+            ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
+            ->join('estado as e', 'e.id', '=', 'i.id_estado')
+            ->where('i.id', $id)
+            ->whereNull('i.deleted_at')
+            ->select(
+                'i.id',
+                'i.codigo',
+                'i.titulo',
+                't.nombre as tipo',
+                't.ambito',
+                't.categoria',
+                'u.nombre as unidad',
+                'e.nombre as estado',
+                'i.numero_resolucion',
+                'i.fecha_firma',
+                'i.fecha_fin as vence',
+            )
+            ->firstOrFail();
+
+        $archivos = DB::table('archivo')
+            ->where('id_instrumento', $id)
+            ->whereNull('deleted_at')
+            ->orderBy('created_at')
+            ->get([
+                'id',
+                'nombre',
+                'tipo_documento',
+                'tipo_mime',
+                'tamanio_bytes',
+            ])
+            ->map(function ($archivo): array {
+                $fila = (array) $archivo;
+                $fila['descarga_url'] = route('documents.download', $fila['id']);
+
+                return $fila;
+            })
+            ->all();
+
+        $relaciones = DB::table('instrumento_vinculo as v')
+            ->join('instrumento as hijo', 'hijo.id', '=', 'v.id_instrumento_origen')
+            ->where('v.id_instrumento_destino', $id)
+            ->whereNull('hijo.deleted_at')
+            ->whereIn(
+                'hijo.id',
+                Instrumento::query()->visiblePara($usuario)->select('id')
+            )
+            ->orderBy('hijo.id')
+            ->get([
+                'v.tipo_vinculo',
+                'hijo.id as id_hijo',
+            ]);
+
+        $hijos = [];
+        $cantidadDescendientes = 0;
+        $cantidadDocumentos = count($archivos);
+
+        foreach ($relaciones as $relacion) {
+            $idHijo = (int) $relacion->id_hijo;
+
+            // Evita ciclos y que un instrumento vinculado aparezca más de una vez.
+            if (isset($visitados[$idHijo])) {
+                continue;
+            }
+
+            $nodoHijo = $this->construirNodoArbol($usuario, $idHijo, $visitados);
+
+            $cantidadDescendientes += 1 + $nodoHijo['hijos_count'];
+            $cantidadDocumentos += $nodoHijo['documentos_count'];
+
+            $hijos[] = [
+                'tipo_vinculo' => $relacion->tipo_vinculo,
+                'convenio' => $nodoHijo,
+            ];
+        }
+
+        return [
+            'id' => $convenio->id,
+            'codigo' => $convenio->codigo,
+            'titulo' => $convenio->titulo,
+            'tipo' => $convenio->tipo,
+            'ambito' => $convenio->ambito,
+            'categoria' => $convenio->categoria,
+            'unidad' => $convenio->unidad,
+            'estado' => $convenio->estado,
+            'numero_resolucion' => $convenio->numero_resolucion,
+            'fecha_firma' => $convenio->fecha_firma,
+            'vence' => $convenio->vence,
+            'hijos_count' => $cantidadDescendientes,
+            'documentos_count' => $cantidadDocumentos,
+            'archivos' => $archivos,
+            'hijos' => $hijos,
+        ];
     }
 }

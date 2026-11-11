@@ -50,4 +50,5 @@ class ConvenioController extends Controller
 
         return ConvenioResource::collection($this->convenios->listarEnRevision($request->user()));
     }
+
 }
