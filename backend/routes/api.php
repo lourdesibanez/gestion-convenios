@@ -10,6 +10,7 @@ use App\Http\Controllers\RepresentanteController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FirmaController;
 use App\Http\Controllers\ComentarioController;
+use App\Http\Controllers\TipoInstrumentoController;
 
 Route::prefix('auth')->group(function () {
     Route::post('login',                            [AuthController::class, 'iniciarSesion'])->middleware('throttle:5,1,login');
@@ -69,5 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('signatures/{id_instrumento}/signed-document',       [FirmaController::class, 'verPdfFirmado'])->name('signatures.signed-document');
 
     Route::get('agreements/{id}/comments',                          [ComentarioController::class, 'listar'],)->name('agreements.comments.index');
-    Route::post('agreements/{id}/comments',                         [ComentarioController::class, 'crear'],)->name('agreements.comments.store');});
+    Route::post('agreements/{id}/comments',                         [ComentarioController::class, 'crear'],)->name('agreements.comments.store');
+
+    Route::get('types',                                             [TipoInstrumentoController::class, 'listar'])->name('types.index');
+});
 

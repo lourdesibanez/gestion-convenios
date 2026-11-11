@@ -62,6 +62,33 @@ class ConvenioService
         }
 
         $idsRaiz = array_keys($raices);
+
+        //Ordenar las raíces por sus propios datos
+        $consultaRaices = $this->consultaListado([], $usuario)
+            ->whereIn('i.id', $idsRaiz)
+            ->reorder();
+
+        switch ($filtros['orden'] ?? 'recientes') {
+            case 'antiguos':
+                $consultaRaices->orderBy('i.fecha_firma')
+                    ->orderBy('i.id');
+                break;
+
+            case 'titulo':
+                $consultaRaices->orderBy('i.titulo')
+                    ->orderBy('i.id');
+                break;
+
+            default:
+                $consultaRaices->orderByDesc('i.fecha_firma')
+                    ->orderByDesc('i.id');
+                break;
+        }
+
+        $idsRaiz = $consultaRaices->pluck('i.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
         $porPagina = $filtros['per_page'] ?? 15;
         $pagina = Paginator::resolveCurrentPage('page');
         $idsPagina = array_slice($idsRaiz, ($pagina - 1) * $porPagina, $porPagina);
