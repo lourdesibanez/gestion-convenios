@@ -2,16 +2,15 @@
 
 namespace Database\Seeders;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
+
 class ArchivoSeeder extends SeederIdempotente
 {
-    private const MIME = [
-        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'pdf' => 'application/pdf',
-    ];
-
     public function run(): void
     {
-        // [instrumento, nombre, tipo, bytes, sha256, subido, autor, borrado (versión reemplazada)]
+        // [instrumento, nombre, tipo, bytes/hash de muestra (se recalculan), subido, autor, borrado]
         $archivos = [
             [1, 'CM-2026-0001_borrador_v1.docx', 'borrador', 556956, 'd9ca84d28540f60da1c766ce3c7947d9b192b496604acdad145590e6b0ad6441', '2026-06-14 10:00:00', 1, '2026-06-29 10:00:00'],
             [1, 'CM-2026-0001_convenio_firmado.pdf', 'convenio_firmado', 194902, '65803b2941a2a830b2266512eba5da92b0f62deee5982ac5875d9b024c070d42', '2026-07-04 11:00:00', 1, null],
@@ -53,12 +52,37 @@ class ArchivoSeeder extends SeederIdempotente
 
         $filas = [];
         foreach ($archivos as $i => [$instrumento, $nombre, $tipo, $bytes, $hash, $subido, $autor, $borrado]) {
-            $codigo = strtok($nombre, '_');
-            $extension = pathinfo($nombre, PATHINFO_EXTENSION);
+            $instrumentoDB = DB::table('instrumento')
+                ->where('id', $instrumento)
+                ->first(['codigo', 'uuid']);
+
+            if (! $instrumentoDB) {
+                throw new RuntimeException("No existe el instrumento {$instrumento}.");
+            }
+
+            if (strtolower(pathinfo($nombre, PATHINFO_EXTENSION)) === 'docx') {
+                $nombre = pathinfo($nombre, PATHINFO_FILENAME).'.pdf';
+            }
+            $contenido = $this->crearPdfFicticio($instrumentoDB->codigo, $nombre, $tipo);
+            $ruta = "instrumentos/{$instrumentoDB->uuid}/{$nombre}";
+
+            if (! Storage::disk('local')->put($ruta, $contenido)) {
+                throw new RuntimeException("No se pudo guardar el documento ficticio {$nombre}.");
+            }
 
             $filas[] = [
-                $i + 1, $instrumento, $nombre, $tipo, self::MIME[$extension], $bytes, $hash,
-                "instrumentos/{$codigo}/{$nombre}", $subido, $autor, $borrado, $borrado ? $autor : null,
+                $i + 1,
+                $instrumento,
+                $nombre,
+                $tipo,
+                'application/pdf',
+                strlen($contenido),
+                hash('sha256', $contenido),
+                $ruta,
+                $subido,
+                $autor,
+                $borrado,
+                $borrado ? $autor : null,
             ];
         }
 
@@ -66,5 +90,55 @@ class ArchivoSeeder extends SeederIdempotente
             'id', 'id_instrumento', 'nombre', 'tipo_documento', 'tipo_mime', 'tamanio_bytes', 'hash_sha256',
             'ruta', 'created_at', 'created_by', 'deleted_at', 'deleted_by',
         ], $filas);
+    }
+
+    private function crearPdfFicticio(string $codigo, string $nombre, string $tipo): string
+    {
+        $lineas = [
+            'DOCUMENTO FICTICIO - SOLO PRUEBAS',
+            'SIN VALIDEZ LEGAL',
+            "Convenio: {$codigo}",
+            "Archivo: {$nombre}",
+            "Tipo de documento: {$tipo}",
+        ];
+
+        $texto = "BT\n/F1 17 Tf\n50 760 Td\n";
+        foreach ($lineas as $indice => $linea) {
+            if ($indice > 0) {
+                $texto .= "0 -32 Td\n";
+                $texto .= "/F1 12 Tf\n";
+            }
+
+            $linea = str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $linea);
+            $texto .= "({$linea}) Tj\n";
+        }
+        $texto .= 'ET';
+
+        $objetos = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+            '<< /Length '.strlen($texto)." >>\nstream\n{$texto}\nendstream",
+        ];
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [0];
+        foreach ($objetos as $indice => $objeto) {
+            $offsets[] = strlen($pdf);
+            $numero = $indice + 1;
+            $pdf .= "{$numero} 0 obj\n{$objeto}\nendobj\n";
+        }
+
+        $inicioXref = strlen($pdf);
+        $pdf .= "xref\n0 ".(count($objetos) + 1)."\n";
+        $pdf .= "0000000000 65535 f \n";
+        foreach (array_slice($offsets, 1) as $offset) {
+            $pdf .= sprintf("%010d 00000 n \n", $offset);
+        }
+
+        return $pdf
+            ."trailer\n<< /Size ".(count($objetos) + 1)." /Root 1 0 R >>\n"
+            ."startxref\n{$inicioXref}\n%%EOF";
     }
 }

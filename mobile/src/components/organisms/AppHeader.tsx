@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Keyboard, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, QrCode, Search } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { homeService } from '@/features/home/services/homeService';
 import { colors, spacing } from '@/theme';
+import { X } from 'lucide-react-native';
+import { useBusqueda } from '@/features/busqueda/context/BusquedaContext';
 
 export function AppHeader() {
   const { usuario } = useAuth();
   const [unidad, setUnidad] = useState('');
   const [notificacionesSinLeer, setNotificacionesSinLeer] = useState(0);
+
+  const pathname = usePathname();
+  const enBusqueda = pathname.endsWith('/search');
+  const { query, setQuery } = useBusqueda();
 
   useEffect(() => {
     let activo = true;
@@ -65,18 +71,45 @@ export function AppHeader() {
         </View>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Buscar convenios"
-        onPress={() => router.push('/search')}
-        style={styles.searchButton}
-      >
-        <Search size={20} color={colors.primary} />
-        <Text numberOfLines={1} style={styles.searchText}>
-          Buscar convenio, código o parte...
-        </Text>
-        <QrCode size={21} color={colors.primary} />
-      </Pressable>
+      {enBusqueda ? (
+        <View style={styles.searchButton}>
+          <Search size={20} color={colors.primary} />
+          <TextInput
+            accessibilityLabel="Buscar convenios"
+            autoFocus
+            onChangeText={setQuery}
+            onSubmitEditing={Keyboard.dismiss}
+            placeholder="Convenio, código o parte..."
+            placeholderTextColor={colors.textMuted}
+            returnKeyType="search"
+            style={styles.searchInput}
+            value={query}
+          />
+          {query.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Limpiar búsqueda"
+              hitSlop={8}
+              onPress={() => setQuery('')}
+            >
+              <X size={19} color={colors.textMuted} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Buscar convenios"
+          onPress={() => router.push('/search')}
+          style={styles.searchButton}
+        >
+          <Search size={20} color={colors.primary} />
+          <Text numberOfLines={1} style={styles.searchText}>
+            Buscar convenio, código o parte...
+          </Text>
+          <QrCode size={21} color={colors.primary} />
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
@@ -152,6 +185,12 @@ const styles = StyleSheet.create({
   searchText: {
     flex: 1,
     color: colors.textMuted,
+    fontSize: 14,
+  },
+  searchInput: {
+    flex: 1,
+    height: 46,
+    color: colors.text,
     fontSize: 14,
   },
 });
