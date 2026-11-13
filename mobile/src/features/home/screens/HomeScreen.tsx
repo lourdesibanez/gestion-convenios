@@ -12,6 +12,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { StatCard } from '@/components/molecules';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { colors, spacing, typography } from '@/theme';
 import { useHome } from '../hooks/useHome';
 import { useState } from 'react';
@@ -32,7 +33,13 @@ const coloresEstado: Record<string, string> = { ...colors.status };
 
 export function HomeScreen() {
   const { data, loading, refreshing, error, refresh } = useHome();
+  const { tipoPerfil } = useAuth();
+  const esConsulta = tipoPerfil === 'consulta';
   const [movimientosAbiertos, setMovimientosAbiertos] = useState(false);
+  const ultimosMovimientos = data?.ultimos_movimientos.filter(
+    (movimiento) =>
+      !esConsulta || movimiento.estado.trim().toLocaleLowerCase('es-AR') === 'firmado',
+  ) ?? [];
 
   if (loading) {
     return (
@@ -67,12 +74,14 @@ export function HomeScreen() {
                 color={colors.status.firmado}
                 icon={<ClipboardCheck size={20} color={colors.status.firmado} />}
               />
-              <StatCard
-                label="En trámite"
-                value={data.resumen.en_tramite}
-                color={colors.status.revision}
-                icon={<ClipboardClock size={20} color={colors.status.revision} />}
-              />
+              {!esConsulta && (
+                <StatCard
+                  label="En trámite"
+                  value={data.resumen.en_tramite}
+                  color={colors.status.revision}
+                  icon={<ClipboardClock size={20} color={colors.status.revision} />}
+                />
+              )}
               <StatCard
                 label="Vencen en 30 días"
                 value={data.resumen.vencen_30_dias}
@@ -103,11 +112,11 @@ export function HomeScreen() {
             </Pressable>
 
             {movimientosAbiertos &&
-              (data.ultimos_movimientos.length === 0 ? (
+              (ultimosMovimientos.length === 0 ? (
                 <Text style={styles.unit}>Aún no hay movimientos.</Text>
               ) : (
                 <View style={styles.list}>
-                  {data.ultimos_movimientos.map((movimiento) => (
+                  {ultimosMovimientos.map((movimiento) => (
                     <Pressable
                       key={movimiento.uuid}
                       accessibilityRole="button"
@@ -142,17 +151,19 @@ export function HomeScreen() {
                 </View>
               ))}
 
-          {/* -------- MIS PENDIENTES ------- */}
-            <View style={styles.headerList}>
-              <Text style={styles.section}>Mis pendientes  ({data.pendientes.total})</Text>
-            </View>
+            {!esConsulta && (
+              <>
+                {/* -------- MIS PENDIENTES ------- */}
+                <View style={styles.headerList}>
+                  <Text style={styles.section}>Mis pendientes ({data.pendientes.total})</Text>
+                </View>
 
-            {data.pendientes.items.length === 0 ? (
-              <Text style={styles.unit}>No tenés firmas pendientes.</Text>
-            ) : (
-              <View style={styles.list}>
-                {data.pendientes.items.map((item) => (
-                  <View key={item.uuid} style={styles.itemList}>
+                {data.pendientes.items.length === 0 ? (
+                  <Text style={styles.unit}>No tenés firmas pendientes.</Text>
+                ) : (
+                  <View style={styles.list}>
+                    {data.pendientes.items.map((item) => (
+                      <View key={item.uuid} style={styles.itemList}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Ver detalle de ${item.titulo}`}
@@ -186,8 +197,10 @@ export function HomeScreen() {
                     <Signature size={20} color={colors.primary} />
                   </Pressable>
                 </View>
-              ))}
-              </View>
+                    ))}
+                  </View>
+                )}
+              </>
             )}
           </>
         )}

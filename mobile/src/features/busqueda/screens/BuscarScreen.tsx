@@ -12,6 +12,7 @@ import {
 import type { File as ExpoFile } from 'expo-file-system';
 import { ChevronDown, ChevronRight, FileText, X } from 'lucide-react-native';
 import { colors, spacing } from '@/theme';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   busquedaService,
   type ArchivoBusqueda,
@@ -39,6 +40,22 @@ function tamanoArchivo(bytes: number): string {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function estadoFirmado(estado: string): boolean {
+  return estado.trim().toLocaleLowerCase('es-AR') === 'firmado';
+}
+
+function filtrarFirmados(nodo: NodoConvenio): NodoConvenio | null {
+  if (!estadoFirmado(nodo.estado)) return null;
+
+  return {
+    ...nodo,
+    hijos: nodo.hijos.flatMap((hijo) => {
+      const convenio = filtrarFirmados(hijo.convenio);
+      return convenio ? [{ ...hijo, convenio }] : [];
+    }),
+  };
 }
 
 function opcionesConTodos(opciones: Opcion[]): Opcion[] {
@@ -315,6 +332,8 @@ function NodoArbol({nodo,raiz = false, }: {
 
 export function BuscarScreen() {
   const { query } = useBusqueda();
+  const { tipoPerfil } = useAuth();
+  const esConsulta = tipoPerfil === 'consulta';
   const [catalogos, setCatalogos] = useState<CatalogosBusqueda>({
     tipos: [],
     categorias: [],
@@ -367,7 +386,12 @@ export function BuscarScreen() {
         page: numeroPagina,
       });
       if (numeroSolicitud !== solicitudActual.current) return;
-      setResultados(respuesta.data);
+      const convenios = esConsulta
+        ? respuesta.data
+            .map(filtrarFirmados)
+            .filter((convenio): convenio is NodoConvenio => convenio !== null)
+        : respuesta.data;
+      setResultados(convenios);
       setTotal(respuesta.meta.total);
       setPagina(respuesta.meta.current_page);
       setUltimaPagina(respuesta.meta.last_page);
@@ -381,7 +405,7 @@ export function BuscarScreen() {
         setBuscando(false);
       }
     }
-  }, []);
+  }, [esConsulta]);
 
   useEffect(() => {
     void cargarCatalogos();
@@ -475,7 +499,11 @@ export function BuscarScreen() {
 
       <View style={styles.resultsHeader}>
         <Text style={styles.resultsCount}>
-          {buscando ? 'Buscando…' : `${total} resultados`}
+          {buscando
+            ? 'Buscando…'
+            : esConsulta
+              ? `${resultados.length} convenios firmados en esta página`
+              : `${total} resultados`}
         </Text>
         <Selector
           compacto

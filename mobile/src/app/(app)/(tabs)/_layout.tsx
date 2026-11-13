@@ -5,9 +5,11 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/organisms/AppHeader';
 import { BusquedaProvider } from '@/features/busqueda/context/BusquedaContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export default function AppLayout() {
   const insets = useSafeAreaInsets();
+  const { tipoPerfil } = useAuth();
 
   return (
       <BusquedaProvider>
@@ -50,6 +52,7 @@ export default function AppLayout() {
               name="sign"
               options={{
                 title: 'Firmar',
+                href: tipoPerfil === 'consulta' ? null : '/sign',
                 tabBarAccessibilityLabel: 'Firmar',
                 tabBarIcon: ({ color, size }) => <Signature color={String(color)} size={size} />,
               }}

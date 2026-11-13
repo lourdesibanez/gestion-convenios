@@ -17,6 +17,7 @@ export type Usuario = {
   nombre: string;
   apellido: string;
   email: string;
+  tipo_perfil: string | null;
 };
 
 export type VerifyCodeResponse = {

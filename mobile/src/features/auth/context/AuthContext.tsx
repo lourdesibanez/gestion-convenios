@@ -16,6 +16,7 @@ type Status = 'loading' | 'signedIn' | 'locked' | 'signedOut';
 type AuthContextValue = {
   status: Status;
   usuario: Usuario | null;
+  tipoPerfil: string | null;
   biometrics: BiometricType[];
   biometricEnabled: boolean;
   signIn: (token: string, usuario: Usuario) => Promise<void>;
@@ -40,6 +41,7 @@ async function registerPush() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');
   const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [tipoPerfil, setTipoPerfil] = useState<string | null>(null);
   const [biometrics, setBiometrics] = useState<BiometricType[]>([]);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
 
@@ -73,7 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Valida el token guardado contra la API. Devuelve un mensaje si no se pudo entrar.
   const enterWithStoredToken = async (): Promise<string | null> => {
     try {
-      setUsuario(await authService.me());
+      const usuarioAutenticado = await authService.me();
+      console.log(usuarioAutenticado);
+      setUsuario(usuarioAutenticado);
+      setTipoPerfil(usuarioAutenticado.tipo_perfil);
       setStatus('signedIn');
       registerPush();
       return null;
@@ -94,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     await tokenStorage.set(token);
     setUsuario(usuario);
+    setTipoPerfil(usuario.tipo_perfil);
     setStatus('signedIn');
     registerPush();
   };
@@ -118,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (biometricEnabled) {
       setUsuario(null);
+      setTipoPerfil(null);
       setStatus('locked');
       return;
     }
@@ -135,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await biometricPreference.disable();
     setBiometricEnabled(false);
     setUsuario(null);
+    setTipoPerfil(null);
     setStatus('signedOut');
   };
 
@@ -143,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         status,
         usuario,
+        tipoPerfil,
         biometrics,
         biometricEnabled,
         signIn,
