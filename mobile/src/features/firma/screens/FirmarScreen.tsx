@@ -5,7 +5,6 @@ import { ApiError } from '@/services/api';
 import { colors, spacing, typography } from '@/theme';
 import {FirmaPendiente, firmaService,} from '../services/firmaService';
 import { router } from 'expo-router';
-import { Signature } from 'lucide-react-native';
 
 export function FirmarScreen() {
   const [items, setItems] = useState<FirmaPendiente[]>([]);
@@ -113,24 +112,6 @@ export function FirmarScreen() {
                   </Text>
                 </Pressable>
 
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Ir a firmar ${item.titulo}`}
-                  hitSlop={8}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/signature/[id]',
-                      params: { 
-                        id: String(item.id_instrumento),
-                        titulo: item.titulo,
-                        codigo: item.codigo, 
-                      },
-                    })
-                  }
-                  style={styles.signButton}
-                >
-                  <Signature size={20} color={colors.primary} />
-                </Pressable>
               </View>
             ))}
           </View>
@@ -237,12 +218,5 @@ const styles = StyleSheet.create({
   loadMore: {
     alignItems: 'center',
     padding: spacing.lg,
-  },
-  signButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
   },
 });

@@ -6,6 +6,7 @@ export type HomeData = {
     apellido: string;
     iniciales: string;
     unidad: string;
+    es_consulta: boolean;
   };
   notificaciones_sin_leer: number;
   resumen: {

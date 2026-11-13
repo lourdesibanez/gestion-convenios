@@ -83,6 +83,7 @@ export const conveniosService = {
 
     return {
       id: convenio.id,
+      codigo: convenio.codigo,
       tipoInstrumento: convenio.tipo,
       estado: convenio.estado,
       titulo: convenio.titulo,

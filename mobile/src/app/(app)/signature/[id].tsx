@@ -11,6 +11,7 @@ import { colors } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 
 export default function SignatureScreen() {
@@ -20,6 +21,7 @@ export default function SignatureScreen() {
     codigo: string;
     }>();
   const router = useRouter();
+  const { tipoPerfil } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -71,6 +73,12 @@ const [firmaError, setFirmaError] = useState<string>();
     setError(undefined);
     setFile(null);
 
+    if (tipoPerfil === 'consulta') {
+      setError('Tu perfil no tiene permiso para firmar convenios.');
+      setLoading(false);
+      return;
+    }
+
     firmaService.descargarPdfPendiente(idInstrumento)
       .then((downloadedFile) => {
         if (active) setFile(downloadedFile);
@@ -87,7 +95,7 @@ const [firmaError, setFirmaError] = useState<string>();
     return () => {
       active = false;
     };
-  }, [id, attempt]);
+  }, [id, attempt, tipoPerfil]);
 
   const exportarFirmaPng = (): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -113,6 +121,11 @@ const [firmaError, setFirmaError] = useState<string>();
 
     const confirmarFirma = async () => {
     setFirmaError(undefined);
+
+      if (tipoPerfil === 'consulta') {
+        setFirmaError('Tu perfil no tiene permiso para firmar convenios.');
+        return;
+      }
 
     if (!acepta || !firmaPathRef.current.trim()) {
         setFirmaError('Dibujá tu firma y aceptá el documento para continuar.');

@@ -7,13 +7,21 @@ import { ComentariosConvenio } from '@/features/convenios/components/Comentarios
 import { Datos } from '@/features/convenios/components/Dato';
 import { Documentos } from '@/features/convenios/components/Documento';
 import { Firmantes } from '@/features/convenios/components/Firmante';
+import { BotonFirmarConvenio } from '@/features/convenios/components/BotonFirmarConvenio';
 import { colores } from '@/features/convenios/components/temas';
 import { useConvenio } from '@/features/convenios/hooks/useConvenio';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export default function FichaConvenio() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { tipoPerfil } = useAuth();
   const { convenio, cargando, error, recargar } = useConvenio(id);
+  const esPerfilConsulta =
+    tipoPerfil?.trim().toLocaleLowerCase('es-AR') === 'consulta';
+  const puedeVerConvenio =
+    !esPerfilConsulta ||
+    convenio?.estado.trim().toLocaleLowerCase('es-AR') === 'firmado';
 
   return (
     <SafeAreaView style={s.pantalla} edges={['top']}>
@@ -47,7 +55,13 @@ export default function FichaConvenio() {
         </View>
       )}
 
-      {!cargando && convenio && (
+      {!cargando && convenio && !puedeVerConvenio && (
+        <View style={s.centro}>
+          <Text style={s.error}>Tu perfil solo permite ver convenios firmados.</Text>
+        </View>
+      )}
+
+      {!cargando && convenio && puedeVerConvenio && (
         <ScrollView contentContainerStyle={s.contenido}>
           <View style={s.encabezado}>
             <View style={s.etiquetas}>
@@ -63,6 +77,20 @@ export default function FichaConvenio() {
           </View>
 
           <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
+          {!esPerfilConsulta && convenio.etapaActual === 'aprobado' && (
+            <BotonFirmarConvenio
+              onPress={() =>
+                router.push({
+                  pathname: '/signature/[id]',
+                  params: {
+                    id: String(convenio.id),
+                    titulo: convenio.titulo,
+                    codigo: convenio.codigo,
+                  },
+                })
+              }
+            />
+          )}
           <Datos
             c={convenio}
             onAbrirPadre={(padreId) =>
