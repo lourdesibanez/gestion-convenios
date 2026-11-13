@@ -2,11 +2,13 @@ import { Tabs } from 'expo-router';
 import { House, Search, Signature, UserRound } from 'lucide-react-native';
 import { colors } from '@/theme';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/organisms/AppHeader';
 import { BusquedaProvider } from '@/features/busqueda/context/BusquedaContext';
 
 export default function AppLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
       <BusquedaProvider>
         <SafeAreaView edges={['top']} style={styles.safe}>
@@ -18,9 +20,9 @@ export default function AppLayout() {
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.textMuted,
                 tabBarStyle: {
-                  height: 64,
+                  height: 64 + insets.bottom,
                   paddingTop: 6,
-                  paddingBottom: 6,
+                  paddingBottom: 6 + insets.bottom,
                   backgroundColor: colors.background,
                   borderTopColor: colors.border,
                 },
