@@ -12,12 +12,19 @@ class UsuarioResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $perfil = $this->perfiles()
+            ->activos()
+            ->with('perfil')
+            ->oldest('id')
+            ->first();
+
         return [
             'id' => $this->id,
             'nombre_usuario' => $this->nombre_usuario,
             'nombre' => $this->nombre,
             'apellido' => $this->apellido,
             'email' => $this->email,
+            'tipo_perfil' => $perfil?->perfil?->nombre,
         ];
     }
 }

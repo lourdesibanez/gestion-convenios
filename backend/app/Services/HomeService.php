@@ -38,12 +38,17 @@ class HomeService
     private function construirEncabezado(Usuario $usuario): array
     {
         $perfil = $usuario->perfiles()->activos()->with('institucion')->oldest('id')->first();
+        $esConsulta = $usuario->perfiles()
+            ->activos()
+            ->whereHas('perfil', fn ($query) => $query->where('nombre', 'consulta'))
+            ->exists();
 
         return [
             'nombre'        => $usuario->nombre,
             'apellido'      => $usuario->apellido,
             'iniciales'     => mb_strtoupper(mb_substr($usuario->nombre, 0, 1).mb_substr($usuario->apellido, 0, 1)),
             'unidad'        => $perfil?->institucion?->nombre ?? 'Alcance global',
+            'es_consulta'   => $esConsulta,
         ];
     }
 

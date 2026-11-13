@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Perfil;
 use App\Models\Usuario;
+use App\Models\UsuarioPerfil;
+use Database\Seeders\CatalogoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -133,6 +136,22 @@ class AuthTest extends TestCase
             ->assertOk()
             ->assertJsonPath('email', $usuario->email)
             ->assertJsonMissingPath('contrasena');
+    }
+
+    public function test_auth_me_devuelve_el_tipo_de_perfil_activo(): void
+    {
+        $this->seed(CatalogoSeeder::class);
+        $usuario = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $usuario->id,
+            'id_perfil' => Perfil::where('nombre', 'consulta')->value('id'),
+            'id_institucion' => null,
+        ]);
+
+        $this->actingAs($usuario)
+            ->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('tipo_perfil', 'consulta');
     }
 
     public function test_codigo_incorrecto_no_entrega_token(): void
