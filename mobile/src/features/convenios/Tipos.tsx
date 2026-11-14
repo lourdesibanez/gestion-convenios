@@ -28,6 +28,7 @@ export interface Comentario {
 
 export interface ConvenioDetalle {
   id: number;
+  puedeFirmar: boolean;
   codigo: string;
   tipoInstrumento: string; // "Específico de pasantía"
   estado: string; // "Aprobado"

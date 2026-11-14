@@ -2,6 +2,7 @@ import { api } from '@/services/api';
 import type { ConvenioDetalle, EtapaCircuito } from '../Tipos';
 
 type DetalleApi = {
+  puede_firmar: boolean;
   convenio: {
     id: number;
     codigo: string;
@@ -83,6 +84,7 @@ export const conveniosService = {
 
     return {
       id: convenio.id,
+      puedeFirmar: data.puede_firmar,
       codigo: convenio.codigo,
       tipoInstrumento: convenio.tipo,
       estado: convenio.estado,

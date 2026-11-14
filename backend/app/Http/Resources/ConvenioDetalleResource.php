@@ -13,6 +13,7 @@ class ConvenioDetalleResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'puede_firmar' => $this->resource['puede_firmar'] ?? false,
             'convenio' => (array) $this->resource['convenio'],
             'partes' => $this->resource['partes']->map(fn ($item) => (array) $item)->all(),
             'representantes' => $this->resource['representantes']->map(fn ($item) => (array) $item)->all(),

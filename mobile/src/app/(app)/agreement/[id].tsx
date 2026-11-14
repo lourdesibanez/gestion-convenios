@@ -77,7 +77,7 @@ export default function FichaConvenio() {
           </View>
 
           <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
-          {!esPerfilConsulta && convenio.etapaActual === 'aprobado' && (
+          {!esPerfilConsulta && convenio.etapaActual === 'aprobado' && convenio.puedeFirmar && (
             <BotonFirmarConvenio
               onPress={() =>
                 router.push({

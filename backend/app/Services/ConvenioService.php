@@ -351,6 +351,11 @@ class ConvenioService
 
         return [
             'instrumento_model' => $instrumento,
+            'puede_firmar' => $usuario->tienePermiso('instrumento.firmar')
+                && $usuario->firmas()
+                    ->pendientes()
+                    ->where('id_instrumento', $instrumento->id)
+                    ->exists(),
             'convenio' => $convenio,
             'partes' => $partes,
             'representantes' => $representantes,

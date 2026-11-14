@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Institucion;
+use App\Models\Firma;
 use App\Models\Instrumento;
 use App\Models\Perfil;
 use App\Models\Usuario;
@@ -67,6 +68,28 @@ class ConvenioTest extends TestCase
         $this->actingAs($this->usuario)
             ->getJson('/api/agreements/'.$ajeno->id)
             ->assertNotFound();
+    }
+
+    public function test_detalle_solo_habilita_firma_a_un_usuario_asignado(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('aprobado')
+            ->create(['id_institucion' => $this->unidad->id]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_firmar', false);
+
+        Firma::create([
+            'id_instrumento' => $instrumento->id,
+            'id_usuario' => $this->usuario->id,
+        ]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_firmar', true);
     }
 
     public function test_consulta_publica_solo_expone_convenios_firmados(): void
