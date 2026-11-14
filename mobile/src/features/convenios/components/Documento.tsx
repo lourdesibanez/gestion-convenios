@@ -16,6 +16,7 @@ interface Props {
   onAbrir: (doc: Documento) => void; // descarga + visor PDF.js
   onSubir: (tipo: TipoDocumentoConvenio) => void;
   tiposSubida: OpcionSubidaDocumento[];
+  puedeSubir: boolean;
   subiendo?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function Documentos({
   onAbrir,
   onSubir,
   tiposSubida,
+  puedeSubir,
   subiendo = false,
 }: Props) {
   const [selectorAbierto, setSelectorAbierto] = useState(false);
@@ -33,15 +35,17 @@ export function Documentos({
       <Seccion
         titulo={`Documentos · ${documentos.length}`}
         derecha={
-          <Pressable
-            onPress={() => setSelectorAbierto(true)}
-            style={[s.botonSubir, subiendo && s.botonDeshabilitado]}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: subiendo }}
-            disabled={subiendo}
-          >
-            <Text style={s.botonSubirTxt}>{subiendo ? 'Subiendo…' : '+ Subir PDF'}</Text>
-          </Pressable>
+          puedeSubir ? (
+            <Pressable
+              onPress={() => setSelectorAbierto(true)}
+              style={[s.botonSubir, subiendo && s.botonDeshabilitado]}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: subiendo }}
+              disabled={subiendo}
+            >
+              <Text style={s.botonSubirTxt}>{subiendo ? 'Subiendo…' : '+ Subir PDF'}</Text>
+            </Pressable>
+          ) : null
         }
       >
         {documentos.map((d) => (
@@ -62,7 +66,7 @@ export function Documentos({
         ))}
       </Seccion>
       <Modal
-        visible={selectorAbierto}
+        visible={puedeSubir && selectorAbierto}
         transparent
         animationType="fade"
         onRequestClose={() => setSelectorAbierto(false)}

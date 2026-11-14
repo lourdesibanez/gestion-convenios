@@ -5,6 +5,7 @@ type DetalleApi = {
   puede_firmar: boolean;
   puede_editar: boolean;
   puede_enviar_revision: boolean;
+  puede_subir_archivo: boolean;
   convenio: {
     id: number;
     codigo: string;
@@ -93,6 +94,7 @@ export const conveniosService = {
       puedeFirmar: data.puede_firmar,
       puedeEditar: data.puede_editar,
       puedeEnviarRevision: data.puede_enviar_revision,
+      puedeSubirArchivo: data.puede_subir_archivo,
       codigo: convenio.codigo,
       tipoInstrumento: convenio.tipo,
       estado: convenio.estado,

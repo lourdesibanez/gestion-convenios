@@ -65,6 +65,7 @@ class ConvenioTest extends TestCase
             ->getJson('/api/agreements/'.$propio->id)
             ->assertOk()
             ->assertJsonStructure(['convenio' => ['id', 'codigo'], 'partes', 'archivos'])
+            ->assertJsonPath('puede_subir_archivo', true)
             ->assertJsonMissingPath('ok')
             ->assertJsonMissingPath('data');
 

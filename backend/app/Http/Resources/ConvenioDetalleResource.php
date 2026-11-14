@@ -16,6 +16,7 @@ class ConvenioDetalleResource extends JsonResource
             'puede_firmar' => $this->resource['puede_firmar'] ?? false,
             'puede_editar' => $this->resource['puede_editar'] ?? false,
             'puede_enviar_revision' => $this->resource['puede_enviar_revision'] ?? false,
+            'puede_subir_archivo' => $this->resource['puede_subir_archivo'] ?? false,
             'convenio' => (array) $this->resource['convenio'],
             'partes' => $this->resource['partes']->map(fn ($item) => (array) $item)->all(),
             'representantes' => $this->resource['representantes']->map(fn ($item) => (array) $item)->all(),

@@ -228,6 +228,7 @@ export default function FichaConvenio() {
             }}
             onSubir={(tipoDocumento) => void subirArchivo(tipoDocumento)}
             tiposSubida={tiposSubida}
+            puedeSubir={convenio.puedeSubirArchivo}
             subiendo={subiendoArchivo}
           />
           <ComentariosConvenio idConvenio={Number(id)} />

@@ -7,6 +7,7 @@ use App\Http\Requests\ConvenioStoreRequest;
 use App\Http\Requests\ConvenioUpdateRequest;
 use App\Http\Resources\ConvenioDetalleResource;
 use App\Http\Resources\ConvenioResource;
+use App\Models\Archivo;
 use App\Models\Instrumento;
 use App\Services\ConvenioService;
 use Illuminate\Http\JsonResponse;
@@ -106,6 +107,7 @@ class ConvenioController extends Controller
         $this->authorize('view', $instrumento);
         $detalle['puede_editar'] = $request->user()->can('update', $instrumento);
         $detalle['puede_enviar_revision'] = $request->user()->can('sendToReview', $instrumento);
+        $detalle['puede_subir_archivo'] = $request->user()->can('create', [Archivo::class, $instrumento]);
         unset($detalle['instrumento_model']);
 
         return new ConvenioDetalleResource($detalle);
