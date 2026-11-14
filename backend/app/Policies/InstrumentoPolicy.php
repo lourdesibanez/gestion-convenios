@@ -23,6 +23,14 @@ class InstrumentoPolicy
             && $this->estaDentroDelAlcance($usuario, $instrumento);
     }
 
+    public function update(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.editar')
+            && (int) $instrumento->created_by === (int) $usuario->id
+            && $instrumento->estado?->nombre === 'borrador'
+            && $this->estaDentroDelAlcance($usuario, $instrumento);
+    }
+
     public function viewRevision(Usuario $usuario): bool
     {
         return $usuario->tienePermiso('instrumento.aprobar');
