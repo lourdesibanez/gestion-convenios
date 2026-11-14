@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ConvenioIndexRequest;
 use App\Http\Requests\ConvenioStoreRequest;
+use App\Http\Requests\ConvenioUpdateRequest;
 use App\Http\Resources\ConvenioDetalleResource;
 use App\Http\Resources\ConvenioResource;
 use App\Models\Instrumento;
@@ -62,11 +63,32 @@ class ConvenioController extends Controller
         ], 201);
     }
 
+    public function actualizar(ConvenioUpdateRequest $request, int $id): JsonResponse
+    {
+        $instrumento = Instrumento::query()->visiblePara($request->user())->findOrFail($id);
+        $this->authorize('update', $instrumento);
+
+        $instrumento = $this->convenios->actualizar(
+            $request->user(),
+            $instrumento,
+            $request->validated(),
+        );
+
+        return response()->json([
+            'data' => [
+                'id' => $instrumento->id,
+                'titulo' => $instrumento->titulo,
+                'version' => $instrumento->version,
+            ],
+        ]);
+    }
+
     public function obtenerDetalle(Request $request, int $id): ConvenioDetalleResource
     {
         $detalle = $this->convenios->obtenerDetalle($request->user(), $id);
         $instrumento = $detalle['instrumento_model'];
         $this->authorize('view', $instrumento);
+        $detalle['puede_editar'] = $request->user()->can('update', $instrumento);
         unset($detalle['instrumento_model']);
 
         return new ConvenioDetalleResource($detalle);
