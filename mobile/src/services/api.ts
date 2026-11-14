@@ -2,6 +2,7 @@ import { tokenStorage } from './tokenStorage';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const REQUEST_TIMEOUT_MS = 15000;
+const UPLOAD_TIMEOUT_MS = 120000;
 
 export class ApiError extends Error {
   constructor(
@@ -15,19 +16,21 @@ export class ApiError extends Error {
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = await tokenStorage.get();
+  const isFormData = body instanceof FormData;
+  const timeoutMs = isFormData ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
 
   let response: Response;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
+        ...(!isFormData && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
   } catch {
@@ -58,4 +61,5 @@ function messageFor(status: number, data: { message?: string }): string {
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  postForm: <T>(path: string, body: FormData) => request<T>('POST', path, body),
 };

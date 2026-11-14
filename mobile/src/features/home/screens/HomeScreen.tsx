@@ -5,6 +5,7 @@ import {
   ClipboardClock,
   ClipboardPenLine,
   ClipboardX,
+  FilePlus2,
   Signature,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -57,6 +58,13 @@ export function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />
         }
       >
+        {!esConsulta && (
+          <Button
+            title="Cargar convenio"
+            icon={<FilePlus2 size={20} color={colors.background} />}
+            onPress={() => router.push('/agreement/create')}
+          />
+        )}
         {error || !data ? (
           <View style={styles.errorBox}>
             <Text style={styles.error}>{error}</Text>
