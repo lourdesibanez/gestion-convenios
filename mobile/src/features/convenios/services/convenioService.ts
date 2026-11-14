@@ -4,6 +4,7 @@ import type { ConvenioDetalle, EtapaCircuito } from '../Tipos';
 type DetalleApi = {
   puede_firmar: boolean;
   puede_editar: boolean;
+  puede_enviar_revision: boolean;
   convenio: {
     id: number;
     codigo: string;
@@ -69,6 +70,10 @@ function describirTamano(bytes: number): string {
 }
 
 export const conveniosService = {
+  async enviarARevision(id: number | string): Promise<void> {
+    await api.post(`/agreements/${id}/submit-review`);
+  },
+
   async detalle(id: number | string): Promise<ConvenioDetalle> {
     const data = await api.get<DetalleApi>(`/agreements/${id}`);
     const convenio = data.convenio;
@@ -87,6 +92,7 @@ export const conveniosService = {
       id: convenio.id,
       puedeFirmar: data.puede_firmar,
       puedeEditar: data.puede_editar,
+      puedeEnviarRevision: data.puede_enviar_revision,
       codigo: convenio.codigo,
       tipoInstrumento: convenio.tipo,
       estado: convenio.estado,

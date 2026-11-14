@@ -12,6 +12,7 @@ import { Firmantes } from '@/features/convenios/components/Firmante';
 import { BotonFirmarConvenio } from '@/features/convenios/components/BotonFirmarConvenio';
 import { colores } from '@/features/convenios/components/temas';
 import { useConvenio } from '@/features/convenios/hooks/useConvenio';
+import { conveniosService } from '@/features/convenios/services/convenioService';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { ApiError } from '@/services/api';
 import {
@@ -26,6 +27,7 @@ export default function FichaConvenio() {
   const { tipoPerfil } = useAuth();
   const { convenio, cargando, error, recargar } = useConvenio(id);
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const [enviandoARevision, setEnviandoARevision] = useState(false);
   const esPerfilConsulta =
     tipoPerfil?.trim().toLocaleLowerCase('es-AR') === 'consulta';
   const puedeVerConvenio =
@@ -75,6 +77,37 @@ export default function FichaConvenio() {
       setSubiendoArchivo(false);
     }
   };
+
+  const enviarARevision = async () => {
+    if (!convenio || enviandoARevision) return;
+
+    setEnviandoARevision(true);
+    try {
+      await conveniosService.enviarARevision(convenio.id);
+      await recargar();
+      Alert.alert('Convenio enviado', 'El convenio pasó a revisión.');
+    } catch (cause) {
+      const mensaje =
+        cause instanceof ApiError && cause.status === 403
+          ? 'Tu perfil no tiene permiso para enviar este convenio a revisión.'
+          : cause instanceof Error
+            ? cause.message
+            : 'No se pudo enviar el convenio a revisión. Intentá nuevamente.';
+      Alert.alert('No se pudo enviar a revisión', mensaje);
+    } finally {
+      setEnviandoARevision(false);
+    }
+  };
+
+  const confirmarEnvioARevision = () =>
+    Alert.alert(
+      'Enviar a revisión',
+      'El convenio dejará de estar en borrador. ¿Querés continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Enviar', onPress: () => void enviarARevision() },
+      ],
+    );
 
   return (
     <SafeAreaView style={s.pantalla} edges={['top']}>
@@ -127,21 +160,39 @@ export default function FichaConvenio() {
             <Text style={s.expediente}>
               {convenio.expediente} · {convenio.unidadAcademica}
             </Text>
-            {convenio.puedeEditar ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Editar convenio"
-                onPress={() =>
-                  router.push({
-                    pathname: '/agreement/create',
-                    params: { id: String(convenio.id) },
-                  })
-                }
-                style={s.botonEditar}
-              >
-                <Pencil size={18} color={colores.azul} />
-                <Text style={s.botonEditarTxt}>Editar convenio</Text>
-              </Pressable>
+            {convenio.puedeEditar || convenio.puedeEnviarRevision ? (
+              <View style={s.accionesConvenio}>
+                {convenio.puedeEditar ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Editar convenio"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/agreement/create',
+                        params: { id: String(convenio.id) },
+                      })
+                    }
+                    style={s.botonEditar}
+                  >
+                    <Pencil size={18} color={colores.azul} />
+                    <Text style={s.botonEditarTxt}>Editar convenio</Text>
+                  </Pressable>
+                ) : null}
+                {convenio.puedeEnviarRevision ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Enviar convenio a revisión"
+                    accessibilityState={{ disabled: enviandoARevision }}
+                    disabled={enviandoARevision}
+                    onPress={confirmarEnvioARevision}
+                    style={[s.botonRevision, enviandoARevision && s.botonDeshabilitado]}
+                  >
+                    <Text style={s.botonRevisionTxt}>
+                      {enviandoARevision ? 'Enviando...' : 'Enviar a revisión'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             ) : null}
           </View>
 
@@ -198,19 +249,30 @@ const s = StyleSheet.create({
   estadoTxt: { color: colores.azul, fontSize: 11, fontWeight: '700' },
   titulo: { color: colores.texto, fontSize: 22, fontWeight: '800', lineHeight: 28 },
   expediente: { color: colores.textoSuave, fontSize: 12, marginTop: 4 },
+  accionesConvenio: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   botonEditar: {
-    alignSelf: 'flex-start',
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: colores.azul,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   botonEditarTxt: { color: colores.azul, fontWeight: '700' },
+  botonRevision: {
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: colores.azul,
+  },
+  botonDeshabilitado: { opacity: 0.6 },
+  botonRevisionTxt: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
   reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
   reintentarTxt: { color: colores.azul, fontWeight: '700' },
