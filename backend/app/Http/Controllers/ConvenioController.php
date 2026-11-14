@@ -83,12 +83,29 @@ class ConvenioController extends Controller
         ]);
     }
 
+    public function enviarARevision(Request $request, int $id): JsonResponse
+    {
+        $instrumento = Instrumento::query()->visiblePara($request->user())->findOrFail($id);
+        $this->authorize('sendToReview', $instrumento);
+
+        $instrumento = $this->convenios->enviarARevision($request->user(), $instrumento);
+
+        return response()->json([
+            'data' => [
+                'id' => $instrumento->id,
+                'estado' => $instrumento->estado->nombre,
+                'version' => $instrumento->version,
+            ],
+        ]);
+    }
+
     public function obtenerDetalle(Request $request, int $id): ConvenioDetalleResource
     {
         $detalle = $this->convenios->obtenerDetalle($request->user(), $id);
         $instrumento = $detalle['instrumento_model'];
         $this->authorize('view', $instrumento);
         $detalle['puede_editar'] = $request->user()->can('update', $instrumento);
+        $detalle['puede_enviar_revision'] = $request->user()->can('sendToReview', $instrumento);
         unset($detalle['instrumento_model']);
 
         return new ConvenioDetalleResource($detalle);

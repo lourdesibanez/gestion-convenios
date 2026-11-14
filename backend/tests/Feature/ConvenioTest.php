@@ -222,6 +222,77 @@ class ConvenioTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_gestion_puede_enviar_su_borrador_a_revision_y_registra_el_movimiento(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_enviar_revision', true);
+
+        $this->actingAs($this->usuario)
+            ->postJson('/api/agreements/'.$instrumento->id.'/submit-review')
+            ->assertOk()
+            ->assertJsonPath('data.estado', 'revision')
+            ->assertJsonPath('data.version', $instrumento->version + 1);
+
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $instrumento->id,
+            'id_estado' => Estado::where('nombre', 'revision')->value('id'),
+            'updated_by' => $this->usuario->id,
+            'version' => $instrumento->version + 1,
+        ]);
+        $this->assertDatabaseHas('historial_estado', [
+            'id_instrumento' => $instrumento->id,
+            'id_estado_anterior' => Estado::where('nombre', 'borrador')->value('id'),
+            'id_estado_nuevo' => Estado::where('nombre', 'revision')->value('id'),
+            'id_usuario' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseHas('usuario_instrumento', [
+            'id_instrumento' => $instrumento->id,
+            'id_usuario' => $this->usuario->id,
+            'accion' => 'envio_revision',
+        ]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('convenio.estado', 'revision')
+            ->assertJsonPath('puede_editar', false)
+            ->assertJsonPath('puede_enviar_revision', false);
+    }
+
+    public function test_otro_usuario_no_puede_enviar_un_borrador_ajeno_a_revision(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+        $otroUsuario = Usuario::factory()->create();
+        $this->asignarPerfil($otroUsuario, 'gestion', $this->unidad->id);
+
+        $this->actingAs($otroUsuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_enviar_revision', false);
+
+        $this->actingAs($otroUsuario)
+            ->postJson('/api/agreements/'.$instrumento->id.'/submit-review')
+            ->assertForbidden();
+    }
+
+    public function test_no_se_puede_enviar_a_revision_un_convenio_que_ya_salio_de_borrador(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('revision')
+            ->create([
+                'id_institucion' => $this->unidad->id,
+                'created_by' => $this->usuario->id,
+            ]);
+
+        $this->actingAs($this->usuario)
+            ->postJson('/api/agreements/'.$instrumento->id.'/submit-review')
+            ->assertForbidden();
+    }
+
     public function test_revision_no_puede_crear_convenios(): void
     {
         $usuarioRevision = Usuario::factory()->create();

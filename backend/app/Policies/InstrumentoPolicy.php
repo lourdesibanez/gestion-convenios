@@ -31,6 +31,14 @@ class InstrumentoPolicy
             && $this->estaDentroDelAlcance($usuario, $instrumento);
     }
 
+    public function sendToReview(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.enviar_revision')
+            && (int) $instrumento->created_by === (int) $usuario->id
+            && $instrumento->estado?->nombre === 'borrador'
+            && $this->estaDentroDelAlcance($usuario, $instrumento);
+    }
+
     public function viewRevision(Usuario $usuario): bool
     {
         return $usuario->tienePermiso('instrumento.aprobar');

@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('agreements',                        [ConvenioController::class, 'listar'])->name('agreements.index');
     Route::post('agreements',                       [ConvenioController::class, 'crear'])->name('agreements.store');
+    Route::post('agreements/{id}/submit-review',     [ConvenioController::class, 'enviarARevision'])->name('agreements.submit-review');
     Route::get('agreements/review',                 [ConvenioController::class, 'listarEnRevision'])->name('agreements.review');
     Route::get('agreements/create-options',         [ConvenioController::class, 'opcionesCreacion'])->name('agreements.create-options');
     Route::match(['put', 'patch'], 'agreements/{id}', [ConvenioController::class, 'actualizar'])->name('agreements.update');

@@ -139,6 +139,47 @@ class ConvenioService
         });
     }
 
+    public function enviarARevision(Usuario $usuario, Instrumento $instrumento): Instrumento
+    {
+        return DB::transaction(function () use ($usuario, $instrumento): Instrumento {
+            $idBorrador = Estado::query()->where('nombre', 'borrador')->firstOrFail()->id;
+            $idRevision = Estado::query()->where('nombre', 'revision')->firstOrFail()->id;
+
+            $actualizado = DB::table('instrumento')
+                ->where('id', $instrumento->id)
+                ->whereNull('deleted_at')
+                ->where('created_by', $usuario->id)
+                ->where('id_estado', $idBorrador)
+                ->update([
+                    'id_estado' => $idRevision,
+                    'version' => DB::raw('version + 1'),
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            if ($actualizado !== 1) {
+                abort(409, 'El convenio ya no está en borrador. Recargalo e intentá nuevamente.');
+            }
+
+            DB::table('historial_estado')->insert([
+                'id_instrumento' => $instrumento->id,
+                'id_estado_anterior' => $idBorrador,
+                'id_estado_nuevo' => $idRevision,
+                'id_usuario' => $usuario->id,
+                'created_at' => now(),
+            ]);
+
+            DB::table('usuario_instrumento')->insert([
+                'id_usuario' => $usuario->id,
+                'id_instrumento' => $instrumento->id,
+                'accion' => 'envio_revision',
+                'created_at' => now(),
+            ]);
+
+            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+        });
+    }
+
     public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator {
         // Primero identificamos todos los instrumentos que coinciden con la búsqueda.
         $idsCoincidentes = (clone $this->consultaListado($filtros, $usuario))
