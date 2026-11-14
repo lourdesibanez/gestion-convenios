@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ConvenioIndexRequest;
+use App\Http\Requests\ConvenioStoreRequest;
 use App\Http\Resources\ConvenioDetalleResource;
 use App\Http\Resources\ConvenioResource;
 use App\Models\Instrumento;
 use App\Services\ConvenioService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ConvenioController extends Controller
@@ -32,6 +34,32 @@ class ConvenioController extends Controller
         return ConvenioResource::collection(
             $this->convenios->listar($request->user(), $request->validated())
         );
+    }
+
+    public function opcionesCreacion(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Instrumento::class);
+
+        return response()->json([
+            'data' => $this->convenios->opcionesCreacion($request->user()),
+        ]);
+    }
+
+    public function crear(ConvenioStoreRequest $request): JsonResponse
+    {
+        $this->authorize('create', Instrumento::class);
+
+        $instrumento = $this->convenios->crear($request->user(), $request->validated());
+
+        return response()->json([
+            'data' => [
+                'id' => $instrumento->id,
+                'uuid' => $instrumento->uuid,
+                'codigo' => $instrumento->codigo,
+                'titulo' => $instrumento->titulo,
+                'estado' => $instrumento->estado->nombre,
+            ],
+        ], 201);
     }
 
     public function obtenerDetalle(Request $request, int $id): ConvenioDetalleResource

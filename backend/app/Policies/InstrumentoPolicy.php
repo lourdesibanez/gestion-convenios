@@ -12,6 +12,11 @@ class InstrumentoPolicy
         return $usuario->tienePermiso('instrumento.ver');
     }
 
+    public function create(Usuario $usuario): bool
+    {
+        return $usuario->tienePermiso('instrumento.crear');
+    }
+
     public function view(Usuario $usuario, Instrumento $instrumento): bool
     {
         return $usuario->tienePermiso('instrumento.ver')

@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Institucion;
+use App\Models\Estado;
 use App\Models\Firma;
+use App\Models\Institucion;
 use App\Models\Instrumento;
 use App\Models\Perfil;
+use App\Models\TipoInstrumento;
 use App\Models\Usuario;
 use App\Models\UsuarioPerfil;
 use Database\Seeders\CatalogoSeeder;
@@ -90,6 +92,92 @@ class ConvenioTest extends TestCase
             ->getJson('/api/agreements/'.$instrumento->id)
             ->assertOk()
             ->assertJsonPath('puede_firmar', true);
+    }
+
+    public function test_gestion_puede_crear_un_convenio_completo_en_borrador(): void
+    {
+        $tipo = TipoInstrumento::query()->where('categoria', 'especifico')->firstOrFail();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/create-options')
+            ->assertOk()
+            ->assertJsonPath('data.puede_crear', true)
+            ->assertJsonFragment(['id' => $this->unidad->id, 'nombre' => $this->unidad->nombre]);
+
+        $respuesta = $this->actingAs($this->usuario)
+            ->postJson('/api/agreements', [
+                'titulo' => 'Convenio móvil de prueba',
+                'id_tipo_instrumento' => $tipo->id,
+                'id_institucion' => $this->unidad->id,
+                'fecha_inicio' => '2027-01-15',
+                'fecha_fin' => '2028-01-15',
+                'fecha_preaviso' => '2027-11-15',
+                'numero_resolucion' => 'RES-123',
+                'referencia_expediente' => 'EXP-456',
+                'notas' => 'Notas de prueba',
+                'objeto' => 'Objeto del convenio',
+                'marco_legal' => 'Marco legal',
+                'obligaciones' => 'Obligaciones',
+                'condiciones_terminacion' => 'Condiciones de terminación',
+                'condiciones_renovacion' => 'Condiciones de renovación',
+                'confidencialidad' => 'Confidencialidad',
+                'alcance_actividades' => 'Alcance de actividades',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.estado', 'borrador')
+            ->assertJsonPath('data.titulo', 'Convenio móvil de prueba');
+
+        $id = $respuesta->json('data.id');
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $id,
+            'id_estado' => Estado::where('nombre', 'borrador')->value('id'),
+            'id_institucion' => $this->unidad->id,
+            'created_by' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseHas('convenio', [
+            'id_instrumento' => $id,
+            'objeto' => 'Objeto del convenio',
+            'alcance_actividades' => 'Alcance de actividades',
+            'created_by' => $this->usuario->id,
+        ]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$id)
+            ->assertOk()
+            ->assertJsonPath('convenio.titulo', 'Convenio móvil de prueba');
+    }
+
+    public function test_revision_no_puede_crear_convenios(): void
+    {
+        $usuarioRevision = Usuario::factory()->create();
+        $this->asignarPerfil($usuarioRevision, 'revision', $this->unidad->id);
+
+        $this->actingAs($usuarioRevision)
+            ->getJson('/api/agreements/create-options')
+            ->assertOk()
+            ->assertJsonPath('data.puede_crear', false);
+
+        $this->actingAs($usuarioRevision)
+            ->postJson('/api/agreements', [
+                'titulo' => 'No autorizado',
+                'id_tipo_instrumento' => 1,
+                'id_institucion' => $this->unidad->id,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_no_se_puede_crear_un_convenio_en_una_unidad_ajena(): void
+    {
+        $unidadAjena = Institucion::factory()->interna()->create();
+
+        $this->actingAs($this->usuario)
+            ->postJson('/api/agreements', [
+                'titulo' => 'Unidad ajena',
+                'id_tipo_instrumento' => 1,
+                'id_institucion' => $unidadAjena->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('id_institucion');
     }
 
     public function test_consulta_publica_solo_expone_convenios_firmados(): void

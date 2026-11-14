@@ -2,16 +2,86 @@
 
 namespace App\Services;
 
+use App\Models\Estado;
+use App\Models\Institucion;
 use App\Models\Instrumento;
+use App\Models\TipoInstrumento;
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ConvenioService
 {
     private const ESTADOS_PUBLICOS = ['firmado'];
+
+    /**
+     * @return array{
+     *     puede_crear: bool,
+     *     tipos: Collection<int, TipoInstrumento>,
+     *     instituciones: Collection<int, Institucion>
+     * }
+     */
+    public function opcionesCreacion(Usuario $usuario): array
+    {
+        $institucionesVisibles = $usuario->institucionesVisibles();
+        $instituciones = Institucion::query()
+            ->where('es_interna', true)
+            ->when(
+                $institucionesVisibles !== null,
+                fn ($query) => $query->whereIn('id', $institucionesVisibles),
+            )
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
+        return [
+            'puede_crear' => $usuario->tienePermiso('instrumento.crear'),
+            'tipos' => TipoInstrumento::query()
+                ->orderBy('nombre')
+                ->get(['id', 'nombre']),
+            'instituciones' => $instituciones,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    public function crear(Usuario $usuario, array $datos): Instrumento
+    {
+        return DB::transaction(function () use ($usuario, $datos): Instrumento {
+            $instrumento = Instrumento::create([
+                'codigo' => 'BORRADOR-'.Str::uuid(),
+                'titulo' => $datos['titulo'],
+                'id_tipo_instrumento' => $datos['id_tipo_instrumento'],
+                'id_institucion' => $datos['id_institucion'],
+                'id_estado' => Estado::where('nombre', 'borrador')->value('id'),
+                'fecha_inicio' => $datos['fecha_inicio'] ?? null,
+                'fecha_fin' => $datos['fecha_fin'] ?? null,
+                'fecha_preaviso' => $datos['fecha_preaviso'] ?? null,
+                'numero_resolucion' => $datos['numero_resolucion'] ?? null,
+                'referencia_expediente' => $datos['referencia_expediente'] ?? null,
+                'notas' => $datos['notas'] ?? null,
+            ]);
+
+            DB::table('convenio')->insert([
+                'id_instrumento' => $instrumento->id,
+                'objeto' => $datos['objeto'] ?? null,
+                'marco_legal' => $datos['marco_legal'] ?? null,
+                'obligaciones' => $datos['obligaciones'] ?? null,
+                'condiciones_terminacion' => $datos['condiciones_terminacion'] ?? null,
+                'condiciones_renovacion' => $datos['condiciones_renovacion'] ?? null,
+                'confidencialidad' => $datos['confidencialidad'] ?? null,
+                'alcance_actividades' => $datos['alcance_actividades'] ?? null,
+                'created_at' => now(),
+                'created_by' => $usuario->id,
+            ]);
+
+            return $instrumento->load(['tipo', 'institucion', 'estado']);
+        });
+    }
 
     public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator {
         // Primero identificamos todos los instrumentos que coinciden con la búsqueda.
