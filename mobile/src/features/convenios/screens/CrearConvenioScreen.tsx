@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { File } from 'expo-file-system';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { FilePlus2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
@@ -150,6 +150,8 @@ function Selector<T extends OpcionSelector>({
 }
 
 export function CrearConvenioScreen() {
+  const { id: idConvenio } = useLocalSearchParams<{ id?: string }>();
+  const modoEdicion = typeof idConvenio === 'string' && idConvenio.length > 0;
   const [opciones, setOpciones] = useState<OpcionesCreacionConvenio | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -163,11 +165,43 @@ export function CrearConvenioScreen() {
   const [adjuntos, setAdjuntos] = useState<AdjuntoDocumento[]>([]);
   const [errorAdjuntos, setErrorAdjuntos] = useState('');
   const [instrumentoCreadoId, setInstrumentoCreadoId] = useState<number | null>(null);
+  const [versionEdicion, setVersionEdicion] = useState<number | null>(null);
 
   useEffect(() => {
-    const cargarOpciones = async () => {
+    const cargarFormulario = async () => {
       try {
-        setOpciones(await creacionConvenioService.opciones());
+        const [opcionesCargadas, edicion] = await Promise.all([
+          creacionConvenioService.opciones(),
+          modoEdicion
+            ? creacionConvenioService.obtenerParaEdicion(idConvenio)
+            : Promise.resolve(null),
+        ]);
+        setOpciones(opcionesCargadas);
+
+        if (edicion) {
+          const datos = edicion.convenio;
+          setCampos({
+            titulo: datos.titulo,
+            fecha_inicio: datos.fecha_inicio ?? '',
+            fecha_fin: datos.fecha_fin ?? '',
+            fecha_preaviso: datos.fecha_preaviso ?? '',
+            numero_resolucion: datos.numero_resolucion ?? '',
+            referencia_expediente: datos.referencia_expediente ?? '',
+            notas: datos.notas ?? '',
+            objeto: datos.objeto ?? '',
+            marco_legal: datos.marco_legal ?? '',
+            obligaciones: datos.obligaciones ?? '',
+            condiciones_terminacion: datos.condiciones_terminacion ?? '',
+            condiciones_renovacion: datos.condiciones_renovacion ?? '',
+            confidencialidad: datos.confidencialidad ?? '',
+            alcance_actividades: datos.alcance_actividades ?? '',
+          });
+          setTipo(opcionesCargadas.tipos.find((opcion) => opcion.id === datos.id_tipo_instrumento) ?? null);
+          setInstitucion(
+            opcionesCargadas.instituciones.find((opcion) => opcion.id === datos.id_institucion) ?? null,
+          );
+          setVersionEdicion(edicion.version);
+        }
       } catch (error) {
         setErrorCarga(error instanceof Error ? error.message : 'No se pudieron cargar las opciones.');
       } finally {
@@ -175,8 +209,8 @@ export function CrearConvenioScreen() {
       }
     };
 
-    void cargarOpciones();
-  }, []);
+    void cargarFormulario();
+  }, [idConvenio, modoEdicion]);
 
   const actualizarCampo = (campo: CampoTexto, valor: string) => {
     setCampos((actuales) => ({ ...actuales, [campo]: valor }));
@@ -232,7 +266,7 @@ export function CrearConvenioScreen() {
     setErrorEnvio('');
     let payload: NuevoConvenio | null = null;
 
-    if (instrumentoCreadoId === null) {
+    if (modoEdicion || instrumentoCreadoId === null) {
       const nuevosErrores: Record<string, string> = {};
       if (!campos.titulo.trim()) nuevosErrores.titulo = 'Ingresá el título del convenio.';
       if (!tipo) nuevosErrores.id_tipo_instrumento = 'Seleccioná el tipo de convenio.';
@@ -266,6 +300,15 @@ export function CrearConvenioScreen() {
     let idInstrumento = instrumentoCreadoId;
 
     try {
+      if (modoEdicion) {
+        if (versionEdicion === null || !payload) {
+          throw new Error('No se pudieron cargar los datos actuales del convenio.');
+        }
+        await creacionConvenioService.actualizar(idConvenio, payload, versionEdicion);
+        router.replace({ pathname: '/agreement/[id]', params: { id: idConvenio } });
+        return;
+      }
+
       if (idInstrumento === null) {
         if (!payload) throw new Error('Faltan datos obligatorios del convenio.');
         const creado = await creacionConvenioService.crear(payload);
@@ -273,38 +316,41 @@ export function CrearConvenioScreen() {
         setInstrumentoCreadoId(idInstrumento);
       }
 
+      if (idInstrumento === null) throw new Error('No se pudo identificar el convenio guardado.');
       for (const adjunto of adjuntos) {
-        await creacionConvenioService.subirDocumento(
-          idInstrumento,
-          adjunto.tipo,
-          adjunto.archivo,
-        );
+        await creacionConvenioService.subirDocumento(idInstrumento, adjunto.tipo, adjunto.archivo);
         setAdjuntos((actuales) => actuales.filter((item) => item.key !== adjunto.key));
       }
 
       router.replace({ pathname: '/agreement/[id]', params: { id: String(idInstrumento) } });
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorEnvio(idInstrumento !== null
-          ? `El borrador ya se guardó, pero no se completó la carga de documentos. ${error.message}`
-          : error.status === 403
-            ? 'Tu perfil no tiene permiso para crear convenios.'
-            : error.message);
+        setErrorEnvio(modoEdicion
+          ? error.status === 403
+            ? 'No tenés permiso para editar este borrador.'
+            : error.message
+          : idInstrumento !== null
+            ? `El borrador ya se guardó, pero no se completó la carga de documentos. ${error.message}`
+            : error.status === 403
+              ? 'Tu perfil no tiene permiso para crear convenios.'
+              : error.message);
         const erroresApi = Object.fromEntries(
           Object.entries(error.errors).map(([campo, mensajes]) => [campo, mensajes[0] ?? 'Dato inválido.']),
         );
         setErrores((actuales) => ({ ...actuales, ...erroresApi }));
       } else {
-        setErrorEnvio(idInstrumento !== null
-          ? 'El borrador ya se guardó, pero no se completó la carga de documentos. Podés reintentar.'
-          : 'No se pudo guardar el convenio.');
+        setErrorEnvio(modoEdicion
+          ? error instanceof Error ? error.message : 'No se pudieron guardar los cambios.'
+          : idInstrumento !== null
+            ? 'El borrador ya se guardó, pero no se completó la carga de documentos. Podés reintentar.'
+            : 'No se pudo guardar el convenio.');
       }
     } finally {
       setGuardando(false);
     }
   };
 
-  const formularioBloqueado = guardando || instrumentoCreadoId !== null;
+  const formularioBloqueado = guardando || (!modoEdicion && instrumentoCreadoId !== null);
 
   if (cargando) {
     return (
@@ -317,11 +363,13 @@ export function CrearConvenioScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Cargar convenio</Text>
+        <Text style={styles.title}>{modoEdicion ? 'Editar convenio' : 'Cargar convenio'}</Text>
         <Button title="Volver" variant="outline" onPress={() => router.back()} disabled={guardando} />
         {errorCarga ? (
           <Text style={styles.error}>{errorCarga}</Text>
-        ) : !opciones?.puede_crear ? (
+        ) : !opciones ? (
+          <Text style={styles.error}>No se pudieron cargar las opciones del formulario.</Text>
+        ) : !modoEdicion && !opciones.puede_crear ? (
           <Text style={styles.info}>
             Tu perfil puede consultar convenios, pero no tiene permiso para crear uno.
           </Text>
@@ -478,59 +526,67 @@ export function CrearConvenioScreen() {
               editable={!formularioBloqueado}
               maxLength={255}
             />
-            <Selector
-              etiqueta="Tipo de documento para los próximos archivos"
-              opciones={tiposDocumento}
-              seleccionado={tipoDocumento}
-              alSeleccionar={setTipoDocumento}
-              deshabilitado={guardando}
-            />
-            <Text style={styles.helper}>
-              Podés adjuntar resoluciones, borradores y anexos en PDF de hasta 20 MB cada uno.
-            </Text>
-            <Button
-              title="Seleccionar documentos PDF"
-              variant="outline"
-              icon={<FilePlus2 size={20} color={colors.primary} />}
-              onPress={() => void seleccionarDocumentos()}
-              disabled={guardando}
-            />
-            {adjuntos.map((adjunto) => (
-              <View key={adjunto.key} style={styles.adjunto}>
-                <View style={styles.adjuntoInfo}>
-                  <Text style={styles.adjuntoNombre} numberOfLines={1}>
-                    {adjunto.archivo.name}
-                  </Text>
-                  <Text style={styles.helper}>
-                    {etiquetasTipoDocumento[adjunto.tipo]} · {formatearTamano(adjunto.archivo.size)}
-                  </Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Quitar ${adjunto.archivo.name}`}
+            {!modoEdicion ? (
+              <>
+                <Selector
+                  etiqueta="Tipo de documento para los próximos archivos"
+                  opciones={tiposDocumento}
+                  seleccionado={tipoDocumento}
+                  alSeleccionar={setTipoDocumento}
+                  deshabilitado={guardando}
+                />
+                <Text style={styles.helper}>
+                  Podés adjuntar resoluciones, borradores y anexos en PDF de hasta 20 MB cada uno.
+                </Text>
+                <Button
+                  title="Seleccionar documentos PDF"
+                  variant="outline"
+                  icon={<FilePlus2 size={20} color={colors.primary} />}
+                  onPress={() => void seleccionarDocumentos()}
                   disabled={guardando}
-                  onPress={() => quitarAdjunto(adjunto.key)}
-                >
-                  <Text style={styles.quitarAdjunto}>Quitar</Text>
-                </Pressable>
-              </View>
-            ))}
-            {errorAdjuntos ? <Text style={styles.error}>{errorAdjuntos}</Text> : null}
+                />
+                {adjuntos.map((adjunto) => (
+                  <View key={adjunto.key} style={styles.adjunto}>
+                    <View style={styles.adjuntoInfo}>
+                      <Text style={styles.adjuntoNombre} numberOfLines={1}>
+                        {adjunto.archivo.name}
+                      </Text>
+                      <Text style={styles.helper}>
+                        {etiquetasTipoDocumento[adjunto.tipo]} · {formatearTamano(adjunto.archivo.size)}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Quitar ${adjunto.archivo.name}`}
+                      disabled={guardando}
+                      onPress={() => quitarAdjunto(adjunto.key)}
+                    >
+                      <Text style={styles.quitarAdjunto}>Quitar</Text>
+                    </Pressable>
+                  </View>
+                ))}
+                {errorAdjuntos ? <Text style={styles.error}>{errorAdjuntos}</Text> : null}
+              </>
+            ) : null}
 
             {errorEnvio ? <Text style={styles.error}>{errorEnvio}</Text> : null}
-            {instrumentoCreadoId === null ? (
+            {!modoEdicion && instrumentoCreadoId === null ? (
               <Text style={styles.helper}>El convenio se guardará como borrador.</Text>
             ) : null}
             <Button
-              title={instrumentoCreadoId === null
-                ? 'Guardar borrador'
-                : adjuntos.length > 0
-                  ? 'Reintentar carga'
-                  : 'Ver borrador'}
+              title={modoEdicion
+                ? 'Guardar cambios'
+                : instrumentoCreadoId === null
+                  ? 'Guardar borrador'
+                  : adjuntos.length > 0
+                    ? 'Reintentar carga'
+                    : 'Ver borrador'}
               onPress={() => void enviar()}
               loading={guardando}
-              disabled={instrumentoCreadoId === null
-                && (opciones.tipos.length === 0 || opciones.instituciones.length === 0)}
+              disabled={modoEdicion
+                ? versionEdicion === null
+                : instrumentoCreadoId === null
+                  && (opciones.tipos.length === 0 || opciones.instituciones.length === 0)}
             />
           </>
         )}

@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { useState } from 'react';
 import { File } from 'expo-file-system';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CircleHelp } from 'lucide-react-native';
+import { ChevronLeft, CircleHelp, Pencil } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
@@ -127,6 +127,22 @@ export default function FichaConvenio() {
             <Text style={s.expediente}>
               {convenio.expediente} · {convenio.unidadAcademica}
             </Text>
+            {convenio.puedeEditar ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Editar convenio"
+                onPress={() =>
+                  router.push({
+                    pathname: '/agreement/create',
+                    params: { id: String(convenio.id) },
+                  })
+                }
+                style={s.botonEditar}
+              >
+                <Pencil size={18} color={colores.azul} />
+                <Text style={s.botonEditarTxt}>Editar convenio</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
@@ -182,6 +198,19 @@ const s = StyleSheet.create({
   estadoTxt: { color: colores.azul, fontSize: 11, fontWeight: '700' },
   titulo: { color: colores.texto, fontSize: 22, fontWeight: '800', lineHeight: 28 },
   expediente: { color: colores.textoSuave, fontSize: 12, marginTop: 4 },
+  botonEditar: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: colores.azul,
+    borderRadius: 8,
+  },
+  botonEditarTxt: { color: colores.azul, fontWeight: '700' },
   error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
   reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
   reintentarTxt: { color: colores.azul, fontWeight: '700' },

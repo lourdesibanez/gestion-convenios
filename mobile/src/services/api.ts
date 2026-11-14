@@ -61,5 +61,6 @@ function messageFor(status: number, data: { message?: string }): string {
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   postForm: <T>(path: string, body: FormData) => request<T>('POST', path, body),
 };
