@@ -83,6 +83,62 @@ class ConvenioService
         });
     }
 
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    public function actualizar(Usuario $usuario, Instrumento $instrumento, array $datos): Instrumento
+    {
+        return DB::transaction(function () use ($usuario, $instrumento, $datos): Instrumento {
+            $actualizado = DB::table('instrumento')
+                ->where('id', $instrumento->id)
+                ->whereNull('deleted_at')
+                ->where('created_by', $usuario->id)
+                ->where('id_estado', Estado::where('nombre', 'borrador')->value('id'))
+                ->where('version', $datos['version'])
+                ->update([
+                    'titulo' => $datos['titulo'],
+                    'id_tipo_instrumento' => $datos['id_tipo_instrumento'],
+                    'id_institucion' => $datos['id_institucion'],
+                    'fecha_inicio' => $datos['fecha_inicio'] ?? null,
+                    'fecha_fin' => $datos['fecha_fin'] ?? null,
+                    'fecha_preaviso' => $datos['fecha_preaviso'] ?? null,
+                    'numero_resolucion' => $datos['numero_resolucion'] ?? null,
+                    'referencia_expediente' => $datos['referencia_expediente'] ?? null,
+                    'notas' => $datos['notas'] ?? null,
+                    'version' => DB::raw('version + 1'),
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            if ($actualizado !== 1) {
+                abort(409, 'El convenio cambió desde que lo abriste. Recargalo e intentá nuevamente.');
+            }
+
+            $detalleExiste = DB::table('convenio')
+                ->where('id_instrumento', $instrumento->id)
+                ->exists();
+            if (! $detalleExiste) {
+                abort(409, 'No se encontró el detalle del convenio para actualizar.');
+            }
+
+            DB::table('convenio')
+                ->where('id_instrumento', $instrumento->id)
+                ->update([
+                    'objeto' => $datos['objeto'] ?? null,
+                    'marco_legal' => $datos['marco_legal'] ?? null,
+                    'obligaciones' => $datos['obligaciones'] ?? null,
+                    'condiciones_terminacion' => $datos['condiciones_terminacion'] ?? null,
+                    'condiciones_renovacion' => $datos['condiciones_renovacion'] ?? null,
+                    'confidencialidad' => $datos['confidencialidad'] ?? null,
+                    'alcance_actividades' => $datos['alcance_actividades'] ?? null,
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+        });
+    }
+
     public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator {
         // Primero identificamos todos los instrumentos que coinciden con la búsqueda.
         $idsCoincidentes = (clone $this->consultaListado($filtros, $usuario))
@@ -313,6 +369,7 @@ class ConvenioService
                 'i.uuid',
                 'i.codigo',
                 'i.titulo',
+                'i.id_tipo_instrumento',
                 't.nombre as tipo',
                 't.categoria',
                 't.ambito',
