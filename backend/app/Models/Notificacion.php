@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditoria;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -47,5 +48,12 @@ class Notificacion extends Model
     public function instrumento(): BelongsTo
     {
         return $this->belongsTo(Instrumento::class, 'id_instrumento');
+    }
+
+    public function scopeVisiblesPara(Builder $query, Usuario $usuario): void
+    {
+        if ($usuario->esConsulta()) {
+            $query->whereHas('instrumento', fn (Builder $instrumento) => $instrumento->enEstado('firmado'));
+        }
     }
 }

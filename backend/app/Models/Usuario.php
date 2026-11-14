@@ -97,6 +97,14 @@ class Usuario extends Authenticatable
         return $this->hasMany(Notificacion::class, 'id_usuario');
     }
 
+    public function esConsulta(): bool
+    {
+        return $this->perfiles()
+            ->activos()
+            ->whereHas('perfil', fn ($query) => $query->where('nombre', 'consulta'))
+            ->exists();
+    }
+
     /**
      * Instituciones cuyos instrumentos puede ver, según sus perfiles activos.
      * null = alcance global (algún perfil sin institución).

@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConvenioController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstitucionController;
+use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\ParteFirmanteController;
 use App\Http\Controllers\RepresentanteController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,9 @@ Route::get('public/agreements/{id}', [ConvenioController::class, 'obtenerDetalle
 // ---------- Solo con token (administración) ----------
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('home',                              [HomeController::class, 'obtenerDatos']);
+    Route::get('notifications',                     [NotificacionController::class, 'listar'])->name('notifications.index');
+    Route::patch('notifications/read-all',          [NotificacionController::class, 'marcarTodasLeidas'])->name('notifications.read-all');
+    Route::patch('notifications/{id}/read',          [NotificacionController::class, 'marcarLeida'])->name('notifications.read');
 
     Route::get('people',                            [RepresentanteController::class, 'listar'])->name('people.index');
     Route::post('people',                           [RepresentanteController::class, 'crear'])->name('people.store');

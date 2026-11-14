@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, Keyboard, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, QrCode, Search } from 'lucide-react-native';
-import { router, usePathname } from 'expo-router';
+import { Bell, QrCode, Search, X } from 'lucide-react-native';
+import { router, useFocusEffect, usePathname } from 'expo-router';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { homeService } from '@/features/home/services/homeService';
 import { colors, spacing } from '@/theme';
-import { X } from 'lucide-react-native';
 import { useBusqueda } from '@/features/busqueda/context/BusquedaContext';
 
 export function AppHeader() {
@@ -18,7 +17,7 @@ export function AppHeader() {
   const enBusqueda = pathname.endsWith('/search');
   const { query, setQuery } = useBusqueda();
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let activo = true;
 
     homeService.get()
@@ -34,7 +33,7 @@ export function AppHeader() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, []));
 
   const nombre = usuario?.nombre ?? '';
   const iniciales = `${nombre.charAt(0)}${usuario?.apellido.charAt(0) ?? ''}`.toUpperCase();
@@ -57,18 +56,20 @@ export function AppHeader() {
           </Text>
         </View>
 
-        <View
+        <Pressable
+          accessibilityRole="button"
           accessible
           accessibilityLabel={
             notificacionesSinLeer > 0
               ? `${notificacionesSinLeer} notificaciones sin leer`
               : 'Notificaciones'
           }
+          onPress={() => router.push('/notifications')}
           style={styles.notificationButton}
         >
           <Bell size={22} color={colors.background} />
           {notificacionesSinLeer > 0 && <View style={styles.notificationDot} />}
-        </View>
+        </Pressable>
       </View>
 
       {enBusqueda ? (
