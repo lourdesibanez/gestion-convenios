@@ -64,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('agreements',                       [ConvenioController::class, 'crear'])->name('agreements.store');
     Route::get('agreements/review',                 [ConvenioController::class, 'listarEnRevision'])->name('agreements.review');
     Route::get('agreements/create-options',         [ConvenioController::class, 'opcionesCreacion'])->name('agreements.create-options');
+    Route::match(['put', 'patch'], 'agreements/{id}', [ConvenioController::class, 'actualizar'])->name('agreements.update');
     Route::get('agreements/{id}',                   [ConvenioController::class, 'obtenerDetalle'])->name('agreements.show');
 
     Route::get('signatures/pending',                                [FirmaController::class, 'listarPendientes'])->name('signatures.pending');
