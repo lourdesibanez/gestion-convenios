@@ -12,6 +12,7 @@ use App\Models\Instrumento;
 use App\Services\ConvenioService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class ConvenioController extends Controller
 {
@@ -100,6 +101,16 @@ class ConvenioController extends Controller
         ]);
     }
 
+    public function eliminar(Request $request, int $id): Response
+    {
+        $instrumento = Instrumento::query()->visiblePara($request->user())->findOrFail($id);
+        $this->authorize('delete', $instrumento);
+
+        $this->convenios->eliminarBorrador($request->user(), $instrumento);
+
+        return response()->noContent();
+    }
+
     public function obtenerDetalle(Request $request, int $id): ConvenioDetalleResource
     {
         $detalle = $this->convenios->obtenerDetalle($request->user(), $id);
@@ -108,6 +119,7 @@ class ConvenioController extends Controller
         $detalle['puede_editar'] = $request->user()->can('update', $instrumento);
         $detalle['puede_enviar_revision'] = $request->user()->can('sendToReview', $instrumento);
         $detalle['puede_subir_archivo'] = $request->user()->can('create', [Archivo::class, $instrumento]);
+        $detalle['puede_eliminar'] = $request->user()->can('delete', $instrumento);
         unset($detalle['instrumento_model']);
 
         return new ConvenioDetalleResource($detalle);

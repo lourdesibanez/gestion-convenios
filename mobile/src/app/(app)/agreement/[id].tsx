@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { useState } from 'react';
 import { File } from 'expo-file-system';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CircleHelp, Pencil } from 'lucide-react-native';
+import { ChevronLeft, CircleHelp, Pencil, Trash2 } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
@@ -28,6 +28,7 @@ export default function FichaConvenio() {
   const { convenio, cargando, error, recargar } = useConvenio(id);
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const [enviandoARevision, setEnviandoARevision] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const esPerfilConsulta =
     tipoPerfil?.trim().toLocaleLowerCase('es-AR') === 'consulta';
   const puedeVerConvenio =
@@ -109,6 +110,38 @@ export default function FichaConvenio() {
       ],
     );
 
+  const eliminarBorrador = async () => {
+    if (!convenio || eliminando || enviandoARevision) return;
+
+    setEliminando(true);
+    try {
+      await conveniosService.eliminarBorrador(convenio.id);
+      Alert.alert('Borrador eliminado', 'El convenio se eliminó.', [
+        { text: 'Aceptar', onPress: () => router.back() },
+      ]);
+    } catch (cause) {
+      const mensaje =
+        cause instanceof ApiError && cause.status === 403
+          ? 'No tenés permiso para eliminar este borrador.'
+          : cause instanceof Error
+            ? cause.message
+            : 'No se pudo eliminar el borrador. Intentá nuevamente.';
+      Alert.alert('No se pudo eliminar', mensaje);
+    } finally {
+      setEliminando(false);
+    }
+  };
+
+  const confirmarEliminacion = () =>
+    Alert.alert(
+      'Eliminar borrador',
+      'El borrador se quitará de la lista de convenios. ¿Querés continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => void eliminarBorrador() },
+      ],
+    );
+
   return (
     <SafeAreaView style={s.pantalla} edges={['top']}>
       <View style={s.barra}>
@@ -160,12 +193,13 @@ export default function FichaConvenio() {
             <Text style={s.expediente}>
               {convenio.expediente} · {convenio.unidadAcademica}
             </Text>
-            {convenio.puedeEditar || convenio.puedeEnviarRevision ? (
+            {convenio.puedeEditar || convenio.puedeEnviarRevision || convenio.puedeEliminar ? (
               <View style={s.accionesConvenio}>
                 {convenio.puedeEditar ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Editar convenio"
+                    disabled={eliminando || enviandoARevision}
                     onPress={() =>
                       router.push({
                         pathname: '/agreement/create',
@@ -182,13 +216,31 @@ export default function FichaConvenio() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Enviar convenio a revisión"
-                    accessibilityState={{ disabled: enviandoARevision }}
-                    disabled={enviandoARevision}
+                    accessibilityState={{ disabled: enviandoARevision || eliminando }}
+                    disabled={enviandoARevision || eliminando}
                     onPress={confirmarEnvioARevision}
-                    style={[s.botonRevision, enviandoARevision && s.botonDeshabilitado]}
+                    style={[
+                      s.botonRevision,
+                      (enviandoARevision || eliminando) && s.botonDeshabilitado,
+                    ]}
                   >
                     <Text style={s.botonRevisionTxt}>
                       {enviandoARevision ? 'Enviando...' : 'Enviar a revisión'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {convenio.puedeEliminar ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Eliminar borrador"
+                    accessibilityState={{ disabled: eliminando || enviandoARevision }}
+                    disabled={eliminando || enviandoARevision}
+                    onPress={confirmarEliminacion}
+                    style={[s.botonEliminar, (eliminando || enviandoARevision) && s.botonDeshabilitado]}
+                  >
+                    <Trash2 size={16} color={colores.rojo} />
+                    <Text style={s.botonEliminarTxt}>
+                      {eliminando ? 'Eliminando...' : 'Eliminar borrador'}
                     </Text>
                   </Pressable>
                 ) : null}
@@ -274,6 +326,19 @@ const s = StyleSheet.create({
   },
   botonDeshabilitado: { opacity: 0.6 },
   botonRevisionTxt: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  botonEliminar: {
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colores.rojo,
+    borderRadius: 10,
+    backgroundColor: colores.rojoClaro,
+  },
+  botonEliminarTxt: { color: colores.rojo, fontSize: 14, fontWeight: '700' },
   error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
   reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
   reintentarTxt: { color: colores.azul, fontWeight: '700' },

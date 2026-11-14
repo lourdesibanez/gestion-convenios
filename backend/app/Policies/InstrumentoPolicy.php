@@ -31,6 +31,14 @@ class InstrumentoPolicy
             && $this->estaDentroDelAlcance($usuario, $instrumento);
     }
 
+    public function delete(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.editar')
+            && (int) $instrumento->created_by === (int) $usuario->id
+            && $instrumento->estado?->nombre === 'borrador'
+            && $this->estaDentroDelAlcance($usuario, $instrumento);
+    }
+
     public function sendToReview(Usuario $usuario, Instrumento $instrumento): bool
     {
         return $usuario->tienePermiso('instrumento.enviar_revision')

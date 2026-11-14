@@ -6,6 +6,7 @@ type DetalleApi = {
   puede_editar: boolean;
   puede_enviar_revision: boolean;
   puede_subir_archivo: boolean;
+  puede_eliminar: boolean;
   convenio: {
     id: number;
     codigo: string;
@@ -71,6 +72,10 @@ function describirTamano(bytes: number): string {
 }
 
 export const conveniosService = {
+  async eliminarBorrador(id: number | string): Promise<void> {
+    await api.delete(`/agreements/${id}`);
+  },
+
   async enviarARevision(id: number | string): Promise<void> {
     await api.post(`/agreements/${id}/submit-review`);
   },
@@ -95,6 +100,7 @@ export const conveniosService = {
       puedeEditar: data.puede_editar,
       puedeEnviarRevision: data.puede_enviar_revision,
       puedeSubirArchivo: data.puede_subir_archivo,
+      puedeEliminar: data.puede_eliminar,
       codigo: convenio.codigo,
       tipoInstrumento: convenio.tipo,
       estado: convenio.estado,

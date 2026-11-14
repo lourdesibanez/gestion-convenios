@@ -32,6 +32,7 @@ export interface ConvenioDetalle {
   puedeEditar: boolean;
   puedeEnviarRevision: boolean;
   puedeSubirArchivo: boolean;
+  puedeEliminar: boolean;
   codigo: string;
   tipoInstrumento: string; // "Específico de pasantía"
   estado: string; // "Aprobado"

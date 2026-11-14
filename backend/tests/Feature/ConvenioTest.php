@@ -280,6 +280,59 @@ class ConvenioTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_creador_puede_eliminar_su_borrador_con_borrado_logico(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_eliminar', true);
+
+        $this->actingAs($this->usuario)
+            ->deleteJson('/api/agreements/'.$instrumento->id)
+            ->assertNoContent();
+
+        $this->assertSoftDeleted('instrumento', [
+            'id' => $instrumento->id,
+            'deleted_by' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseMissing('instrumento', [
+            'id' => $instrumento->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_otro_usuario_no_puede_eliminar_un_borrador_ajeno(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+        $otroUsuario = Usuario::factory()->create();
+        $this->asignarPerfil($otroUsuario, 'gestion', $this->unidad->id);
+
+        $this->actingAs($otroUsuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_eliminar', false);
+
+        $this->actingAs($otroUsuario)
+            ->deleteJson('/api/agreements/'.$instrumento->id)
+            ->assertForbidden();
+    }
+
+    public function test_el_creador_no_puede_eliminar_un_convenio_que_ya_salio_de_borrador(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('revision')
+            ->create([
+                'id_institucion' => $this->unidad->id,
+                'created_by' => $this->usuario->id,
+            ]);
+
+        $this->actingAs($this->usuario)
+            ->deleteJson('/api/agreements/'.$instrumento->id)
+            ->assertForbidden();
+    }
+
     public function test_no_se_puede_enviar_a_revision_un_convenio_que_ya_salio_de_borrador(): void
     {
         $instrumento = Instrumento::factory()

@@ -180,6 +180,25 @@ class ConvenioService
         });
     }
 
+    public function eliminarBorrador(Usuario $usuario, Instrumento $instrumento): void
+    {
+        DB::transaction(function () use ($usuario, $instrumento): void {
+            $idBorrador = Estado::query()->where('nombre', 'borrador')->firstOrFail()->id;
+            $borrador = Instrumento::query()
+                ->whereKey($instrumento->id)
+                ->where('created_by', $usuario->id)
+                ->where('id_estado', $idBorrador)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $borrador) {
+                abort(409, 'El convenio ya no está en borrador. Recargalo e intentá nuevamente.');
+            }
+
+            $borrador->delete();
+        });
+    }
+
     public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator {
         // Primero identificamos todos los instrumentos que coinciden con la búsqueda.
         $idsCoincidentes = (clone $this->consultaListado($filtros, $usuario))
