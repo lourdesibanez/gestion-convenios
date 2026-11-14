@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import type { Documento } from '../Tipos';
 import type { TipoDocumentoConvenio } from '../services/creacionConvenioService';
@@ -15,6 +15,7 @@ interface Props {
   documentos: Documento[];
   onAbrir: (doc: Documento) => void; // descarga + visor PDF.js
   onSubir: (tipo: TipoDocumentoConvenio) => void;
+  descargandoDocumentoId: number | null;
   tiposSubida: OpcionSubidaDocumento[];
   puedeSubir: boolean;
   subiendo?: boolean;
@@ -24,6 +25,7 @@ export function Documentos({
   documentos,
   onAbrir,
   onSubir,
+  descargandoDocumentoId,
   tiposSubida,
   puedeSubir,
   subiendo = false,
@@ -49,12 +51,26 @@ export function Documentos({
         }
       >
         {documentos.map((d) => (
-          <Pressable key={d.id} onPress={() => onAbrir(d)} style={s.fila} accessibilityRole="button">
+          <Pressable
+            key={d.id}
+            onPress={() => onAbrir(d)}
+            style={s.fila}
+            accessibilityRole="button"
+            accessibilityLabel={`${descargandoDocumentoId === d.id ? 'Descargando' : 'Descargar'} ${d.nombre}`}
+            accessibilityState={{ disabled: descargandoDocumentoId !== null }}
+            disabled={descargandoDocumentoId !== null}
+          >
             <View style={s.icono}>
-              <Text style={s.iconoTxt}>PDF</Text>
+              {descargandoDocumentoId === d.id ? (
+                <ActivityIndicator size="small" color={colores.pdf} />
+              ) : (
+                <Text style={s.iconoTxt}>PDF</Text>
+              )}
             </View>
             <View style={s.info}>
-              <Text style={s.nombre}>{d.nombre}</Text>
+              <Text style={s.nombre}>
+                {descargandoDocumentoId === d.id ? 'Descargando…' : d.nombre}
+              </Text>
               <Text style={s.detalle}>{d.descripcion}</Text>
               {d.selladoPor && d.selladoEn && (
                 <Text style={s.sello}>

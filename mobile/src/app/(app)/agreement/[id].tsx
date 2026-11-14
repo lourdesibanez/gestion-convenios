@@ -1,9 +1,19 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useState } from 'react';
-import { File } from 'expo-file-system';
+import { File, type File as ExpoFile } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CircleHelp, Pencil, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, CircleHelp, Pencil, Share2, Trash2, X } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
@@ -13,6 +23,8 @@ import { BotonFirmarConvenio } from '@/features/convenios/components/BotonFirmar
 import { colores } from '@/features/convenios/components/temas';
 import { useConvenio } from '@/features/convenios/hooks/useConvenio';
 import { conveniosService } from '@/features/convenios/services/convenioService';
+import { busquedaService } from '@/features/busqueda/services/busquedaService';
+import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { ApiError } from '@/services/api';
 import {
@@ -29,6 +41,8 @@ export default function FichaConvenio() {
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const [enviandoARevision, setEnviandoARevision] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [descargandoDocumentoId, setDescargandoDocumentoId] = useState<number | null>(null);
+  const [pdfDescargado, setPdfDescargado] = useState<{ archivo: ExpoFile; nombre: string } | null>(null);
   const esPerfilConsulta =
     tipoPerfil?.trim().toLocaleLowerCase('es-AR') === 'consulta';
   const puedeVerConvenio =
@@ -76,6 +90,44 @@ export default function FichaConvenio() {
       Alert.alert('No se pudo subir el archivo', mensaje);
     } finally {
       setSubiendoArchivo(false);
+    }
+  };
+
+  const abrirDocumento = async (documento: { id: number; nombre: string }) => {
+    if (descargandoDocumentoId !== null) return;
+
+    setDescargandoDocumentoId(documento.id);
+    try {
+      const archivo = await busquedaService.descargarPdf(documento.id);
+      setPdfDescargado({ archivo, nombre: documento.nombre });
+    } catch (cause) {
+      Alert.alert(
+        'No se pudo descargar el documento',
+        cause instanceof Error ? cause.message : 'Intentá nuevamente.',
+      );
+    } finally {
+      setDescargandoDocumentoId(null);
+    }
+  };
+
+  const compartirDocumento = async () => {
+    if (!pdfDescargado) return;
+
+    try {
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Guardar no disponible', 'Este dispositivo no ofrece opciones para guardar o compartir el PDF.');
+        return;
+      }
+
+      await Sharing.shareAsync(pdfDescargado.archivo.uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: `Guardar o compartir ${pdfDescargado.nombre}`,
+      });
+    } catch (cause) {
+      Alert.alert(
+        'No se pudo compartir el documento',
+        cause instanceof Error ? cause.message : 'Intentá nuevamente.',
+      );
     }
   };
 
@@ -275,10 +327,9 @@ export default function FichaConvenio() {
           <Firmantes firmantes={convenio.firmantes} />
           <Documentos
             documentos={convenio.documentos}
-            onAbrir={(doc) => {
-              /* TODO: descargar a archivo temporal y abrir en el visor PDF.js */
-            }}
+            onAbrir={(doc) => void abrirDocumento(doc)}
             onSubir={(tipoDocumento) => void subirArchivo(tipoDocumento)}
+            descargandoDocumentoId={descargandoDocumentoId}
             tiposSubida={tiposSubida}
             puedeSubir={convenio.puedeSubirArchivo}
             subiendo={subiendoArchivo}
@@ -286,6 +337,39 @@ export default function FichaConvenio() {
           <ComentariosConvenio idConvenio={Number(id)} />
         </ScrollView>
       )}
+      <Modal
+        animationType="slide"
+        onRequestClose={() => setPdfDescargado(null)}
+        visible={pdfDescargado !== null}
+      >
+        <SafeAreaView style={s.pdfModal}>
+          <View style={s.pdfHeader}>
+            <Text numberOfLines={1} style={s.pdfTitulo}>
+              {pdfDescargado?.nombre}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Guardar o compartir documento"
+              hitSlop={8}
+              onPress={() => void compartirDocumento()}
+              style={s.pdfAccion}
+            >
+              <Share2 size={20} color={colores.azul} />
+              <Text style={s.pdfGuardarTxt}>Guardar</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar documento"
+              hitSlop={8}
+              onPress={() => setPdfDescargado(null)}
+              style={s.pdfAccion}
+            >
+              <X size={22} color={colores.textoSuave} />
+            </Pressable>
+          </View>
+          {pdfDescargado ? <PdfJsViewer file={pdfDescargado.archivo} /> : null}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -339,6 +423,20 @@ const s = StyleSheet.create({
     backgroundColor: colores.rojoClaro,
   },
   botonEliminarTxt: { color: colores.rojo, fontSize: 14, fontWeight: '700' },
+  pdfModal: { flex: 1, backgroundColor: colores.fondo },
+  pdfHeader: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colores.borde,
+    backgroundColor: colores.tarjeta,
+  },
+  pdfTitulo: { flex: 1, color: colores.texto, fontSize: 16, fontWeight: '700' },
+  pdfAccion: { flexDirection: 'row', alignItems: 'center', gap: 5, padding: 4 },
+  pdfGuardarTxt: { color: colores.azul, fontSize: 13, fontWeight: '700' },
   error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
   reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
   reintentarTxt: { color: colores.azul, fontWeight: '700' },
