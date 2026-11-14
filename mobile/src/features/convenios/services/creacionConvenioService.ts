@@ -31,7 +31,13 @@ export type NuevoConvenio = {
   alcance_actividades: string | null;
 };
 
-export type TipoDocumentoConvenio = 'resolucion' | 'borrador' | 'anexo';
+export type TipoDocumentoConvenio =
+  | 'resolucion'
+  | 'borrador'
+  | 'anexo'
+  | 'convenio_aprobado';
+
+export const TAMANO_MAXIMO_DOCUMENTO = 20 * 1024 * 1024;
 
 type OpcionesResponse = {
   data: OpcionesCreacionConvenio;

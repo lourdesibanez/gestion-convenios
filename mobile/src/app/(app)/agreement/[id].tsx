@@ -1,27 +1,80 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { File } from 'expo-file-system';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, CircleHelp } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
-import { Documentos } from '@/features/convenios/components/Documento';
+import { Documentos, type OpcionSubidaDocumento } from '@/features/convenios/components/Documento';
 import { Firmantes } from '@/features/convenios/components/Firmante';
 import { BotonFirmarConvenio } from '@/features/convenios/components/BotonFirmarConvenio';
 import { colores } from '@/features/convenios/components/temas';
 import { useConvenio } from '@/features/convenios/hooks/useConvenio';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { ApiError } from '@/services/api';
+import {
+  creacionConvenioService,
+  TAMANO_MAXIMO_DOCUMENTO,
+  type TipoDocumentoConvenio,
+} from '@/features/convenios/services/creacionConvenioService';
 
 export default function FichaConvenio() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { tipoPerfil } = useAuth();
   const { convenio, cargando, error, recargar } = useConvenio(id);
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const esPerfilConsulta =
     tipoPerfil?.trim().toLocaleLowerCase('es-AR') === 'consulta';
   const puedeVerConvenio =
     !esPerfilConsulta ||
     convenio?.estado.trim().toLocaleLowerCase('es-AR') === 'firmado';
+  const tiposSubida: OpcionSubidaDocumento[] = [
+    { tipo: 'resolucion', etiqueta: 'Resolución' },
+    { tipo: 'borrador', etiqueta: 'Borrador' },
+    { tipo: 'anexo', etiqueta: 'Anexo' },
+    ...(convenio?.estado.trim().toLocaleLowerCase('es-AR').includes('aprobado')
+      ? [{ tipo: 'convenio_aprobado' as const, etiqueta: 'Convenio aprobado' }]
+      : []),
+  ];
+
+  const subirArchivo = async (tipoDocumento: TipoDocumentoConvenio) => {
+    if (!convenio || subiendoArchivo) return;
+
+    setSubiendoArchivo(true);
+    try {
+      const resultado = await File.pickFileAsync({ mimeTypes: ['application/pdf'] });
+      if (resultado.canceled) return;
+
+      const archivo = resultado.result;
+      const esPdf =
+        archivo.type === 'application/pdf' || archivo.name.toLocaleLowerCase().endsWith('.pdf');
+      if (!esPdf) {
+        Alert.alert('Archivo no válido', 'Seleccioná un archivo PDF.');
+        return;
+      }
+      if (archivo.size > TAMANO_MAXIMO_DOCUMENTO) {
+        Alert.alert('Archivo demasiado grande', 'El tamaño máximo permitido es 20 MB.');
+        return;
+      }
+
+      await creacionConvenioService.subirDocumento(convenio.id, tipoDocumento, archivo);
+      await recargar();
+      Alert.alert('Archivo cargado', 'El documento se adjuntó al convenio.');
+    } catch (cause) {
+      const mensaje =
+        cause instanceof ApiError && cause.status === 403
+          ? 'Tu perfil no tiene permiso para subir archivos a este convenio.'
+          : cause instanceof Error
+            ? cause.message
+            : 'No se pudo cargar el archivo. Intentá nuevamente.';
+      Alert.alert('No se pudo subir el archivo', mensaje);
+    } finally {
+      setSubiendoArchivo(false);
+    }
+  };
 
   return (
     <SafeAreaView style={s.pantalla} edges={['top']}>
@@ -106,9 +159,9 @@ export default function FichaConvenio() {
             onAbrir={(doc) => {
               /* TODO: descargar a archivo temporal y abrir en el visor PDF.js */
             }}
-            onSubir={() => {
-              /* TODO: expo-document-picker + subida */
-            }}
+            onSubir={(tipoDocumento) => void subirArchivo(tipoDocumento)}
+            tiposSubida={tiposSubida}
+            subiendo={subiendoArchivo}
           />
           <ComentariosConvenio idConvenio={Number(id)} />
         </ScrollView>

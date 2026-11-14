@@ -18,6 +18,7 @@ import { ApiError } from '@/services/api';
 import { colors, radius, spacing, typography } from '@/theme';
 import {
   creacionConvenioService,
+  TAMANO_MAXIMO_DOCUMENTO,
   type NuevoConvenio,
   type OpcionConvenio,
   type OpcionesCreacionConvenio,
@@ -61,11 +62,11 @@ const tiposDocumento: OpcionDocumento[] = [
   { id: 2, nombre: 'Borrador', tipo: 'borrador' },
   { id: 3, nombre: 'Anexo', tipo: 'anexo' },
 ];
-const MAX_TAMANO_DOCUMENTO = 20 * 1024 * 1024;
 const etiquetasTipoDocumento: Record<TipoDocumentoConvenio, string> = {
   resolucion: 'Resolución',
   borrador: 'Borrador',
   anexo: 'Anexo',
+  convenio_aprobado: 'Convenio aprobado',
 };
 
 function formatearTamano(bytes: number): string {
@@ -200,7 +201,7 @@ export function CrearConvenioScreen() {
 
       const validos = resultado.result.filter((archivo) => {
         const esPdf = archivo.type === 'application/pdf' || archivo.name.toLocaleLowerCase().endsWith('.pdf');
-        return esPdf && archivo.size <= MAX_TAMANO_DOCUMENTO;
+        return esPdf && archivo.size <= TAMANO_MAXIMO_DOCUMENTO;
       });
 
       if (validos.length < resultado.result.length) {
