@@ -18,7 +18,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { status } = useAuth();
-
+  
   useEffect(() => {
     if (status !== 'loading') {
       SplashScreen.hideAsync();

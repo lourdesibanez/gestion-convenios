@@ -1,6 +1,7 @@
 import { tokenStorage } from './tokenStorage';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+const REQUEST_TIMEOUT_MS = 15000;
 
 export class ApiError extends Error {
   constructor(
@@ -16,6 +17,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const token = await tokenStorage.get();
 
   let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
@@ -25,9 +28,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
   } catch {
     throw new ApiError('No se pudo conectar con el servidor. Revisá tu conexión.', 0);
+  } finally {
+    clearTimeout(timeout);
   }
 
   if (response.status === 204) {

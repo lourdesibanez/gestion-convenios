@@ -48,28 +48,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Al abrir la app: con huella activada queda bloqueada; si no, se valida el token directo.
   useEffect(() => {
     const restore = async () => {
-      const available = await getAvailableBiometrics();
-      setBiometrics(available);
+      try {
+        const token = await tokenStorage.get();
+        if (!token) {
+          setStatus('signedOut');
+          return;
+        }
 
-      const token = await tokenStorage.get();
-      if (!token) {
+        const prefersBiometrics = await biometricPreference.isEnabled();
+        const available = prefersBiometrics ? await getAvailableBiometrics() : [];
+        setBiometrics(available);
+
+        const enabled = prefersBiometrics && available.length > 0;
+        setBiometricEnabled(enabled);
+
+        if (enabled) {
+          setStatus('locked');
+          return;
+        }
+
+        const error = await enterWithStoredToken();
+        if (error) setStatus('signedOut');
+      } catch (error) {
+        console.error('No se pudo restaurar la sesión:', error);
         setStatus('signedOut');
-        return;
       }
-
-      const enabled = available.length > 0 && (await biometricPreference.isEnabled());
-      setBiometricEnabled(enabled);
-
-      if (enabled) {
-        setStatus('locked');
-        return;
-      }
-
-      const error = await enterWithStoredToken();
-      if (error) setStatus('signedOut');
     };
 
-    restore();
+    void restore();
   }, []);
 
   // Valida el token guardado contra la API. Devuelve un mensaje si no se pudo entrar.
