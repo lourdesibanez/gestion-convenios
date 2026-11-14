@@ -12,6 +12,7 @@ use App\Models\Usuario;
 use App\Models\UsuarioPerfil;
 use Database\Seeders\CatalogoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ConvenioTest extends TestCase
@@ -147,6 +148,80 @@ class ConvenioTest extends TestCase
             ->assertJsonPath('convenio.titulo', 'Convenio móvil de prueba');
     }
 
+    public function test_creador_puede_editar_su_borrador_y_se_incrementa_la_version(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_editar', true);
+
+        $this->actingAs($this->usuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version))
+            ->assertOk()
+            ->assertJsonPath('data.titulo', 'Título actualizado')
+            ->assertJsonPath('data.version', $instrumento->version + 1);
+
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $instrumento->id,
+            'titulo' => 'Título actualizado',
+            'version' => $instrumento->version + 1,
+            'updated_by' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseHas('convenio', [
+            'id_instrumento' => $instrumento->id,
+            'objeto' => 'Objeto actualizado',
+            'updated_by' => $this->usuario->id,
+        ]);
+    }
+
+    public function test_otro_usuario_no_puede_editar_un_borrador_ajeno(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+        $otroUsuario = Usuario::factory()->create();
+        $this->asignarPerfil($otroUsuario, 'gestion', $this->unidad->id);
+
+        $this->actingAs($otroUsuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_editar', false);
+
+        $this->actingAs($otroUsuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version))
+            ->assertForbidden();
+    }
+
+    public function test_un_borrador_no_se_puede_editar_con_una_version_anterior(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version + 1))
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $instrumento->id,
+            'titulo' => $instrumento->titulo,
+            'version' => $instrumento->version,
+        ]);
+    }
+
+    public function test_el_creador_no_puede_editar_un_convenio_fuera_de_borrador(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('revision')
+            ->create([
+                'id_institucion' => $this->unidad->id,
+                'created_by' => $this->usuario->id,
+            ])
+            ->refresh();
+
+        $this->actingAs($this->usuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version))
+            ->assertForbidden();
+    }
+
     public function test_revision_no_puede_crear_convenios(): void
     {
         $usuarioRevision = Usuario::factory()->create();
@@ -239,5 +314,36 @@ class ConvenioTest extends TestCase
             'id_perfil' => Perfil::where('nombre', $perfil)->value('id'),
             'id_institucion' => $idInstitucion,
         ]);
+    }
+
+    private function crearBorradorPropio(): Instrumento
+    {
+        $instrumento = Instrumento::factory()->create([
+            'id_institucion' => $this->unidad->id,
+            'created_by' => $this->usuario->id,
+        ]);
+
+        DB::table('convenio')->insert([
+            'id_instrumento' => $instrumento->id,
+            'objeto' => 'Objeto inicial',
+            'created_at' => now(),
+            'created_by' => $this->usuario->id,
+        ]);
+
+        return $instrumento->refresh();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function datosEdicion(int $version): array
+    {
+        return [
+            'version' => $version,
+            'titulo' => 'Título actualizado',
+            'id_tipo_instrumento' => TipoInstrumento::query()->value('id'),
+            'id_institucion' => $this->unidad->id,
+            'objeto' => 'Objeto actualizado',
+        ];
     }
 }
