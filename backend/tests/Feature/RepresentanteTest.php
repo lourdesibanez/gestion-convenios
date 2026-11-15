@@ -98,4 +98,33 @@ class RepresentanteTest extends TestCase
             ->assertJsonPath('meta.total', 16)
             ->assertJsonPath('meta.last_page', 2);
     }
+
+    public function test_revision_puede_consultar_personas_pero_no_crearlas_y_consulta_no_puede_listar(): void
+    {
+        $revision = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $revision->id,
+            'id_perfil' => Perfil::where('nombre', 'revision')->value('id'),
+            'id_institucion' => null,
+        ]);
+
+        $this->actingAs($revision)->getJson('/api/people')->assertOk();
+        $this->postJson('/api/people', [
+            'nombre' => 'Juan',
+            'apellido' => 'Pérez',
+            'tipo_documento' => 'DNI',
+            'numero_documento' => '12345678',
+            'correo_electronico' => 'juan@example.com',
+            'telefono' => '555-1234',
+        ])->assertForbidden();
+
+        $consulta = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $consulta->id,
+            'id_perfil' => Perfil::where('nombre', 'consulta')->value('id'),
+            'id_institucion' => null,
+        ]);
+
+        $this->actingAs($consulta)->getJson('/api/people')->assertForbidden();
+    }
 }
