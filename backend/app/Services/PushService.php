@@ -17,7 +17,7 @@ class PushService
      */
     public function enviarNotificacionPush(string $pushToken, string $titulo, string $mensaje, array $datos = []): void
     {
-        $respuesta = Http::acceptJson()->post(self::URL, [
+        $respuesta = Http::acceptJson()->timeout(10)->post(self::URL, [
             'to' => $pushToken,
             'title' => $titulo,
             'body' => $mensaje,
@@ -29,7 +29,6 @@ class PushService
         // Expo responde 200 aunque el envío falle; el detalle viene en data.status.
         if ($respuesta->failed() || $respuesta->json('data.status') === 'error') {
             Log::warning('No se pudo enviar el push', [
-                'token' => $pushToken,
                 'respuesta' => $respuesta->json(),
             ]);
         }

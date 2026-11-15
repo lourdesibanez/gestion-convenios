@@ -40,6 +40,8 @@ const filtros: { id: Filtro; label: string }[] = [
 function tituloNotificacion(tipo: string): string {
   const titulos: Record<string, string> = {
     firma_pendiente: 'Tenés un convenio por firmar',
+    firma_registrada: 'Firma registrada',
+    convenio_firmado: 'Convenio firmado',
     revision_asignada: 'Convenio pendiente de revisión',
     cambio_estado: 'Cambio de estado',
     vencimiento_proximo: 'Aviso de vencimiento',
@@ -72,7 +74,9 @@ function esDeHoy(fecha: string): boolean {
 function IconoNotificacion({ tipo }: { tipo: string }) {
   const iconProps = { size: 20, color: colors.primary };
 
-  if (tipo === 'firma_pendiente') return <Signature {...iconProps} />;
+  if (tipo === 'firma_pendiente' || tipo === 'firma_registrada') {
+    return <Signature {...iconProps} />;
+  }
   if (tipo === 'comentario_nuevo' || tipo === 'observacion_nueva') {
     return <MessageCircle {...iconProps} />;
   }

@@ -179,3 +179,5 @@ eas build -p android --profile preview
 ```
 
 Al finalizar, EAS devuelve el enlace de descarga del `.apk`.
+
+Para el acceso de cada desarrollador al proyecto EAS y la configuración de credenciales de Expo Push/FCM, consultar la [guía de compilación móvil](mobile/README.md).

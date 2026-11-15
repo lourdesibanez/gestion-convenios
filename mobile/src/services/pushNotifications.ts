@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
-import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 // Qué hacer si llega una notificación con la app abierta: mostrarla igual.
@@ -18,14 +18,11 @@ Notifications.setNotificationHandler({
  * o null si el usuario no dio permiso o no es un celular real.
  */
 export async function getPushToken(): Promise<string | null> {
-  // Los emuladores no reciben push.
-  if (!Device.isDevice) return null;
-
   // Android 8+ exige un "canal" para mostrar notificaciones.
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'General',
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: AndroidImportance.HIGH,
     });
   }
 
