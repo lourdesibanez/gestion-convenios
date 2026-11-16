@@ -7,7 +7,7 @@ import {
   Text,
   View,
   Keyboard,
-  type ScrollViewInstance,
+  type ScrollViewInstance, Modal
 } from 'react-native';
 import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -143,6 +143,8 @@ export function CrearConvenioScreen() {
   const [versionEdicion, setVersionEdicion] = useState<number | null>(null);
   const [pasoActual, setPasoActual] = useState(0);
   const scrollViewRef = useRef<ScrollViewInstance | null>(null);
+  const [confirmacionSalidaVisible, setConfirmacionSalidaVisible] = useState(false);
+  const [formularioModificado, setFormularioModificado] = useState(false);
 
   const volverAlInicioDelPaso = () => {
     Keyboard.dismiss();
@@ -217,6 +219,7 @@ export function CrearConvenioScreen() {
   }, [idConvenio, modoEdicion]);
 
   const actualizarCampo = (campo: CampoTexto, valor: string) => {
+    setFormularioModificado(true);
     setCampos((actuales) => ({ ...actuales, [campo]: valor }));
     setErrores((actuales) => ({ ...actuales, [campo]: '' }));
   };
@@ -407,6 +410,19 @@ export function CrearConvenioScreen() {
     );
   }
 
+  const solicitarVolver = () => {
+    const hayCambiosPendientes =
+      instrumentoCreadoId === null
+        ? formularioModificado
+        : adjuntos.length > 0;
+
+    if (hayCambiosPendientes) {
+      setConfirmacionSalidaVisible(true);
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -415,7 +431,7 @@ export function CrearConvenioScreen() {
             accessibilityRole="button"
             accessibilityLabel="Volver"
             disabled={guardando}
-            onPress={() => router.back()}
+            onPress={() => solicitarVolver()}
             style={styles.backButton}
           >
             <ChevronLeft size={24} color={colors.primary} />
@@ -495,7 +511,10 @@ export function CrearConvenioScreen() {
                   const opcion = opciones.tipos.find(
                     (actual) => String(actual.id) === valor,
                   );
-                  if (opcion) setTipo(opcion);
+                  if (opcion) {
+                    setTipo(opcion);
+                    setFormularioModificado(true);
+                  }
                   setErrores((actuales) => ({ ...actuales, id_tipo_instrumento: '' }));
                 }}
                 disabled={formularioBloqueado || opciones.tipos.length === 0}
@@ -513,7 +532,10 @@ export function CrearConvenioScreen() {
                   const opcion = opciones.instituciones.find(
                     (actual) => String(actual.id) === valor,
                   );
-                  if (opcion) setInstitucion(opcion);
+                  if (opcion) {
+                    setInstitucion(opcion);
+                    setFormularioModificado(true);
+                  }
                   setErrores((actuales) => ({ ...actuales, id_institucion: '' }));
                 }}
                 disabled={formularioBloqueado || opciones.instituciones.length === 0}
@@ -659,7 +681,10 @@ export function CrearConvenioScreen() {
                       const opcion = tiposDocumento.find(
                         (actual) => String(actual.id) === valor,
                       );
-                      if (opcion) setTipoDocumento(opcion);
+                      if (opcion) {
+                        setTipoDocumento(opcion);
+                        setFormularioModificado(true);
+                      }
                     }}
                     disabled={guardando}
                   />
@@ -746,6 +771,34 @@ export function CrearConvenioScreen() {
             </>
           )}
       </ScrollView>
+
+      <Modal
+        visible={confirmacionSalidaVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmacionSalidaVisible(false)}
+      >
+        <View style={styles.confirmationBackdrop}>
+          <View style={styles.confirmationCard}>
+            <Text style={styles.confirmationTitle}>¿Salir sin guardar?</Text>
+            <Text style={styles.confirmationMessage}>
+              Si salís ahora, perderás los cambios que todavía no guardaste.
+            </Text>
+
+            <View style={styles.confirmationActions}>
+              <Button
+                title="Seguir editando"
+                variant="outline"
+                onPress={() => setConfirmacionSalidaVisible(false)}
+              />
+              <Button
+                title="Descartar y salir"
+                onPress={() => router.back()}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -878,5 +931,28 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  confirmationBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  confirmationCard: {
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.background,
+  },
+  confirmationTitle: {
+    ...typography.label,
+    color: colors.text,
+  },
+  confirmationMessage: {
+    ...typography.body,
+    color: colors.textMuted,
+  },
+  confirmationActions: {
+    gap: spacing.sm,
   },
 });
