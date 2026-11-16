@@ -21,6 +21,7 @@ import { ApiError } from '@/services/api';
 import { creacionConvenioService, TAMANO_MAXIMO_DOCUMENTO, type TipoDocumentoConvenio } from '@/features/convenios/services/creacionConvenioService';
 import { OfflineBanner } from '@/components/molecules';
 import { useOffline } from '@/services/useOffline';
+import { EstadoBadge } from '@/components/atoms';
 
 export default function FichaConvenio() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -233,9 +234,7 @@ export default function FichaConvenio() {
           <View style={s.encabezado}>
             <View style={s.etiquetas}>
               <Text style={s.tipo}>{convenio.tipoInstrumento}</Text>
-              <View style={s.estado}>
-                <Text style={s.estadoTxt}>{convenio.estado}</Text>
-              </View>
+              <EstadoBadge estado={convenio.estado} />
             </View>
             <Text style={s.titulo}>{convenio.titulo}</Text>
             <Text style={s.expediente}>
@@ -379,8 +378,6 @@ const s = StyleSheet.create({
   encabezado: { marginBottom: 14 },
   etiquetas: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   tipo: { color: colores.azul, fontWeight: '700', fontSize: 12 },
-  estado: { backgroundColor: colores.azulClaro, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  estadoTxt: { color: colores.azul, fontSize: 11, fontWeight: '700' },
   titulo: { color: colores.texto, fontSize: 22, fontWeight: '800', lineHeight: 28 },
   expediente: { color: colores.textoSuave, fontSize: 12, marginTop: 4 },
   accionesConvenio: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },

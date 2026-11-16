@@ -23,6 +23,7 @@ export const coloresClaros = {
     firmado: '#15803D',
     rescindido: '#B91C1C',
     archivado: '#374151',
+    pendiente: '#B45309',
   },
 };
 
@@ -50,6 +51,7 @@ export const coloresOscuros: Colores = {
     firmado: '#4ADE80',
     rescindido: '#F87171',
     archivado: '#D1D5DB',
+    pendiente: '#F5A524',
   },
 };
 

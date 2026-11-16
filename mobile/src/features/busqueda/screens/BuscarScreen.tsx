@@ -26,14 +26,11 @@ import { useBusqueda } from '@/features/busqueda/context/BusquedaContext';
 import { router } from 'expo-router';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { useOffline } from '@/services/useOffline';
+import { EstadoBadge } from '@/components/atoms';
 
 type Opcion = {
   valor: string;
   etiqueta: string;
-};
-
-const COLORES_ESTADO: Record<string, string> = {
-  ...colors.status,
 };
 
 function tamanoArchivo(bytes: number): string {
@@ -216,7 +213,6 @@ function NodoArbol({nodo,raiz = false, }: {
   raiz?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const colorEstado = COLORES_ESTADO[nodo.estado] ?? colors.primary;
 
   const tieneContenido = nodo.hijos.length > 0 || nodo.archivos.length > 0 || Boolean(nodo.numero_resolucion);
   
@@ -279,11 +275,7 @@ function NodoArbol({nodo,raiz = false, }: {
           ) : null}
         </Pressable>
 
-        <View style={[styles.statusBadge, { backgroundColor: `${colorEstado}18` }]}>
-          <Text style={[styles.statusText, { color: colorEstado }]}>
-            {nodo.estado}
-          </Text>
-        </View>
+        <EstadoBadge estado={nodo.estado} />
       </View>
 
       {abierto ? (
@@ -759,15 +751,6 @@ const styles = StyleSheet.create({
   nodeCode: {
     color: colors.textMuted,
     fontSize: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
   },
   nodeContent: {
     gap: spacing.sm,

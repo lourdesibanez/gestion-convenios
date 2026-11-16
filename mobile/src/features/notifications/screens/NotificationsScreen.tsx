@@ -22,6 +22,7 @@ import {
   Signature,
 } from 'lucide-react-native';
 import { colors, spacing } from '@/theme';
+import { EstadoBadge } from '@/components/atoms';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   notificationService,
@@ -232,7 +233,7 @@ export function NotificationsScreen() {
                 <View style={styles.agreementRow}>
                   <Text style={styles.agreementCode}>{notificacion.convenio.codigo}</Text>
                   {!!notificacion.convenio.estado && (
-                    <Text style={styles.agreementState}>{notificacion.convenio.estado}</Text>
+                    <EstadoBadge estado={notificacion.convenio.estado} />
                   )}
                 </View>
               )}
@@ -500,10 +501,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 12,
     fontWeight: '700',
-  },
-  agreementState: {
-    color: colors.textMuted,
-    fontSize: 11,
   },
   unreadDot: {
     width: 8,

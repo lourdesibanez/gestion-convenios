@@ -19,6 +19,7 @@ import { useHome } from '../hooks/useHome';
 import { useState } from 'react';
 import { SinConexion } from '@/components/molecules';
 import { useOffline } from '@/services/useOffline';
+import { EstadoBadge } from '@/components/atoms';
 
 function fechaRelativa(fecha: string) {
   const diferencia = Date.now() - new Date(fecha).getTime();
@@ -31,8 +32,6 @@ function fechaRelativa(fecha: string) {
   const date = new Date(fecha);
   return `${date.getDate()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
-
-const coloresEstado: Record<string, string> = { ...colors.status };
 
 export function HomeScreen() {
   const { data, loading, refreshing, error, refresh } = useHome();
@@ -151,16 +150,7 @@ export function HomeScreen() {
                         </Text>
                       </View>
 
-                      <View style={[styles.statusBadge, { backgroundColor: '#E8EEF7' }]}>
-                        <Text
-                          style={[
-                            styles.statusText,
-                            { color: coloresEstado[movimiento.estado] ?? colors.textMuted },
-                          ]}
-                        >
-                          {movimiento.estado}
-                        </Text>
-                      </View>
+                      <EstadoBadge estado={movimiento.estado} />
                     </Pressable>
                   ))}
                 </View>
@@ -330,15 +320,6 @@ const styles = StyleSheet.create({
   titleList: {
     ...typography.label,
     color: colors.text,
-  },
-  statusBadge: {
-    borderRadius: 16,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   floatingButton: {
     position: 'absolute',

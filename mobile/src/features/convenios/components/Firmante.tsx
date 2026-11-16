@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { Firmante } from '../Tipos';
 import { Seccion } from './Seccion';
 import { colores } from './temas';
+import { EstadoBadge } from '@/components/atoms';
 
 const iniciales = (nombre: string) =>
   nombre.replace(/[\[\]()]/g, '').split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
@@ -21,9 +22,7 @@ export function Firmantes({ firmantes }: { firmantes: Firmante[] }) {
             </Text>
             <Text style={s.cargo}>{f.cargo}</Text>
           </View>
-          <Text style={[s.estado, { color: f.estado === 'firmado' ? colores.verde : colores.naranja }]}>
-            {f.estado === 'firmado' ? 'Firmado' : 'Pendiente'}
-          </Text>
+          <EstadoBadge estado={f.estado} />
         </View>
       ))}
     </Seccion>
@@ -40,5 +39,4 @@ const s = StyleSheet.create({
   info: { flex: 1 },
   nombre: { color: colores.texto, fontSize: 13, fontWeight: '600' },
   cargo: { color: colores.textoSuave, fontSize: 12 },
-  estado: { fontSize: 12, fontWeight: '700' },
 });

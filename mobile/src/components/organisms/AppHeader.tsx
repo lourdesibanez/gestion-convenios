@@ -40,10 +40,12 @@ export function AppHeader() {
 
   const medirContenido = (alto: number) => {
     // La primera vez se fija sin animar, para que no "baje" al abrir la app.
-    altura.value =
-      altura.value === 0
+    // set()/get() en lugar de .value: es la forma recomendada con el React Compiler.
+    altura.set(
+      altura.get() === 0
         ? alto
-        : withTiming(alto, { duration: 400, easing: Easing.out(Easing.cubic) });
+        : withTiming(alto, { duration: 400, easing: Easing.out(Easing.cubic) }),
+    );
   };
 
   useFocusEffect(useCallback(() => {
