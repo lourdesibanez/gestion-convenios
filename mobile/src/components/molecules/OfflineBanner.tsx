@@ -7,7 +7,7 @@ type Props = { mensaje?: string };
 
 // Cartel gris que aparece solo cuando no hay conexión.
 export function OfflineBanner({
-  mensaje = 'Sin conexión. Solo podés ver tus convenios pendientes de firma.',
+  mensaje = 'Sin conexión.',
 }: Props) {
   const offline = useOffline();
   if (!offline) return null;

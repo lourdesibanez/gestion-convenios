@@ -13,7 +13,7 @@ import * as Location from 'expo-location';
 import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { FirmaExitosa } from '@/features/convenios/components/FirmaExitosa';
-
+import { OfflineBanner } from '@/components/molecules';
 
 export default function SignatureScreen() {
   const { id, titulo, codigo } = useLocalSearchParams<{
@@ -230,6 +230,7 @@ export default function SignatureScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
+      <OfflineBanner />
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"

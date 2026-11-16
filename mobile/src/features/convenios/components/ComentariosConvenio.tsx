@@ -3,6 +3,7 @@ import {ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from '
 import { SendHorizontal, Ban } from 'lucide-react-native';
 import { colors } from '@/theme';
 import { ComentarioConvenio as Comentario, comentarioService} from '../services/comentarioService';
+import { useOffline } from '@/services/useOffline';
 
 type Props = {
   idConvenio: number;
@@ -78,6 +79,8 @@ export function ComentariosConvenio({ idConvenio }: Props) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string>();
   const [intento, setIntento] = useState(0);
+  const offline = useOffline();
+
 
   useEffect(() => {
     let activo = true;
@@ -87,6 +90,7 @@ export function ComentariosConvenio({ idConvenio }: Props) {
       setCargando(false);
       return;
     }
+    if (offline) return; // sin red no se piden; al volver la red se cargan solos
 
     setCargando(true);
     setError(undefined);
@@ -116,7 +120,7 @@ export function ComentariosConvenio({ idConvenio }: Props) {
     return () => {
       activo = false;
     };
-  }, [idConvenio, intento]);
+  }, [idConvenio, intento, offline]);
 
   const enviarComentario = async () => {
     const comentario = texto.trim();
@@ -142,6 +146,16 @@ export function ComentariosConvenio({ idConvenio }: Props) {
       setEnviando(false);
     }
   };
+
+  if (offline) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Comentarios internos</Text>
+        <Text style={styles.empty}>Los comentarios necesitan conexión.</Text>
+      </View>
+    );
+  }
+
 
   return (
     <View style={styles.container}>

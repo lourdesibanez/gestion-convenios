@@ -49,7 +49,7 @@ export function HomeScreen() {
   if (offline) {
     return (
       <SinConexion
-        mensaje="El inicio necesita conexión. Podés ver tus convenios pendientes de firma."
+        mensaje="El inicio necesita conexión. Mientras tanto, podés ver tus convenios pendientes de firma."
         accion={{ titulo: 'Ver pendientes', onPress: () => router.push('/sign') }}
       />
     );

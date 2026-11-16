@@ -1,14 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import {ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
 import { File, type File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -27,12 +18,9 @@ import { busquedaService } from '@/features/busqueda/services/busquedaService';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { ApiError } from '@/services/api';
-import {
-  creacionConvenioService,
-  TAMANO_MAXIMO_DOCUMENTO,
-  type TipoDocumentoConvenio,
-} from '@/features/convenios/services/creacionConvenioService';
+import { creacionConvenioService, TAMANO_MAXIMO_DOCUMENTO, type TipoDocumentoConvenio } from '@/features/convenios/services/creacionConvenioService';
 import { OfflineBanner } from '@/components/molecules';
+import { useOffline } from '@/services/useOffline';
 
 export default function FichaConvenio() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -57,6 +45,7 @@ export default function FichaConvenio() {
       ? [{ tipo: 'convenio_aprobado' as const, etiqueta: 'Convenio aprobado' }]
       : []),
   ];
+  const offline = useOffline();
 
   const subirArchivo = async (tipoDocumento: TipoDocumentoConvenio) => {
     if (!convenio || subiendoArchivo) return;
@@ -95,6 +84,11 @@ export default function FichaConvenio() {
   };
 
   const abrirDocumento = async (documento: { id: number; nombre: string }) => {
+    if (offline) {
+      Alert.alert('Sin conexión', 'Para abrir documentos necesitás conexión.');
+      return;
+    }
+
     if (descargandoDocumentoId !== null) return;
 
     setDescargandoDocumentoId(documento.id);
@@ -305,6 +299,7 @@ export default function FichaConvenio() {
           <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
           {!esPerfilConsulta && convenio.etapaActual === 'aprobado' && convenio.puedeFirmar && (
             <BotonFirmarConvenio
+              motivoDeshabilitado={offline ? 'Para firmar necesitás conexión.' : undefined}
               onPress={() =>
                 router.push({
                   pathname: '/signature/[id]',
@@ -333,7 +328,7 @@ export default function FichaConvenio() {
             onSubir={(tipoDocumento) => void subirArchivo(tipoDocumento)}
             descargandoDocumentoId={descargandoDocumentoId}
             tiposSubida={tiposSubida}
-            puedeSubir={convenio.puedeSubirArchivo}
+            puedeSubir={convenio.puedeSubirArchivo && !offline}
             subiendo={subiendoArchivo}
           />
           <ComentariosConvenio idConvenio={Number(id)} />
