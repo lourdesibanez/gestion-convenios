@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppHeader } from '@/components/organisms/AppHeader';
 import { BusquedaProvider } from '@/features/busqueda/context/BusquedaContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { OfflineBanner } from '@/components/molecules';
 
 export default function AppLayout() {
   const insets = useSafeAreaInsets();
@@ -15,6 +16,7 @@ export default function AppLayout() {
       <BusquedaProvider>
         <SafeAreaView edges={['top']} style={styles.safe}>
           <AppHeader />
+          <OfflineBanner />
           <View style={styles.tabs}>
             <Tabs
               screenOptions={{

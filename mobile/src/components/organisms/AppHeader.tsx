@@ -7,11 +7,14 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { homeService } from '@/features/home/services/homeService';
 import { colors, spacing } from '@/theme';
 import { useBusqueda } from '@/features/busqueda/context/BusquedaContext';
+import { useOffline } from '@/services/useOffline';
+
 
 export function AppHeader() {
   const { usuario } = useAuth();
   const [unidad, setUnidad] = useState('');
   const [notificacionesSinLeer, setNotificacionesSinLeer] = useState(0);
+  const offline = useOffline();
 
   const pathname = usePathname();
   const enBusqueda = pathname.endsWith('/search');
@@ -106,7 +109,7 @@ export function AppHeader() {
         >
           <Search size={20} color={colors.primary} />
           <Text numberOfLines={1} style={styles.searchText}>
-            Buscar convenio, código o parte...
+            {offline ? 'Buscador sin conexión' : 'Buscar convenio, código o parte...'}
           </Text>
           <QrCode size={21} color={colors.primary} />
         </Pressable>

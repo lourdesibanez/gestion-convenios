@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import type { File as ExpoFile } from 'expo-file-system';
 import { ChevronDown, ChevronRight, FileText, X } from 'lucide-react-native';
-import { SelectField, type SelectFieldOption } from '@/components/molecules';
+import { SelectField, type SelectFieldOption, SinConexion } from '@/components/molecules';
 import { colors, spacing } from '@/theme';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
@@ -25,6 +25,7 @@ import {
 import { useBusqueda } from '@/features/busqueda/context/BusquedaContext';
 import { router } from 'expo-router';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
+import { useOffline } from '@/services/useOffline';
 
 type Opcion = {
   valor: string;
@@ -322,6 +323,7 @@ export function BuscarScreen() {
   const { query } = useBusqueda();
   const { tipoPerfil } = useAuth();
   const esConsulta = tipoPerfil === 'consulta';
+  const offline = useOffline();
   const [catalogos, setCatalogos] = useState<CatalogosBusqueda>({
     tipos: [],
     categorias: [],
@@ -396,10 +398,12 @@ export function BuscarScreen() {
   }, [esConsulta]);
 
   useEffect(() => {
+    if (offline) return;
     void cargarCatalogos();
-  }, [cargarCatalogos]);
+  }, [cargarCatalogos, offline]);
 
   useEffect(() => {
+    if (offline) return; // sin red no se busca; al volver, se re-ejecuta
     const timer = setTimeout(() => {
       void buscar(
         { ...filtros, q: query.trim() || undefined },
@@ -408,7 +412,8 @@ export function BuscarScreen() {
     }, query.trim() ? 350 : 0);
 
     return () => clearTimeout(timer);
-  }, [buscar, filtros, query]);
+  }, [buscar, filtros, query, offline]);
+
 
   const actualizarFiltro = (clave: keyof FiltrosBusqueda, valor: string) => {
     setFiltros((actuales) => ({
@@ -516,6 +521,11 @@ export function BuscarScreen() {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
+
+  // el buscador indica que no hay conexión.
+  if (offline) {
+    return <SinConexion mensaje="El buscador necesita conexión. Probá de nuevo cuando vuelva la red." />;
+  }
 
   return (
     <View style={styles.screen}>

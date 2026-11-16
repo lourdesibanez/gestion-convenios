@@ -32,6 +32,7 @@ import {
   TAMANO_MAXIMO_DOCUMENTO,
   type TipoDocumentoConvenio,
 } from '@/features/convenios/services/creacionConvenioService';
+import { OfflineBanner } from '@/components/molecules';
 
 export default function FichaConvenio() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -214,6 +215,7 @@ export default function FichaConvenio() {
           <CircleHelp size={24} color={colores.azul} />
         </Pressable>
       </View>
+      <OfflineBanner />
 
       {cargando && <ActivityIndicator style={s.centro} size="large" color={colores.azul} />}
 

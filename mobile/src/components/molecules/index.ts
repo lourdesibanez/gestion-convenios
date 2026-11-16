@@ -5,3 +5,6 @@ export * from './StatCard';
 export * from './ChannelSelector';
 export * from './DateField';
 export * from './SelectField';
+export * from './OfflineBanner';
+export * from './SinConexion';
+

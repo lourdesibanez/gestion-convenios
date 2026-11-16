@@ -5,6 +5,21 @@ import { ApiError } from '@/services/api';
 import { colors, spacing, typography } from '@/theme';
 import {FirmaPendiente, firmaService,} from '../services/firmaService';
 import { router } from 'expo-router';
+import { pendientesCache } from '../services/pendientesCache';
+import { conveniosService } from '@/features/convenios/services/convenioService';
+
+// Descarga el detalle de cada pendiente para poder abrirlo sin conexión.
+async function guardarDetallesOffline(pendientes: FirmaPendiente[]) {
+  try {
+    const detalles = await Promise.all(
+      pendientes.map((p) => conveniosService.detalle(p.id_instrumento)),
+    );
+    await pendientesCache.guardarDetalles(detalles);
+  } catch (e) {
+    console.warn('No se pudieron guardar los detalles para offline:', e);
+  }
+}
+
 
 export function FirmarScreen() {
   const [items, setItems] = useState<FirmaPendiente[]>([]);
@@ -15,6 +30,8 @@ export function FirmarScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string>();
   const [errorMas, setErrorMas] = useState<string>();
+  const [guardadoEn, setGuardadoEn] = useState<string>(); // con valor = mostrando datos offline
+
 
   const cargarPrimeraPagina = useCallback(async () => {
     setLoading(true);
@@ -26,16 +43,29 @@ export function FirmarScreen() {
       setPagina(respuesta.current_page);
       setUltimaPagina(respuesta.last_page);
       setTotal(respuesta.total);
+      setGuardadoEn(undefined);
+      void pendientesCache.guardar(respuesta); // copia para usar sin conexión
+      void guardarDetallesOffline(respuesta.data);
     } catch (e) {
-      setError(
-        e instanceof ApiError
-          ? e.message
-          : 'Ocurrió un error inesperado.',
-      );
+      // Sin conexión: se muestra la última lista guardada.
+      if (e instanceof ApiError && e.status === 0) {
+        const guardado = await pendientesCache.leer();
+        if (guardado) {
+          setItems(guardado.pagina.data);
+          setPagina(1);
+          setUltimaPagina(1); // offline no hay "Cargar más"
+          setTotal(guardado.pagina.total);
+          setGuardadoEn(guardado.guardadoEn);
+          return;
+        }
+      }
+
+      setError(e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.');
     } finally {
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     void cargarPrimeraPagina();
@@ -69,6 +99,11 @@ export function FirmarScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Convenios por firmar</Text>
         <Text style={styles.subtitle}>{total} pendientes</Text>
+          {guardadoEn && (
+            <Text style={styles.subtitle}>
+              Actualizado el {new Date(guardadoEn).toLocaleString('es-AR')}
+            </Text>
+          )}
       </View>
 
       {loading ? (

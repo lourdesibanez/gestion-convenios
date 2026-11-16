@@ -17,6 +17,8 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { colors, spacing, typography } from '@/theme';
 import { useHome } from '../hooks/useHome';
 import { useState } from 'react';
+import { SinConexion } from '@/components/molecules';
+import { useOffline } from '@/services/useOffline';
 
 function fechaRelativa(fecha: string) {
   const diferencia = Date.now() - new Date(fecha).getTime();
@@ -37,10 +39,22 @@ export function HomeScreen() {
   const { tipoPerfil } = useAuth();
   const esConsulta = tipoPerfil === 'consulta';
   const [movimientosAbiertos, setMovimientosAbiertos] = useState(false);
+  const offline = useOffline();
   const ultimosMovimientos = data?.ultimos_movimientos.filter(
     (movimiento) =>
       !esConsulta || movimiento.estado.trim().toLocaleLowerCase('es-AR') === 'firmado',
   ) ?? [];
+
+  // Offline solo se permiten los pendientes de firma
+  if (offline) {
+    return (
+      <SinConexion
+        mensaje="El inicio necesita conexión. Podés ver tus convenios pendientes de firma."
+        accion={{ titulo: 'Ver pendientes', onPress: () => router.push('/sign') }}
+      />
+    );
+  }
+
 
   if (loading) {
     return (
