@@ -7,4 +7,5 @@ export * from './DateField';
 export * from './SelectField';
 export * from './OfflineBanner';
 export * from './SinConexion';
+export * from './SegmentedControl';
 
