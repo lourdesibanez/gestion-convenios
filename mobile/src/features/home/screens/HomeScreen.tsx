@@ -58,13 +58,6 @@ export function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />
         }
       >
-        {!esConsulta && (
-          <Button
-            title="Cargar convenio"
-            icon={<FilePlus2 size={20} color={colors.background} />}
-            onPress={() => router.push('/agreement/create')}
-          />
-        )}
         {error || !data ? (
           <View style={styles.errorBox}>
             <Text style={styles.error}>{error}</Text>
@@ -214,6 +207,18 @@ export function HomeScreen() {
         )}
 
       </ScrollView>
+
+      {!esConsulta && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Nuevo convenio"
+            onPress={() => router.push('/agreement/create')}
+            style={styles.floatingButton}
+          >
+            <FilePlus2 size={20} color={colors.background} />
+            <Text style={styles.floatingButtonText}>Nuevo convenio</Text>
+          </Pressable>
+        )}
     </SafeAreaView>
   );
 }
@@ -232,6 +237,7 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     gap: spacing.lg,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -319,5 +325,27 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  floatingButton: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg,
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+  },
+  floatingButtonText: {
+    color: colors.background,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

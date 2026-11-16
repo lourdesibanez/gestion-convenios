@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
-import { FilePlus2 } from 'lucide-react-native';
+import { ChevronLeft, FilePlus2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { DateField, FormField, SelectField } from '@/components/molecules';
@@ -410,8 +410,21 @@ export function CrearConvenioScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{modoEdicion ? 'Editar convenio' : 'Cargar convenio'}</Text>
-        <Button title="Volver" variant="outline" onPress={() => router.back()} disabled={guardando} />
+        <View style={styles.titleRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+            disabled={guardando}
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <ChevronLeft size={24} color={colors.primary} />
+          </Pressable>
+
+          <Text style={styles.title}>
+            {modoEdicion ? 'Editar convenio' : 'Nuevo convenio'}
+          </Text>
+        </View>
         {errorCarga ? (
           <Text style={styles.error}>{errorCarga}</Text>
         ) : !opciones ? (
@@ -854,5 +867,16 @@ const styles = StyleSheet.create({
   dateFieldColumn: {
     flex: 1,
     minWidth: 0,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
