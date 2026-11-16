@@ -1,17 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Share, Fingerprint, Delete, Signature } from 'lucide-react-native';
+import { ChevronLeft, Share, Fingerprint, Delete, Signature, Check } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
-import { firmaService } from '@/features/firma/services/firmaService';
+import { firmaService, type RegistrarFirmaRespuesta } from '@/features/firma/services/firmaService';
 import { colors } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { FirmaExitosa } from '@/features/convenios/components/FirmaExitosa';
 
 
 export default function SignatureScreen() {
@@ -31,10 +32,12 @@ export default function SignatureScreen() {
   const [firmaModalVisible, setFirmaModalVisible] = useState(false);
   const [firmaPath, setFirmaPath] = useState('');
   const firmaSvgRef = useRef<Svg | null>(null);
-const firmaPathRef = useRef('');
-const canvasSize = useRef({ width: 300, height: 100 });
-const [registrando, setRegistrando] = useState(false);
-const [firmaError, setFirmaError] = useState<string>();
+  const firmaPathRef = useRef('');
+  const canvasSize = useRef({ width: 300, height: 100 });
+  const [registrando, setRegistrando] = useState(false);
+  const [firmaError, setFirmaError] = useState<string>();
+  const [resultadoFirma, setResultadoFirma] = useState<RegistrarFirmaRespuesta | null>(null);
+  const [firmaRegistradaPng, setFirmaRegistradaPng] = useState<string | null>(null);
 
     const dibujoResponder = useRef(
         PanResponder.create({
@@ -169,36 +172,10 @@ const [firmaError, setFirmaError] = useState<string>();
             longitud: ubicación.coords.longitude,
         });
 
-        let direccionTexto = '';
-        try {
-            const [direccion] = await Location.reverseGeocodeAsync({
-                latitude: resultado.latitud,
-                longitude: resultado.longitud,
-            });
-
-            if (direccion) {
-                direccionTexto = [
-                    direccion.streetNumber,
-                    direccion.street,
-                    direccion.district,
-                    direccion.city,
-                    direccion.region,
-                    direccion.country,
-                ]
-                    .filter(Boolean)
-                    .join(', ');
-            }
-        } catch {
-            // Si no se puede resolver la dirección, se muestran las coordenadas.
-        }
-
         setFirmaModalVisible(false);
+        setFirmaRegistradaPng(firma);
+        setResultadoFirma(resultado);
 
-        Alert.alert(
-        'Firma registrada',
-        `Fecha: ${new Date(resultado.firmado_en).toLocaleString('es-AR')}\n` +
-            `Ubicación: ${direccionTexto || `${resultado.latitud}, ${resultado.longitud}`}`,
-        );
     } catch (cause) {
         setFirmaError(
         cause instanceof Error ? cause.message : 'No se pudo registrar la firma.',
@@ -209,7 +186,7 @@ const [firmaError, setFirmaError] = useState<string>();
     };
 
   const compartir = async () => {
-    if (!file) return;
+    if (!resultadoFirma && !file) return;
 
     setShareError(undefined);
 
@@ -219,14 +196,37 @@ const [firmaError, setFirmaError] = useState<string>();
         return;
       }
 
-      await Sharing.shareAsync(file.uri, {
+      const archivo = resultadoFirma
+        ? await firmaService.descargarPdfFirmado(Number(id))
+        : file;
+
+      if (!archivo) return;
+
+      await Sharing.shareAsync(archivo.uri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Compartir convenio',
+        dialogTitle: resultadoFirma
+          ? 'Compartir PDF firmado'
+          : 'Compartir convenio',
       });
-    } catch {
-      setShareError('No se pudo compartir el PDF.');
+    } catch (cause) {
+      setShareError(
+        cause instanceof Error ? cause.message : 'No se pudo compartir el PDF.',
+      );
     }
   };
+
+  if (resultadoFirma) {
+    return (
+      <FirmaExitosa
+        codigo={codigo}
+        resultado={resultadoFirma}
+        firmaPng={firmaRegistradaPng}
+        shareError={shareError}
+        onVolver={() => router.replace('/home')}
+        onCompartir={() => void compartir()}
+      />
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
