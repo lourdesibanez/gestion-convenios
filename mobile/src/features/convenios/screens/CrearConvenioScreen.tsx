@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  Keyboard,
+  type ScrollViewInstance,
 } from 'react-native';
 import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FilePlus2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
-import { FormField } from '@/components/molecules/FormField';
+import { DateField, FormField, SelectField } from '@/components/molecules';
 import { ApiError } from '@/services/api';
 import { colors, radius, spacing, typography } from '@/theme';
 import {
@@ -49,14 +50,6 @@ type AdjuntoDocumento = {
   archivo: File;
   tipo: TipoDocumentoConvenio;
 };
-type SelectorProps<T extends OpcionSelector> = {
-  etiqueta: string;
-  opciones: T[];
-  seleccionado: T | null;
-  alSeleccionar: (opcion: T) => void;
-  deshabilitado: boolean;
-};
-
 const tiposDocumento: OpcionDocumento[] = [
   { id: 1, nombre: 'Resolución', tipo: 'resolucion' },
   { id: 2, nombre: 'Borrador', tipo: 'borrador' },
@@ -72,6 +65,46 @@ const etiquetasTipoDocumento: Record<TipoDocumentoConvenio, string> = {
 function formatearTamano(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fechaDesdeIso(valor: string): Date | null {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
+  if (!partes) return null;
+
+  const anio = Number(partes[1]);
+  const mes = Number(partes[2]);
+  const dia = Number(partes[3]);
+  const fecha = new Date(anio, mes - 1, dia, 12);
+
+  if (
+    fecha.getFullYear() !== anio ||
+    fecha.getMonth() !== mes - 1 ||
+    fecha.getDate() !== dia
+  ) {
+    return null;
+  }
+
+  return fecha;
+}
+
+function fechaAisoLocal(fecha: Date): string {
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+
+  return `${anio}-${mes}-${dia}`;
+}
+
+function mostrarFecha(valor: string): string {
+  const fecha = fechaDesdeIso(valor);
+
+  return fecha
+    ? new Intl.DateTimeFormat('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(fecha)
+    : '';
 }
 
 const camposIniciales: CamposFormulario = {
@@ -91,64 +124,6 @@ const camposIniciales: CamposFormulario = {
   alcance_actividades: '',
 };
 
-function Selector<T extends OpcionSelector>({
-  etiqueta,
-  opciones,
-  seleccionado,
-  alSeleccionar,
-  deshabilitado,
-}: SelectorProps<T>) {
-  const [abierto, setAbierto] = useState(false);
-
-  return (
-    <>
-      <View style={styles.field}>
-        <Text style={styles.label}>{etiqueta}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${etiqueta}: ${seleccionado?.nombre ?? 'Seleccionar'}`}
-          accessibilityState={{ disabled: deshabilitado }}
-          disabled={deshabilitado}
-          onPress={() => setAbierto(true)}
-          style={[styles.selector, deshabilitado && styles.selectorDisabled]}
-        >
-          <Text style={seleccionado ? styles.selectorText : styles.placeholder}>
-            {seleccionado?.nombre ?? 'Seleccionar'}
-          </Text>
-        </Pressable>
-      </View>
-      <Modal
-        visible={abierto}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setAbierto(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{etiqueta}</Text>
-            <ScrollView>
-              {opciones.map((opcion) => (
-                <Pressable
-                  key={opcion.id}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    alSeleccionar(opcion);
-                    setAbierto(false);
-                  }}
-                  style={styles.option}
-                >
-                  <Text style={styles.optionText}>{opcion.nombre}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-            <Button title="Cancelar" variant="outline" onPress={() => setAbierto(false)} />
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
-}
-
 export function CrearConvenioScreen() {
   const { id: idConvenio } = useLocalSearchParams<{ id?: string }>();
   const modoEdicion = typeof idConvenio === 'string' && idConvenio.length > 0;
@@ -166,6 +141,35 @@ export function CrearConvenioScreen() {
   const [errorAdjuntos, setErrorAdjuntos] = useState('');
   const [instrumentoCreadoId, setInstrumentoCreadoId] = useState<number | null>(null);
   const [versionEdicion, setVersionEdicion] = useState<number | null>(null);
+  const [pasoActual, setPasoActual] = useState(0);
+  const scrollViewRef = useRef<ScrollViewInstance | null>(null);
+
+  const volverAlInicioDelPaso = () => {
+    Keyboard.dismiss();
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
+  
+  const pasos = [
+    'Datos',
+    'Vigencia y referencia',
+    'Cláusulas',
+    'Resoluciones y documentos',
+  ];
+
+  const camposPorPaso = [
+    ['titulo', 'id_tipo_instrumento', 'id_institucion'],
+    ['fecha_inicio', 'fecha_fin', 'fecha_preaviso', 'referencia_expediente', 'notas'],
+    [
+      'objeto',
+      'marco_legal',
+      'obligaciones',
+      'condiciones_terminacion',
+      'condiciones_renovacion',
+      'confidencialidad',
+      'alcance_actividades',
+    ],
+    ['numero_resolucion', 'documentos'],
+  ];
 
   useEffect(() => {
     const cargarFormulario = async () => {
@@ -215,6 +219,46 @@ export function CrearConvenioScreen() {
   const actualizarCampo = (campo: CampoTexto, valor: string) => {
     setCampos((actuales) => ({ ...actuales, [campo]: valor }));
     setErrores((actuales) => ({ ...actuales, [campo]: '' }));
+  };
+
+  const validarDatosBasicos = (): boolean => {
+    const nuevosErrores: Record<string, string> = {};
+
+    if (!campos.titulo.trim()) {
+      nuevosErrores.titulo = 'Ingresá el título del convenio.';
+    }
+    if (!tipo) {
+      nuevosErrores.id_tipo_instrumento = 'Seleccioná el tipo de convenio.';
+    }
+    if (!institucion) {
+      nuevosErrores.id_institucion = 'Seleccioná la unidad responsable.';
+    }
+
+    setErrores((actuales) => {
+      const siguientes = { ...actuales };
+      delete siguientes.titulo;
+      delete siguientes.id_tipo_instrumento;
+      delete siguientes.id_institucion;
+
+      return { ...siguientes, ...nuevosErrores };
+    });
+
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const avanzarPaso = () => {
+    const debeValidarDatosBasicos = modoEdicion || instrumentoCreadoId === null;
+
+    if (pasoActual === 0 && debeValidarDatosBasicos && !validarDatosBasicos() ) {
+      return;
+    }
+    volverAlInicioDelPaso();
+    setPasoActual((actual) => Math.min(actual + 1, pasos.length - 1));
+  };
+
+  const retrocederPaso = () => {
+    volverAlInicioDelPaso();
+    setPasoActual((actual) => Math.max(actual - 1, 0));
   };
 
   const quitarAdjunto = (key: string) => {
@@ -267,13 +311,7 @@ export function CrearConvenioScreen() {
     let payload: NuevoConvenio | null = null;
 
     if (modoEdicion || instrumentoCreadoId === null) {
-      const nuevosErrores: Record<string, string> = {};
-      if (!campos.titulo.trim()) nuevosErrores.titulo = 'Ingresá el título del convenio.';
-      if (!tipo) nuevosErrores.id_tipo_instrumento = 'Seleccioná el tipo de convenio.';
-      if (!institucion) nuevosErrores.id_institucion = 'Seleccioná la unidad responsable.';
-      setErrores(nuevosErrores);
-
-      if (Object.keys(nuevosErrores).length > 0 || !tipo || !institucion) return;
+      if (!validarDatosBasicos() || !tipo || !institucion) return;
 
       const textoOpcional = (valor: string) => valor.trim() || null;
       payload = {
@@ -338,6 +376,15 @@ export function CrearConvenioScreen() {
           Object.entries(error.errors).map(([campo, mensajes]) => [campo, mensajes[0] ?? 'Dato inválido.']),
         );
         setErrores((actuales) => ({ ...actuales, ...erroresApi }));
+        //si el servidor rechaza un campo de un paso anterior, volvemos a ese paso para que el usuario pueda corregirlo
+        const pasoConError = camposPorPaso.findIndex((camposDelPaso) =>
+          Object.keys(erroresApi).some((campo) => camposDelPaso.includes(campo)),
+        );
+
+        if (pasoConError !== -1) {
+          setPasoActual(pasoConError);
+          volverAlInicioDelPaso();
+        }
       } else {
         setErrorEnvio(modoEdicion
           ? error instanceof Error ? error.message : 'No se pudieron guardar los cambios.'
@@ -362,7 +409,7 @@ export function CrearConvenioScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{modoEdicion ? 'Editar convenio' : 'Cargar convenio'}</Text>
         <Button title="Volver" variant="outline" onPress={() => router.back()} disabled={guardando} />
         {errorCarga ? (
@@ -375,221 +422,316 @@ export function CrearConvenioScreen() {
           </Text>
         ) : (
           <>
+          <View style={styles.stepper}>
+            <View style={styles.stepperHeader}>
+              <Text style={styles.stepperCount}>
+                Paso {pasoActual + 1} de {pasos.length}
+              </Text>
+              <Text style={styles.stepperTitle}>{pasos[pasoActual]}</Text>
+            </View>
+
+            <View
+              style={styles.stepperProgress}
+              accessibilityRole="progressbar"
+              accessibilityLabel="Progreso del formulario"
+              accessibilityValue={{
+                min: 1,
+                max: pasos.length,
+                now: pasoActual + 1,
+                text: `Paso ${pasoActual + 1} de ${pasos.length}: ${pasos[pasoActual]}`,
+              }}
+            >
+              {pasos.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.stepSegment,
+                    index <= pasoActual && styles.stepSegmentActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
             {instrumentoCreadoId !== null ? (
               <Text style={styles.info}>
                 El borrador ya está guardado. Podés cargar los documentos pendientes.
               </Text>
             ) : null}
-            <Text style={styles.section}>Datos del convenio</Text>
-            <FormField
-              label="Título *"
-              value={campos.titulo}
-              onChangeText={(valor) => actualizarCampo('titulo', valor)}
-              error={errores.titulo}
-              editable={!formularioBloqueado}
-              maxLength={255}
-              returnKeyType="next"
-            />
-            <Selector
-              etiqueta="Tipo de convenio *"
-              opciones={opciones.tipos}
-              seleccionado={tipo}
-              alSeleccionar={(opcion) => {
-                setTipo(opcion);
-                setErrores((actuales) => ({ ...actuales, id_tipo_instrumento: '' }));
-              }}
-              deshabilitado={formularioBloqueado || opciones.tipos.length === 0}
-            />
-            {errores.id_tipo_instrumento ? <Text style={styles.error}>{errores.id_tipo_instrumento}</Text> : null}
-            <Selector
-              etiqueta="Unidad responsable *"
-              opciones={opciones.instituciones}
-              seleccionado={institucion}
-              alSeleccionar={(opcion) => {
-                setInstitucion(opcion);
-                setErrores((actuales) => ({ ...actuales, id_institucion: '' }));
-              }}
-              deshabilitado={formularioBloqueado || opciones.instituciones.length === 0}
-            />
-            {errores.id_institucion ? <Text style={styles.error}>{errores.id_institucion}</Text> : null}
-            {opciones.tipos.length === 0 || opciones.instituciones.length === 0 ? (
-              <Text style={styles.error}>No hay tipos de convenio o unidades disponibles para cargar.</Text>
-            ) : null}
+            {pasoActual === 0 ? (
+            <View style={styles.stepFields}>
+              <FormField
+                label="Título"
+                value={campos.titulo}
+                onChangeText={(valor) => actualizarCampo('titulo', valor)}
+                error={errores.titulo}
+                editable={!formularioBloqueado}
+                maxLength={255}
+                returnKeyType="next"
+                placeholder="Pasantias 2027 - Cooperativa Agricola"
+                required
+              />
+              <SelectField
+                label="Tipo de convenio"
+                required
+                value={tipo ? String(tipo.id) : ''}
+                options={opciones.tipos.map((opcion) => ({
+                  value: String(opcion.id),
+                  label: opcion.nombre,
+                }))}
+                onValueChange={(valor) => {
+                  const opcion = opciones.tipos.find(
+                    (actual) => String(actual.id) === valor,
+                  );
+                  if (opcion) setTipo(opcion);
+                  setErrores((actuales) => ({ ...actuales, id_tipo_instrumento: '' }));
+                }}
+                disabled={formularioBloqueado || opciones.tipos.length === 0}
+              />
+              {errores.id_tipo_instrumento ? <Text style={styles.error}>{errores.id_tipo_instrumento}</Text> : null}
+              <SelectField
+                label="Unidad responsable"
+                required
+                value={institucion ? String(institucion.id) : ''}
+                options={opciones.instituciones.map((opcion) => ({
+                  value: String(opcion.id),
+                  label: opcion.nombre,
+                }))}
+                onValueChange={(valor) => {
+                  const opcion = opciones.instituciones.find(
+                    (actual) => String(actual.id) === valor,
+                  );
+                  if (opcion) setInstitucion(opcion);
+                  setErrores((actuales) => ({ ...actuales, id_institucion: '' }));
+                }}
+                disabled={formularioBloqueado || opciones.instituciones.length === 0}
+              />
+              {errores.id_institucion ? <Text style={styles.error}>{errores.id_institucion}</Text> : null}
+              {opciones.tipos.length === 0 || opciones.instituciones.length === 0 ? (
+                <Text style={styles.error}>No hay tipos de convenio o unidades disponibles para cargar.</Text>
+              ) : null}
+            </View> ) : null}
+            
+            {pasoActual === 1 ? (
+            <View style={styles.stepFields}>
+              <View style={styles.dateFieldsRow}>
+                <View style={styles.dateFieldColumn}>
+                  <DateField
+                    label="Inicio"
+                    value={campos.fecha_inicio}
+                    onChangeValue={(valor) => actualizarCampo('fecha_inicio', valor)}
+                    error={errores.fecha_inicio}
+                    editable={!formularioBloqueado}
+                    placeholder="01/06/2026"
+                    required
+                  />
+                </View>
 
-            <Text style={styles.section}>Vigencia y referencia</Text>
-            <FormField
-              label="Fecha de inicio (AAAA-MM-DD)"
-              value={campos.fecha_inicio}
-              onChangeText={(valor) => actualizarCampo('fecha_inicio', valor)}
-              error={errores.fecha_inicio}
-              editable={!formularioBloqueado}
-              placeholder="2027-01-31"
-            />
-            <FormField
-              label="Fecha de finalización (AAAA-MM-DD)"
-              value={campos.fecha_fin}
-              onChangeText={(valor) => actualizarCampo('fecha_fin', valor)}
-              error={errores.fecha_fin}
-              editable={!formularioBloqueado}
-              placeholder="2028-01-31"
-            />
-            <FormField
-              label="Fecha de preaviso (AAAA-MM-DD)"
-              value={campos.fecha_preaviso}
-              onChangeText={(valor) => actualizarCampo('fecha_preaviso', valor)}
-              error={errores.fecha_preaviso}
-              editable={!formularioBloqueado}
-              placeholder="2027-11-01"
-            />
-            <FormField
-              label="Referencia de expediente"
-              value={campos.referencia_expediente}
-              onChangeText={(valor) => actualizarCampo('referencia_expediente', valor)}
-              error={errores.referencia_expediente}
-              editable={!formularioBloqueado}
-              maxLength={255}
-            />
-            <FormField
-              label="Notas"
-              value={campos.notas}
-              onChangeText={(valor) => actualizarCampo('notas', valor)}
-              error={errores.notas}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-
-            <Text style={styles.section}>Cláusulas</Text>
-            <FormField
-              label="Objeto"
-              value={campos.objeto}
-              onChangeText={(valor) => actualizarCampo('objeto', valor)}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-            <FormField
-              label="Marco legal"
-              value={campos.marco_legal}
-              onChangeText={(valor) => actualizarCampo('marco_legal', valor)}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-            <FormField
-              label="Obligaciones"
-              value={campos.obligaciones}
-              onChangeText={(valor) => actualizarCampo('obligaciones', valor)}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-            <FormField
-              label="Condiciones de terminación"
-              value={campos.condiciones_terminacion}
-              onChangeText={(valor) => actualizarCampo('condiciones_terminacion', valor)}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-            <FormField
-              label="Condiciones de renovación"
-              value={campos.condiciones_renovacion}
-              onChangeText={(valor) => actualizarCampo('condiciones_renovacion', valor)}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-            <FormField
-              label="Confidencialidad"
-              value={campos.confidencialidad}
-              onChangeText={(valor) => actualizarCampo('confidencialidad', valor)}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-            <FormField
-              label="Alcance de actividades"
-              value={campos.alcance_actividades}
-              onChangeText={(valor) => actualizarCampo('alcance_actividades', valor)}
-              editable={!formularioBloqueado}
-              multiline
-              style={styles.multiline}
-            />
-
-            <Text style={styles.section}>Resoluciones y documentos</Text>
-            <FormField
-              label="Número de resolución"
-              value={campos.numero_resolucion}
-              onChangeText={(valor) => actualizarCampo('numero_resolucion', valor)}
-              error={errores.numero_resolucion}
-              editable={!formularioBloqueado}
-              maxLength={255}
-            />
-            {!modoEdicion ? (
-              <>
-                <Selector
-                  etiqueta="Tipo de documento para los próximos archivos"
-                  opciones={tiposDocumento}
-                  seleccionado={tipoDocumento}
-                  alSeleccionar={setTipoDocumento}
-                  deshabilitado={guardando}
-                />
-                <Text style={styles.helper}>
-                  Podés adjuntar resoluciones, borradores y anexos en PDF de hasta 20 MB cada uno.
-                </Text>
-                <Button
-                  title="Seleccionar documentos PDF"
-                  variant="outline"
-                  icon={<FilePlus2 size={20} color={colors.primary} />}
-                  onPress={() => void seleccionarDocumentos()}
-                  disabled={guardando}
-                />
-                {adjuntos.map((adjunto) => (
-                  <View key={adjunto.key} style={styles.adjunto}>
-                    <View style={styles.adjuntoInfo}>
-                      <Text style={styles.adjuntoNombre} numberOfLines={1}>
-                        {adjunto.archivo.name}
-                      </Text>
-                      <Text style={styles.helper}>
-                        {etiquetasTipoDocumento[adjunto.tipo]} · {formatearTamano(adjunto.archivo.size)}
-                      </Text>
+                <View style={styles.dateFieldColumn}>
+                  <DateField
+                    label="Vencimiento"
+                    value={campos.fecha_fin}
+                    onChangeValue={(valor) => actualizarCampo('fecha_fin', valor)}
+                    error={errores.fecha_fin}
+                    editable={!formularioBloqueado}
+                    placeholder="01/03/2027"
+                  />
+                </View>
+              </View>
+              <FormField
+                label="Dias de preaviso"
+                value={campos.fecha_preaviso}
+                onChangeText={(valor) => actualizarCampo('fecha_preaviso', valor)}
+                error={errores.fecha_preaviso}
+                editable={!formularioBloqueado}
+                placeholder="30"
+              />
+              <FormField
+                label="Referencia de expediente"
+                value={campos.referencia_expediente}
+                onChangeText={(valor) => actualizarCampo('referencia_expediente', valor)}
+                error={errores.referencia_expediente}
+                editable={!formularioBloqueado}
+                maxLength={255}
+                placeholder="Res. CD 214/2026"
+              />
+              <FormField
+                label="Notas"
+                value={campos.notas}
+                onChangeText={(valor) => actualizarCampo('notas', valor)}
+                error={errores.notas}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+            </View> ) : null}
+            {pasoActual === 2 ? (
+            <View style={styles.stepFields}>
+              <FormField
+                label="Objeto"
+                value={campos.objeto}
+                onChangeText={(valor) => actualizarCampo('objeto', valor)}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+              <FormField
+                label="Marco legal"
+                value={campos.marco_legal}
+                onChangeText={(valor) => actualizarCampo('marco_legal', valor)}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+              <FormField
+                label="Obligaciones"
+                value={campos.obligaciones}
+                onChangeText={(valor) => actualizarCampo('obligaciones', valor)}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+              <FormField
+                label="Condiciones de terminación"
+                value={campos.condiciones_terminacion}
+                onChangeText={(valor) => actualizarCampo('condiciones_terminacion', valor)}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+              <FormField
+                label="Condiciones de renovación"
+                value={campos.condiciones_renovacion}
+                onChangeText={(valor) => actualizarCampo('condiciones_renovacion', valor)}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+              <FormField
+                label="Confidencialidad"
+                value={campos.confidencialidad}
+                onChangeText={(valor) => actualizarCampo('confidencialidad', valor)}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+              <FormField
+                label="Alcance de actividades"
+                value={campos.alcance_actividades}
+                onChangeText={(valor) => actualizarCampo('alcance_actividades', valor)}
+                editable={!formularioBloqueado}
+                multiline
+                style={styles.multiline}
+              />
+            </View> ) : null}
+            {pasoActual === 3 ? (
+            <View style={styles.stepFields}>
+              <FormField
+                label="Número de resolución"
+                value={campos.numero_resolucion}
+                onChangeText={(valor) => actualizarCampo('numero_resolucion', valor)}
+                error={errores.numero_resolucion}
+                editable={!formularioBloqueado}
+                maxLength={255}
+              />
+              {!modoEdicion ? (
+                <>
+                  <SelectField
+                    label="Tipo de documento para los próximos archivos"
+                    value={String(tipoDocumento.id)}
+                    options={tiposDocumento.map((opcion) => ({
+                      value: String(opcion.id),
+                      label: opcion.nombre,
+                    }))}
+                    onValueChange={(valor) => {
+                      const opcion = tiposDocumento.find(
+                        (actual) => String(actual.id) === valor,
+                      );
+                      if (opcion) setTipoDocumento(opcion);
+                    }}
+                    disabled={guardando}
+                  />
+                  <Text style={styles.helper}>
+                    Podés adjuntar resoluciones, borradores y anexos en PDF de hasta 20 MB cada uno.
+                  </Text>
+                  <Button
+                    title="Seleccionar documentos PDF"
+                    variant="outline"
+                    icon={<FilePlus2 size={20} color={colors.primary} />}
+                    onPress={() => void seleccionarDocumentos()}
+                    disabled={guardando}
+                  />
+                  {adjuntos.map((adjunto) => (
+                    <View key={adjunto.key} style={styles.adjunto}>
+                      <View style={styles.adjuntoInfo}>
+                        <Text style={styles.adjuntoNombre} numberOfLines={1}>
+                          {adjunto.archivo.name}
+                        </Text>
+                        <Text style={styles.helper}>
+                          {etiquetasTipoDocumento[adjunto.tipo]} · {formatearTamano(adjunto.archivo.size)}
+                        </Text>
+                      </View>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Quitar ${adjunto.archivo.name}`}
+                        disabled={guardando}
+                        onPress={() => quitarAdjunto(adjunto.key)}
+                      >
+                        <Text style={styles.quitarAdjunto}>Quitar</Text>
+                      </Pressable>
                     </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Quitar ${adjunto.archivo.name}`}
-                      disabled={guardando}
-                      onPress={() => quitarAdjunto(adjunto.key)}
-                    >
-                      <Text style={styles.quitarAdjunto}>Quitar</Text>
-                    </Pressable>
-                  </View>
-                ))}
-                {errorAdjuntos ? <Text style={styles.error}>{errorAdjuntos}</Text> : null}
-              </>
-            ) : null}
+                  ))}
+                  {errorAdjuntos ? <Text style={styles.error}>{errorAdjuntos}</Text> : null}
+                </>
+              ) : null}
+            </View> ) : null}
 
             {errorEnvio ? <Text style={styles.error}>{errorEnvio}</Text> : null}
             {!modoEdicion && instrumentoCreadoId === null ? (
               <Text style={styles.helper}>El convenio se guardará como borrador.</Text>
             ) : null}
-            <Button
-              title={modoEdicion
-                ? 'Guardar cambios'
-                : instrumentoCreadoId === null
-                  ? 'Guardar borrador'
-                  : adjuntos.length > 0
-                    ? 'Reintentar carga'
-                    : 'Ver borrador'}
-              onPress={() => void enviar()}
-              loading={guardando}
-              disabled={modoEdicion
-                ? versionEdicion === null
-                : instrumentoCreadoId === null
-                  && (opciones.tipos.length === 0 || opciones.instituciones.length === 0)}
-            />
-          </>
-        )}
+
+            <View style={styles.stepActions}>
+              {pasoActual > 0 ? (
+                <Button
+                  title="Anterior"
+                  variant="outline"
+                  onPress={retrocederPaso}
+                  disabled={guardando}
+                />
+              ) : (
+                <View style={styles.stepActionSpacer} />
+              )}
+
+              {pasoActual < pasos.length - 1 ? (
+                <Button
+                  title="Siguiente"
+                  onPress={avanzarPaso}
+                  disabled={guardando}
+                />
+              ) : (
+                <Button
+                  title={
+                    modoEdicion
+                      ? 'Guardar cambios'
+                      : instrumentoCreadoId === null
+                        ? 'Guardar borrador'
+                        : adjuntos.length > 0
+                          ? 'Reintentar carga'
+                          : 'Ver borrador'
+                  }
+                  onPress={() => void enviar()}
+                  loading={guardando}
+                  disabled={
+                    modoEdicion
+                      ? versionEdicion === null
+                      : instrumentoCreadoId === null &&
+                        (opciones.tipos.length === 0 || opciones.instituciones.length === 0)
+                  }
+                />
+              )}
+            </View> 
+            </>
+          )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -620,33 +762,6 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.text,
     marginTop: spacing.md,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  label: {
-    ...typography.small,
-    color: colors.text,
-  },
-  selector: {
-    minHeight: 52,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-  },
-  selectorDisabled: {
-    opacity: 0.5,
-  },
-  selectorText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  placeholder: {
-    ...typography.body,
-    color: colors.textMuted,
   },
   multiline: {
     minHeight: 100,
@@ -688,31 +803,56 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  modalCard: {
-    maxHeight: '80%',
-    gap: spacing.md,
-    padding: spacing.lg,
+  stepper: {
+    gap: spacing.sm,
+    padding: spacing.md,
     backgroundColor: colors.background,
-    borderTopLeftRadius: radius.md,
-    borderTopRightRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
   },
-  modalTitle: {
+  stepperHeader: {
+    gap: spacing.xs,
+  },
+  stepperCount: {
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  stepperTitle: {
     ...typography.label,
-    color: colors.text,
+    color: colors.primary,
   },
-  option: {
-    minHeight: 48,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  stepperProgress: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
-  optionText: {
-    ...typography.body,
-    color: colors.text,
+  stepSegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: radius.md,
+    backgroundColor: colors.border,
+  },
+  stepSegmentActive: {
+    backgroundColor: colors.primary,
+  },
+  stepFields: {
+    gap: spacing.md,
+  },
+  stepActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  stepActionSpacer: {
+    flex: 1,
+  },
+  dateFieldsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dateFieldColumn: {
+    flex: 1,
+    minWidth: 0,
   },
 });

@@ -5,12 +5,13 @@ import { colors, spacing, typography } from '@/theme';
 type Props = TextInputProps & {
   label: string;
   error?: string;
+  required?: boolean;
 };
 
-export function FormField({ label, error, ...inputProps }: Props) {
+export function FormField({ label, error, required, ...inputProps }: Props) {
   return (
     <View style={styles.container}>
-      <Label>{label}</Label>
+      <Label required={required}>{label}</Label>
       <Input hasError={!!error} {...inputProps} />
       {error && <Text style={styles.error}>{error}</Text>}
     </View>

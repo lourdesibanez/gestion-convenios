@@ -3,10 +3,16 @@ import { colors, spacing, typography } from '@/theme';
 
 type Props = {
   children: string;
+  required?: boolean;
 };
 
-export function Label({ children }: Props) {
-  return <Text style={styles.label}>{children}</Text>;
+export function Label({ children, required }: Props) {
+  return (
+    <Text style={styles.label}>
+      {children}
+      {required && <Text style={styles.required}> *</Text>}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -14,5 +20,8 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.text,
     marginBottom: spacing.sm,
+  },
+  required: {
+    color: colors.error,
   },
 });

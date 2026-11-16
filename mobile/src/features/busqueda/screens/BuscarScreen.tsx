@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { File as ExpoFile } from 'expo-file-system';
 import { ChevronDown, ChevronRight, FileText, X } from 'lucide-react-native';
+import { SelectField, type SelectFieldOption } from '@/components/molecules';
 import { colors, spacing } from '@/theme';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
@@ -60,6 +61,13 @@ function filtrarFirmados(nodo: NodoConvenio): NodoConvenio | null {
 
 function opcionesConTodos(opciones: Opcion[]): Opcion[] {
   return [{ valor: '', etiqueta: 'Todos' }, ...opciones];
+}
+
+function adaptarOpciones(opciones: Opcion[]): SelectFieldOption[] {
+  return opciones.map((opcion) => ({
+    value: opcion.valor,
+    label: opcion.etiqueta,
+  }));
 }
 
 function DocumentoBusqueda({ archivo }: { archivo: ArchivoBusqueda }) {
@@ -127,54 +135,34 @@ function DocumentoBusqueda({ archivo }: { archivo: ArchivoBusqueda }) {
   );
 }
 
-function Selector({
+function SelectorOrdenamiento({
   titulo,
   valor,
   opciones,
   onSeleccionar,
-  compacto = false,
 }: {
   titulo: string;
   valor: string;
   opciones: Opcion[];
   onSeleccionar: (valor: string) => void;
-  compacto?: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const etiqueta = opciones.find((opcion) => opcion.valor === valor)?.etiqueta ?? 'Todos';
 
   return (
     <>
-      {compacto ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Ordenar: ${etiqueta}`}
-          accessibilityState={{ expanded: abierto }}
-          onPress={() => setAbierto(true)}
-          style={styles.sortSelector}
-        >
-          <Text numberOfLines={1} style={styles.sortLabel}>
-            {etiqueta}
-          </Text>
-          <ChevronDown size={17} color={colors.textMuted} />
-        </Pressable>
-      ) : (
-        <View style={styles.filterField}>
-          <Text style={styles.filterLabel}>{titulo}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${titulo}: ${etiqueta}`}
-            accessibilityState={{ expanded: abierto }}
-            onPress={() => setAbierto(true)}
-            style={styles.selector}
-          >
-            <Text numberOfLines={1} style={styles.selectorText}>
-              {etiqueta}
-            </Text>
-            <ChevronDown size={17} color={colors.textMuted} />
-          </Pressable>
-        </View>
-      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Ordenar: ${etiqueta}`}
+        accessibilityState={{ expanded: abierto }}
+        onPress={() => setAbierto(true)}
+        style={styles.sortSelector}
+      >
+        <Text numberOfLines={1} style={styles.sortLabel}>
+          {etiqueta}
+        </Text>
+        <ChevronDown size={17} color={colors.textMuted} />
+      </Pressable>
 
       <Modal
         animationType="fade"
@@ -471,26 +459,29 @@ export function BuscarScreen() {
                 />
               </View>
 
-              <Selector
-                titulo="Tipo"
-                valor={filtros.tipo ?? ''}
-                opciones={tipos}
-                onSeleccionar={(valor) => actualizarFiltro('tipo', valor)}
+              <SelectField
+                label="Tipo"
+                value={filtros.tipo ?? ''}
+                options={adaptarOpciones(tipos)}
+                onValueChange={(valor) => actualizarFiltro('tipo', valor)}
+                placeholder="Todos"
               />
             </View>
 
             <View style={styles.filterRow}>
-              <Selector
-                titulo="Categoría"
-                valor={filtros.categoria ?? ''}
-                opciones={categorias}
-                onSeleccionar={(valor) => actualizarFiltro('categoria', valor)}
+              <SelectField
+                label="Categoría"
+                value={filtros.categoria ?? ''}
+                options={adaptarOpciones(categorias)}
+                onValueChange={(valor) => actualizarFiltro('categoria', valor)}
+                placeholder="Todos"
               />
-              <Selector
-                titulo="Unidad"
-                valor={filtros.unidad ?? ''}
-                opciones={opcionesUnidades}
-                onSeleccionar={(valor) => actualizarFiltro('unidad', valor)}
+              <SelectField
+                label="Unidad"
+                value={filtros.unidad ?? ''}
+                options={adaptarOpciones(opcionesUnidades)}
+                onValueChange={(valor) => actualizarFiltro('unidad', valor)}
+                placeholder="Todos"
               />
             </View>
           </>
@@ -505,8 +496,7 @@ export function BuscarScreen() {
               ? `${resultados.length} convenios firmados en esta página`
               : `${total} resultados`}
         </Text>
-        <Selector
-          compacto
+        <SelectorOrdenamiento
           titulo="Ordenar resultados"
           valor={filtros.orden ?? 'recientes'}
           opciones={[
@@ -637,11 +627,6 @@ const styles = StyleSheet.create({
     borderColor: '#C8D4E5',
     borderRadius: 10,
     backgroundColor: colors.background,
-    color: colors.text,
-    fontSize: 14,
-  },
-  selectorText: {
-    flex: 1,
     color: colors.text,
     fontSize: 14,
   },
