@@ -17,7 +17,6 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { colors, spacing, typography } from '@/theme';
 import { useHome } from '../hooks/useHome';
 import { useState, useEffect } from 'react';
-import { registrarPush } from '../../../features/notifications/services/pushRegistration';
 
 
 function fechaRelativa(fecha: string) {
@@ -52,16 +51,6 @@ export function HomeScreen() {
     );
   }
 
-   useEffect(() => {
-    (async () => {
-      try {
-        const token = await registrarPush();
-        Alert.alert('Push', token ?? 'No se obtuvo token (permiso denegado, emulador o falta projectId)');
-      } catch (e) {
-        Alert.alert('Error push', e instanceof Error ? e.message : String(e));
-      }
-    })();
-  }, []);
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView

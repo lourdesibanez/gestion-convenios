@@ -10,7 +10,6 @@ export type OpcionCatalogo = {
 
 export type CatalogosBusqueda = {
   tipos: OpcionCatalogo[];
-  categorias: OpcionCatalogo[];
 };
 
 export type UnidadBusqueda = {
@@ -68,7 +67,6 @@ export type FiltrosBusqueda = {
   q?: string;
   anio?: string;
   tipo?: string;
-  categoria?: string;
   unidad?: string;
   orden?: 'recientes' | 'antiguos' | 'titulo';
   page?: number;
@@ -155,7 +153,6 @@ export const busquedaService = {
     if (filtros.q?.trim()) params.set('q', filtros.q.trim());
     if (filtros.anio) params.set('anio', filtros.anio);
     if (filtros.tipo) params.set('tipo', filtros.tipo);
-    if (filtros.categoria) params.set('categoria', filtros.categoria);
     if (filtros.unidad) params.set('unidad', filtros.unidad);
     if (filtros.orden) params.set('orden', filtros.orden);
     if (filtros.page) params.set('page', String(filtros.page));

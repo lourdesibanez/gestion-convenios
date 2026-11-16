@@ -51,6 +51,52 @@ class ConvenioTest extends TestCase
         $this->assertSame(2, $respuesta->json('meta.last_page'));
     }
 
+    public function test_busqueda_usa_los_mismos_tipos_que_creacion(): void
+    {
+        $tiposCreacion = $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/create-options')
+            ->assertOk()
+            ->json('data.tipos');
+
+        $tiposBusqueda = $this->actingAs($this->usuario)
+            ->getJson('/api/types')
+            ->assertOk()
+            ->json('data.tipos');
+
+        $this->assertSame(
+            array_map(
+                fn (array $tipo): array => [
+                    'valor' => (string) $tipo['id'],
+                    'etiqueta' => $tipo['nombre'],
+                ],
+                $tiposCreacion,
+            ),
+            $tiposBusqueda,
+        );
+    }
+
+    public function test_filtro_tipo_busca_por_id_de_tipo_instrumento(): void
+    {
+        $tipo = TipoInstrumento::query()->where('nombre', 'Convenio marco de colaboración')->firstOrFail();
+        $coincide = Instrumento::factory()->create([
+            'id_institucion' => $this->unidad->id,
+            'id_tipo_instrumento' => $tipo->id,
+        ]);
+        Instrumento::factory()->create([
+            'id_institucion' => $this->unidad->id,
+            'id_tipo_instrumento' => TipoInstrumento::query()
+                ->whereKeyNot($tipo->id)
+                ->value('id'),
+        ]);
+
+        $respuesta = $this->actingAs($this->usuario)
+            ->getJson('/api/agreements?tipo='.$tipo->id)
+            ->assertOk();
+
+        $this->assertSame(1, $respuesta->json('meta.total'));
+        $this->assertSame($coincide->id, $respuesta->json('data.0.id'));
+    }
+
     public function test_detalle_tiene_formato_resource_y_respeta_el_alcance(): void
     {
         $propio = Instrumento::factory()->create([

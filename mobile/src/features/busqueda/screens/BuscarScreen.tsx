@@ -336,7 +336,6 @@ export function BuscarScreen() {
   const esConsulta = tipoPerfil === 'consulta';
   const [catalogos, setCatalogos] = useState<CatalogosBusqueda>({
     tipos: [],
-    categorias: [],
   });
   const [unidades, setUnidades] = useState<UnidadBusqueda[]>([]);
   const [catalogosCargando, setCatalogosCargando] = useState(true);
@@ -430,7 +429,6 @@ export function BuscarScreen() {
   };
 
   const tipos = opcionesConTodos(catalogos.tipos);
-  const categorias = opcionesConTodos(catalogos.categorias);
   const opcionesUnidades: Opcion[] = opcionesConTodos(
     unidades.map((unidad) => ({
       valor: String(unidad.id),
@@ -439,7 +437,7 @@ export function BuscarScreen() {
   );
 
   const activo =
-    Boolean(filtros.anio || filtros.tipo || filtros.categoria || filtros.unidad);
+    Boolean(filtros.anio || filtros.tipo || filtros.unidad);
 
   const cabecera = (
     <View style={styles.header}>
@@ -472,7 +470,7 @@ export function BuscarScreen() {
               </View>
 
               <Selector
-                titulo="Tipo"
+                titulo="Tipo de convenio"
                 valor={filtros.tipo ?? ''}
                 opciones={tipos}
                 onSeleccionar={(valor) => actualizarFiltro('tipo', valor)}
@@ -480,12 +478,6 @@ export function BuscarScreen() {
             </View>
 
             <View style={styles.filterRow}>
-              <Selector
-                titulo="Categoría"
-                valor={filtros.categoria ?? ''}
-                opciones={categorias}
-                onSeleccionar={(valor) => actualizarFiltro('categoria', valor)}
-              />
               <Selector
                 titulo="Unidad"
                 valor={filtros.unidad ?? ''}
