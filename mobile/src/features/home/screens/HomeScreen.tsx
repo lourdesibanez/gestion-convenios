@@ -9,14 +9,16 @@ import {
   Signature,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { StatCard } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { colors, spacing, typography } from '@/theme';
 import { useHome } from '../hooks/useHome';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { registrarPush } from '../../../features/notifications/services/pushRegistration';
+
 
 function fechaRelativa(fecha: string) {
   const diferencia = Date.now() - new Date(fecha).getTime();
@@ -50,6 +52,16 @@ export function HomeScreen() {
     );
   }
 
+   useEffect(() => {
+    (async () => {
+      try {
+        const token = await registrarPush();
+        Alert.alert('Push', token ?? 'No se obtuvo token (permiso denegado, emulador o falta projectId)');
+      } catch (e) {
+        Alert.alert('Error push', e instanceof Error ? e.message : String(e));
+      }
+    })();
+  }, []);
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView
