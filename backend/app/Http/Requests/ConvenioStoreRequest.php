@@ -17,13 +17,14 @@ class ConvenioStoreRequest extends FormRequest
      */
     public function rules(): array
     {
-        $institucionesVisibles = $this->user()->institucionesVisibles();
+        // Solo puede crear en las unidades donde tiene el permiso de crear.
+        $institucionesPermitidas = $this->user()->institucionesConPermiso('instrumento.crear');
         $reglaInstitucion = Rule::exists('institucion', 'id')
             ->whereNull('deleted_at')
             ->where('es_interna', true);
 
-        if ($institucionesVisibles !== null) {
-            $reglaInstitucion->whereIn('id', $institucionesVisibles);
+        if ($institucionesPermitidas !== null) {
+            $reglaInstitucion->whereIn('id', $institucionesPermitidas);
         }
 
         return [

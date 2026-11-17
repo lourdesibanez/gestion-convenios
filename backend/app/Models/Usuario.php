@@ -122,15 +122,45 @@ class Usuario extends Authenticatable
         });
     }
 
-    public function tienePermiso(string $nombre): bool
+    /**
+     * Permisos por rol y unidad. Sin unidad: alcanza con tenerlo en algún perfil.
+     * Con unidad: solo cuentan los perfiles de esa unidad y los de alcance global.
+     */
+    public function tienePermiso(string $nombre, ?int $idInstitucion = null): bool
     {
         if ($this->estaSuspendido()) {
             return false;
         }
 
+        return $this->perfilesConPermiso($nombre)
+            ->when($idInstitucion !== null, fn ($query) => $query->where(
+                fn ($q) => $q->whereNull('id_institucion')->orWhere('id_institucion', $idInstitucion)
+            ))
+            ->exists();
+    }
+
+    /**
+     * Unidades donde tiene el permiso. null = todas (perfil global con ese permiso).
+     *
+     * @return list<int>|null
+     */
+    public function institucionesConPermiso(string $nombre): ?array
+    {
+        if ($this->estaSuspendido()) {
+            return [];
+        }
+
+        $instituciones = $this->perfilesConPermiso($nombre)->pluck('id_institucion');
+
+        return $instituciones->containsStrict(null)
+            ? null
+            : $instituciones->unique()->values()->all();
+    }
+
+    private function perfilesConPermiso(string $nombre): HasMany
+    {
         return $this->perfiles()
             ->activos()
-            ->whereHas('perfil.permisos', fn ($query) => $query->where('nombre', $nombre))
-            ->exists();
+            ->whereHas('perfil.permisos', fn ($query) => $query->where('nombre', $nombre));
     }
 }
