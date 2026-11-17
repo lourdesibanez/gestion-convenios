@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '@/services/api';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 import {FirmaPendiente, firmaService,} from '../services/firmaService';
 import { router } from 'expo-router';
 import { pendientesCache } from '../services/pendientesCache';
@@ -22,6 +22,8 @@ async function guardarDetallesOffline(pendientes: FirmaPendiente[]) {
 
 
 export function FirmarScreen() {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   const [items, setItems] = useState<FirmaPendiente[]>([]);
   const [pagina, setPagina] = useState(1);
   const [ultimaPagina, setUltimaPagina] = useState(1);
@@ -173,85 +175,86 @@ export function FirmarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  header: {
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  title: {
-    ...typography.label,
-    color: colors.text,
-  },
-  subtitle: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  list: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  row: {
-    minHeight: 88,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  rowContent: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  code: {
-    ...typography.small,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  name: {
-    ...typography.label,
-    color: colors.text,
-  },
-  meta: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  loader: {
-    marginTop: spacing.xl,
-  },
-  messageBox: {
-    padding: spacing.lg,
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  empty: {
-    ...typography.body,
-    padding: spacing.lg,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  error: {
-    ...typography.body,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  action: {
-    ...typography.label,
-    color: colors.primary,
-  },
-  loadMore: {
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    header: {
+      padding: spacing.lg,
+      gap: spacing.xs,
+    },
+    title: {
+      ...typography.label,
+      color: colors.text,
+    },
+    subtitle: {
+      ...typography.small,
+      color: colors.textMuted,
+    },
+    content: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    list: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    row: {
+      minHeight: 88,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    rowContent: {
+      flex: 1,
+      justifyContent: 'center',
+      gap: spacing.xs,
+    },
+    code: {
+      ...typography.small,
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    name: {
+      ...typography.label,
+      color: colors.text,
+    },
+    meta: {
+      ...typography.small,
+      color: colors.textMuted,
+    },
+    loader: {
+      marginTop: spacing.xl,
+    },
+    messageBox: {
+      padding: spacing.lg,
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    empty: {
+      ...typography.body,
+      padding: spacing.lg,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    error: {
+      ...typography.body,
+      color: colors.error,
+      textAlign: 'center',
+    },
+    action: {
+      ...typography.label,
+      color: colors.primary,
+    },
+    loadMore: {
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+  });

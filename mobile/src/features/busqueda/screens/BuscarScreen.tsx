@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,7 +12,7 @@ import {
 import type { File as ExpoFile } from 'expo-file-system';
 import { ChevronDown, ChevronRight, FileText, X } from 'lucide-react-native';
 import { SelectField, type SelectFieldOption, SinConexion } from '@/components/molecules';
-import { colors, spacing } from '@/theme';
+import { spacing, useTema, type Colores } from '@/theme';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   busquedaService,
@@ -70,6 +70,8 @@ function adaptarOpciones(opciones: Opcion[]): SelectFieldOption[] {
 }
 
 function DocumentoBusqueda({ archivo }: { archivo: ArchivoBusqueda }) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [descargando, setDescargando] = useState(false);
   const [error, setError] = useState('');
   const [pdfLocal, setPdfLocal] = useState<ExpoFile | null>(null);
@@ -145,6 +147,8 @@ function SelectorOrdenamiento({
   opciones: Opcion[];
   onSeleccionar: (valor: string) => void;
 }) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [abierto, setAbierto] = useState(false);
   const etiqueta = opciones.find((opcion) => opcion.valor === valor)?.etiqueta ?? 'Todos';
 
@@ -213,6 +217,8 @@ function NodoArbol({nodo,raiz = false, }: {
   nodo: NodoConvenio;
   raiz?: boolean;
 }) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [abierto, setAbierto] = useState(false);
 
   const tieneContenido = nodo.hijos.length > 0 || nodo.archivos.length > 0 || Boolean(nodo.numero_resolucion);
@@ -313,6 +319,8 @@ function NodoArbol({nodo,raiz = false, }: {
 }
 
 export function BuscarScreen() {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const { query } = useBusqueda();
   const { tipoPerfil } = useAuth();
   const esConsulta = tipoPerfil === 'consulta';
@@ -582,251 +590,254 @@ export function BuscarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  listContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  header: {
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  heading: {
-    color: colors.primary,
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  filterPanel: {
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: '#DEE5F0',
-    borderRadius: 16,
-    backgroundColor: colors.background,
-  },
-  panelTitle: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  filterField: {
-    flex: 1,
-    gap: 6,
-  },
-  filterLabel: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  selector: {
-    minHeight: 44,
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#C8D4E5',
-    borderRadius: 10,
-    backgroundColor: colors.background,
-    color: colors.text,
-    fontSize: 14,
-  },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: spacing.lg,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  modalCard: {
-    maxHeight: '75%',
-    padding: spacing.md,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  modalTitle: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  option: {
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  optionText: {
-    color: colors.text,
-    fontSize: 15,
-  },
-  optionSelected: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  resultsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.sm,
-  },
-  resultsCount: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  sortLabel: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  sortSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    paddingLeft: spacing.sm,
-  },
-  empty: {
-    paddingVertical: spacing.xl,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: 13,
-  },
-  node: {
-    marginBottom: spacing.sm,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: '#DEE5F0',
-    borderRadius: 15,
-    backgroundColor: colors.background,
-  },
-  childNode: {
-    marginBottom: spacing.xs,
-    borderWidth: 0,
-    borderLeftWidth: 2,
-    borderLeftColor: '#D9E2EF',
-    borderRadius: 0,
-  },
-  nodeHeader: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  nodeExpandButton: {
-    width: 40,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  typeBadge: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9,
-  },
-  typeBadgeText: {
-    color: colors.background,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  nodeInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  nodeTitle: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  nodeCode: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  nodeContent: {
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    marginLeft: 26,
-    paddingLeft: spacing.sm,
-    borderLeftWidth: 2,
-    borderLeftColor: '#D9E2EF',
-  },
-  documentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 4,
-  },
-  documentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 44,
-    paddingVertical: 4,
-  },
-  documentText: {
-    flex: 1,
-    color: colors.primary,
-    fontSize: 13,
-  },
-  documentError: {
-    marginLeft: 24,
-    color: colors.error,
-    fontSize: 12,
-  },
-  pdfModal: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  pdfHeader: {
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  pdfTitle: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  pagination: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-  },
-  pageButton: {
-    padding: spacing.sm,
-  },
-  pageButtonText: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  pageText: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    listContent: {
+      padding: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    header: {
+      gap: spacing.md,
+      marginBottom: spacing.md,
+    },
+    heading: {
+      color: colors.primary,
+      fontSize: fs(22),
+      fontWeight: '700',
+    },
+    filterPanel: {
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: '#DEE5F0',
+      borderRadius: 16,
+      backgroundColor: colors.background,
+    },
+    panelTitle: {
+      color: colors.primary,
+      fontSize: fs(15),
+      fontWeight: '700',
+    },
+    filterRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    filterField: {
+      flex: 1,
+      gap: 6,
+    },
+    filterLabel: {
+      color: colors.text,
+      fontSize: fs(13),
+      fontWeight: '600',
+    },
+    selector: {
+      minHeight: 44,
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      backgroundColor: colors.background,
+      color: colors.text,
+      fontSize: fs(14),
+    },
+    modalBackdrop: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: spacing.lg,
+      backgroundColor: colors.overlay,
+    },
+    modalCard: {
+      maxHeight: '75%',
+      padding: spacing.md,
+      borderRadius: 16,
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: fs(17),
+      fontWeight: '700',
+    },
+    option: {
+      paddingVertical: 13,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    optionText: {
+      color: colors.text,
+      fontSize: fs(15),
+    },
+    optionSelected: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    resultsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: spacing.sm,
+    },
+    resultsCount: {
+      color: colors.primary,
+      fontSize: fs(15),
+      fontWeight: '700',
+    },
+    sortLabel: {
+      color: colors.primary,
+      fontSize: fs(13),
+      fontWeight: '600',
+    },
+    sortSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 4,
+      paddingLeft: spacing.sm,
+    },
+    empty: {
+      paddingVertical: spacing.xl,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: fs(13),
+    },
+    node: {
+      marginBottom: spacing.sm,
+      padding: spacing.sm,
+      borderWidth: 1,
+      borderColor: '#DEE5F0',
+      borderRadius: 15,
+      backgroundColor: colors.background,
+    },
+    childNode: {
+      marginBottom: spacing.xs,
+      borderWidth: 0,
+      borderLeftWidth: 2,
+      borderLeftColor: '#D9E2EF',
+      borderRadius: 0,
+    },
+    nodeHeader: {
+      minHeight: 58,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    nodeExpandButton: {
+      width: 40,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    typeBadge: {
+      width: 34,
+      height: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 9,
+    },
+    typeBadgeText: {
+      color: colors.background,
+      fontSize: fs(10),
+      fontWeight: '800',
+    },
+    nodeInfo: {
+      flex: 1,
+      gap: 3,
+    },
+    nodeTitle: {
+      color: colors.text,
+      fontSize: fs(14),
+      fontWeight: '700',
+    },
+    nodeCode: {
+      color: colors.textMuted,
+      fontSize: fs(12),
+    },
+    nodeContent: {
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+      marginLeft: 26,
+      paddingLeft: spacing.sm,
+      borderLeftWidth: 2,
+      borderLeftColor: '#D9E2EF',
+    },
+    documentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: 4,
+    },
+    documentButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      minHeight: 44,
+      paddingVertical: 4,
+    },
+    documentText: {
+      flex: 1,
+      color: colors.primary,
+      fontSize: fs(13),
+    },
+    documentError: {
+      marginLeft: 24,
+      color: colors.error,
+      fontSize: fs(12),
+    },
+    pdfModal: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    pdfHeader: {
+      minHeight: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    pdfTitle: {
+      flex: 1,
+      color: colors.text,
+      fontSize: fs(16),
+      fontWeight: '700',
+    },
+    pagination: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.md,
+    },
+    pageButton: {
+      padding: spacing.sm,
+    },
+    pageButtonText: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    pageText: {
+      color: colors.textMuted,
+      fontSize: fs(13),
+    },
+  });

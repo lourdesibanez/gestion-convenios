@@ -2,8 +2,8 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check } from 'lucide-react-native';
 import type { RegistrarFirmaRespuesta } from '@/features/firma/services/firmaService';
-import { colors } from '@/theme';
-import { useEffect, useState } from 'react';
+import { useTema, type Colores } from '@/theme';
+import { useEffect, useState, useMemo } from 'react';
 import * as Location from 'expo-location';
 
 
@@ -26,6 +26,8 @@ export function FirmaExitosa({
   onVolver,
   onCompartir,
 }: Props) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
     const coordenadas = `${resultado.latitud.toFixed(4)}, ${resultado.longitud.toFixed(4)}`;
     const [ubicacion, setUbicacion] = useState(coordenadas);
 
@@ -68,7 +70,7 @@ export function FirmaExitosa({
       <View style={styles.contenido}>
         <View style={styles.iconoAro}>
           <View style={styles.icono}>
-            <Check color="#FFFFFF" size={32} strokeWidth={3} />
+            <Check color={colors.background} size={32} strokeWidth={3} />
           </View>
         </View>
 
@@ -116,130 +118,131 @@ export function FirmaExitosa({
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: 20,
-  },
-  contenido: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 24,
-  },
-  iconoAro: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#E3F1E7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  icono: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.status.firmado,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  titulo: {
-    color: colors.primary,
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  subtitulo: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  card: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  firma: {
-    width: 120,
-    height: 40,
-  },
-  badge: {
-    backgroundColor: '#E3F1E7',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  badgeTexto: {
-    color: colors.status.firmado,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  fila: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF0F3',
-  },
-  filaUltima: {
-    borderBottomWidth: 0,
-  },
-  filaLabel: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  filaValor: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  error: {
-    color: colors.error,
-    textAlign: 'center',
-    padding: 8,
-  },
-  acciones: {
-    gap: 10,
-  },
-  botonPrimario: {
-    minHeight: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-  },
-  botonPrimarioTexto: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  botonSecundario: {
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-  },
-  botonSecundarioTexto: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: 20,
+    },
+    contenido: {
+      flex: 1,
+      alignItems: 'center',
+      paddingTop: 24,
+    },
+    iconoAro: {
+      width: 88,
+      height: 88,
+      borderRadius: 44,
+      backgroundColor: `${colors.status.firmado}26`, // verde suave (≈15% de opacidad)
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    icono: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.status.firmado,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    titulo: {
+      color: colors.primary,
+      fontSize: fs(24),
+      fontWeight: '700',
+      marginBottom: 8,
+    },
+    subtitulo: {
+      color: colors.textMuted,
+      fontSize: fs(14),
+      lineHeight: fs(20),
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    card: {
+      width: '100%',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surface,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    firma: {
+      width: 120,
+      height: 40,
+    },
+    badge: {
+      backgroundColor: `${colors.status.firmado}26`, // verde suave (≈15% de opacidad)
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+    },
+    badgeTexto: {
+      color: colors.status.firmado,
+      fontSize: fs(12),
+      fontWeight: '700',
+    },
+    fila: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#EEF0F3',
+    },
+    filaUltima: {
+      borderBottomWidth: 0,
+    },
+    filaLabel: {
+      color: colors.textMuted,
+      fontSize: fs(13),
+    },
+    filaValor: {
+      color: colors.text,
+      fontSize: fs(13),
+      fontWeight: '700',
+    },
+    error: {
+      color: colors.error,
+      textAlign: 'center',
+      padding: 8,
+    },
+    acciones: {
+      gap: 10,
+    },
+    botonPrimario: {
+      minHeight: 54,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+    },
+    botonPrimarioTexto: {
+      color: colors.onPrimary,
+      fontSize: fs(15),
+      fontWeight: '700',
+    },
+    botonSecundario: {
+      minHeight: 50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+    },
+    botonSecundarioTexto: {
+      color: colors.primary,
+      fontSize: fs(15),
+      fontWeight: '700',
+    },
+  });

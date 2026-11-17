@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { DateField, FormField, SelectField, HeaderBack } from '@/components/molecules';
 import { ApiError } from '@/services/api';
-import { colors, radius, spacing, typography } from '@/theme';
+import { radius, spacing, useTema, type Colores, type Tipografia } from '@/theme';
 import {
   creacionConvenioService,
   TAMANO_MAXIMO_DOCUMENTO,
@@ -126,6 +126,8 @@ const camposIniciales: CamposFormulario = {
 };
 
 export function CrearConvenioScreen() {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   const { id: idConvenio } = useLocalSearchParams<{ id?: string }>();
   const modoEdicion = typeof idConvenio === 'string' && idConvenio.length > 0;
   const [opciones, setOpciones] = useState<OpcionesCreacionConvenio | null>(null);
@@ -799,139 +801,142 @@ export function CrearConvenioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  section: {
-    ...typography.label,
-    color: colors.text,
-    marginTop: spacing.md,
-  },
-  multiline: {
-    minHeight: 100,
-    height: 100,
-    paddingTop: spacing.md,
-    textAlignVertical: 'top',
-  },
-  helper: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  error: {
-    ...typography.small,
-    color: colors.error,
-  },
-  info: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-  adjunto: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-  },
-  adjuntoInfo: {
-    flex: 1,
-  },
-  adjuntoNombre: {
-    ...typography.body,
-    color: colors.text,
-  },
-  quitarAdjunto: {
-    ...typography.small,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  stepper: {
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-  },
-  stepperHeader: {
-    gap: spacing.xs,
-  },
-  stepperCount: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  stepperTitle: {
-    ...typography.label,
-    color: colors.primary,
-  },
-  stepperProgress: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  stepSegment: {
-    flex: 1,
-    height: 4,
-    borderRadius: radius.md,
-    backgroundColor: colors.border,
-  },
-  stepSegmentActive: {
-    backgroundColor: colors.primary,
-  },
-  stepFields: {
-    gap: spacing.md,
-  },
-  stepActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  stepActionSpacer: {
-    flex: 1,
-  },
-  dateFieldsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  dateFieldColumn: {
-    flex: 1,
-    minWidth: 0,
-  },
-  confirmationBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: spacing.lg,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-  },
-  confirmationCard: {
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-  },
-  confirmationTitle: {
-    ...typography.label,
-    color: colors.text,
-  },
-  confirmationMessage: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-  confirmationActions: {
-    gap: spacing.sm,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+    },
+    content: {
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    section: {
+      ...typography.label,
+      color: colors.text,
+      marginTop: spacing.md,
+    },
+    multiline: {
+      minHeight: 100,
+      height: 100,
+      paddingTop: spacing.md,
+      textAlignVertical: 'top',
+    },
+    helper: {
+      ...typography.small,
+      color: colors.textMuted,
+    },
+    error: {
+      ...typography.small,
+      color: colors.error,
+    },
+    info: {
+      ...typography.body,
+      color: colors.textMuted,
+    },
+    adjunto: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+    },
+    adjuntoInfo: {
+      flex: 1,
+    },
+    adjuntoNombre: {
+      ...typography.body,
+      color: colors.text,
+    },
+    quitarAdjunto: {
+      ...typography.small,
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    stepper: {
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+    },
+    stepperHeader: {
+      gap: spacing.xs,
+    },
+    stepperCount: {
+      ...typography.small,
+      color: colors.textMuted,
+    },
+    stepperTitle: {
+      ...typography.label,
+      color: colors.primary,
+    },
+    stepperProgress: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+    },
+    stepSegment: {
+      flex: 1,
+      height: 4,
+      borderRadius: radius.md,
+      backgroundColor: colors.border,
+    },
+    stepSegmentActive: {
+      backgroundColor: colors.primary,
+    },
+    stepFields: {
+      gap: spacing.md,
+    },
+    stepActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    stepActionSpacer: {
+      flex: 1,
+    },
+    dateFieldsRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    dateFieldColumn: {
+      flex: 1,
+      minWidth: 0,
+    },
+    confirmationBackdrop: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: spacing.lg,
+      backgroundColor: colors.overlay,
+    },
+    confirmationCard: {
+      gap: spacing.md,
+      padding: spacing.lg,
+      borderRadius: radius.md,
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    confirmationTitle: {
+      ...typography.label,
+      color: colors.text,
+    },
+    confirmationMessage: {
+      ...typography.body,
+      color: colors.textMuted,
+    },
+    confirmationActions: {
+      gap: spacing.sm,
+    },
+  });

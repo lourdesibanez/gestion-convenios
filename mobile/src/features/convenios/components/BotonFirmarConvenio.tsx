@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { Signature } from 'lucide-react-native';
-import { colores } from './temas';
+import { useTema } from '@/theme';
+import { useColoresConvenio, type ColoresConvenio } from './temas';
 
 type Props = {
   onPress: () => void;
@@ -8,6 +10,9 @@ type Props = {
 };
 
 export function BotonFirmarConvenio({ onPress, motivoDeshabilitado }: Props) {
+  const colores = useColoresConvenio();
+  const { fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colores, fs), [colores, fs]);
   const deshabilitado = Boolean(motivoDeshabilitado);
 
   return (
@@ -21,7 +26,7 @@ export function BotonFirmarConvenio({ onPress, motivoDeshabilitado }: Props) {
         onPress={onPress}
         style={[styles.button, deshabilitado && styles.disabled]}
       >
-        <Signature size={20} color="#FFFFFF" />
+        <Signature size={20} color={colores.sobreAzul} />
         <Text style={styles.label}>Firmar convenio</Text>
       </Pressable>
       {motivoDeshabilitado && <Text style={styles.motivo}>{motivoDeshabilitado}</Text>}
@@ -30,31 +35,32 @@ export function BotonFirmarConvenio({ onPress, motivoDeshabilitado }: Props) {
 }
 
 
-const styles = StyleSheet.create({
-  button: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: colores.azul,
-  },
-  label: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-    disabled: {
-    opacity: 0.5,
-  },
-  motivo: {
-    marginTop: -4,
-    marginBottom: 12,
-    color: colores.textoSuave,
-    fontSize: 13,
-    textAlign: 'center',
-  },
+const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    button: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginBottom: 12,
+      borderRadius: 12,
+      backgroundColor: colores.azul,
+    },
+    label: {
+      color: colores.sobreAzul,
+      fontSize: fs(15),
+      fontWeight: '700',
+    },
+      disabled: {
+      opacity: 0.5,
+    },
+    motivo: {
+      marginTop: -4,
+      marginBottom: 12,
+      color: colores.textoSuave,
+      fontSize: fs(13),
+      textAlign: 'center',
+    },
 
-});
+  });

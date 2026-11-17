@@ -8,6 +8,9 @@ export const coloresClaros = {
   background: '#FFFFFF',
   surface: '#F4F6FA',
   primarySoft: '#E8EEF7',
+  // Modales y desplegables: la tarjeta que flota y el velo que oscurece lo de atrás.
+  elevated: '#FFFFFF',
+  overlay: 'rgba(0, 0, 0, 0.4)',
 
   // Textos y bordes
   text: '#111827',
@@ -38,6 +41,9 @@ export const coloresOscuros: Colores = {
   background: '#121417',
   surface: '#1B1E23',
   primarySoft: '#1F2B3E',
+  // En oscuro lo que flota va más claro que la pantalla (si no, se pierde) y el velo más fuerte.
+  elevated: '#262A31',
+  overlay: 'rgba(0, 0, 0, 0.65)',
 
   text: '#F3F4F6',
   textMuted: '#A1A8B3',
@@ -54,7 +60,3 @@ export const coloresOscuros: Colores = {
     pendiente: '#F5A524',
   },
 };
-
-// Temporal: los archivos que todavía no migraron siguen usando la paleta clara.
-// Cuando todo use useTema(), se borra.
-export const colors = coloresClaros;

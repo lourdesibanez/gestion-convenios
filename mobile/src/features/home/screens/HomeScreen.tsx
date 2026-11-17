@@ -14,9 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { StatCard } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 import { useHome } from '../hooks/useHome';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { SinConexion } from '@/components/molecules';
 import { useOffline } from '@/services/useOffline';
 import { EstadoBadge } from '@/components/atoms';
@@ -34,6 +34,8 @@ function fechaRelativa(fecha: string) {
 }
 
 export function HomeScreen() {
+  const { colors, typography, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography, fs), [colors, typography, fs]);
   const { data, loading, refreshing, error, refresh } = useHome();
   const { tipoPerfil } = useAuth();
   const esConsulta = tipoPerfil === 'consulta';
@@ -227,120 +229,121 @@ export function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.lg,
-    paddingBottom: 100,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  hello: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  unit: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  section: {
-    ...typography.label,
-    color: colors.text,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  errorBox: {
-    gap: spacing.md,
-  },
-  error: {
-    ...typography.body,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  headerList: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  list: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  itemList: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  signIconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  titleList: {
-    ...typography.label,
-    color: colors.text,
-  },
-  floatingButton: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.22,
-    shadowRadius: 4,
-  },
-  floatingButtonText: {
-    color: colors.background,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+    },
+    content: {
+      padding: spacing.lg,
+      gap: spacing.lg,
+      paddingBottom: 100,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    initials: {
+      fontSize: fs(20),
+      fontWeight: '700',
+      color: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    hello: {
+      fontSize: fs(22),
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    unit: {
+      ...typography.small,
+      color: colors.textMuted,
+    },
+    section: {
+      ...typography.label,
+      color: colors.text,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+    },
+    errorBox: {
+      gap: spacing.md,
+    },
+    error: {
+      ...typography.body,
+      color: colors.error,
+      textAlign: 'center',
+    },
+    headerList: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    list: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    itemList: {
+      minHeight: 72,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    signIconButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 12,
+    },
+    titleList: {
+      ...typography.label,
+      color: colors.text,
+    },
+    floatingButton: {
+      position: 'absolute',
+      right: spacing.lg,
+      bottom: spacing.lg,
+      minHeight: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: 18,
+      backgroundColor: colors.primary,
+      elevation: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.22,
+      shadowRadius: 4,
+    },
+    floatingButtonText: {
+      color: colors.background,
+      fontSize: fs(14),
+      fontWeight: '700',
+    },
+  });

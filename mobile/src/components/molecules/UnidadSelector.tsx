@@ -88,8 +88,11 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
   StyleSheet.create({
     disparador: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', maxWidth: '100%' },
     textoDisparador: { color: colors.onPrimary, opacity: 0.85, fontSize: fs(12), flexShrink: 1 },
-    fondo: { flex: 1, justifyContent: 'center', padding: spacing.lg, backgroundColor: 'rgba(0,0,0,0.35)' },
-    tarjeta: { maxHeight: '75%', padding: spacing.md, borderRadius: 16, backgroundColor: colors.background },
+    fondo: { flex: 1, justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.overlay },
+    tarjeta: {
+      maxHeight: '75%', padding: spacing.md, borderRadius: 16,
+      backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border,
+    },
     titulo: { color: colors.text, fontSize: fs(17), fontWeight: '700', marginBottom: spacing.sm },
     opcion: {
       flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 12,

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, TextLink, Label } from '@/components/atoms';
 import { Canal, ChannelSelector, CodeInput } from '@/components/molecules';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 
 const CODE_LENGTH = 6;
 
@@ -42,6 +42,8 @@ export function VerifyCodeForm({
   serverError,
   debugCode,
 }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   const [codigo, setCodigo] = useState('');
   const [error, setError] = useState<string>();
 
@@ -112,30 +114,31 @@ export function VerifyCodeForm({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.md,
-  },
-  info: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  destino: {
-    fontWeight: '700',
-    color: colors.text,
-  },
-  error: {
-    ...typography.small,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  muted: {
-    ...typography.small,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  center: {
-    alignItems: 'center',
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    container: {
+      gap: spacing.md,
+    },
+    info: {
+      ...typography.body,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    destino: {
+      fontWeight: '700',
+      color: colors.text,
+    },
+    error: {
+      ...typography.small,
+      color: colors.error,
+      textAlign: 'center',
+    },
+    muted: {
+      ...typography.small,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    center: {
+      alignItems: 'center',
+    },
+  });

@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { WifiOff } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/atoms';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 
 type Props = {
   mensaje: string;
@@ -10,6 +11,8 @@ type Props = {
 
 // Estado vacío para secciones que no funcionan sin conexión.
 export function SinConexion({ mensaje, accion }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   return (
     <View style={styles.box}>
       <WifiOff size={40} color={colors.textMuted} />
@@ -20,14 +23,15 @@ export function SinConexion({ mensaje, accion }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  box: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-  },
-  titulo: { ...typography.button, color: colors.text },
-  mensaje: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    box: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.md,
+      padding: spacing.lg,
+    },
+    titulo: { ...typography.button, color: colors.text },
+    mensaje: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
+  });

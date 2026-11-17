@@ -11,6 +11,3 @@ export function crearTipografia(escala: number) {
 }
 
 export type Tipografia = ReturnType<typeof crearTipografia>;
-
-// Temporal: tamaño mediano para los archivos que todavía no migraron.
-export const typography = crearTipografia(1);

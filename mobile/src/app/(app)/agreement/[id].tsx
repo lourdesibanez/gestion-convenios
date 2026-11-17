@@ -1,17 +1,18 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { File, type File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CircleHelp, Pencil, Share2, Trash2, X } from 'lucide-react-native';
+import { CircleHelp, Pencil, Share2, Trash2, X } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
 import { Documentos, type OpcionSubidaDocumento } from '@/features/convenios/components/Documento';
 import { Firmantes } from '@/features/convenios/components/Firmante';
 import { BotonFirmarConvenio } from '@/features/convenios/components/BotonFirmarConvenio';
-import { colores } from '@/features/convenios/components/temas';
+import { useColoresConvenio, type ColoresConvenio } from '@/features/convenios/components/temas';
+import { useTema } from '@/theme';
 import { useConvenio } from '@/features/convenios/hooks/useConvenio';
 import { conveniosService } from '@/features/convenios/services/convenioService';
 import { busquedaService } from '@/features/busqueda/services/busquedaService';
@@ -19,11 +20,14 @@ import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { ApiError } from '@/services/api';
 import { creacionConvenioService, TAMANO_MAXIMO_DOCUMENTO, type TipoDocumentoConvenio } from '@/features/convenios/services/creacionConvenioService';
-import { OfflineBanner } from '@/components/molecules';
+import { HeaderBack, OfflineBanner } from '@/components/molecules';
 import { useOffline } from '@/services/useOffline';
 import { EstadoBadge } from '@/components/atoms';
 
 export default function FichaConvenio() {
+  const colores = useColoresConvenio();
+  const { fs } = useTema();
+  const s = useMemo(() => crearEstilos(colores, fs), [colores, fs]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { tipoPerfil } = useAuth();
@@ -192,24 +196,19 @@ export default function FichaConvenio() {
 
   return (
     <SafeAreaView style={s.pantalla} edges={['top']}>
-      <View style={s.barra}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-        >
-          <ChevronLeft size={24} color={colores.texto} />
-        </Pressable>
-        <Pressable
-          onPress={() => Alert.alert('Ayuda', 'Acá ves el estado, los firmantes y los documentos del convenio.')}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Ayuda"
-        >
-          <CircleHelp size={24} color={colores.azul} />
-        </Pressable>
-      </View>
+      <HeaderBack
+        titulo="Detalle del convenio"
+        acciones={
+          <Pressable
+            onPress={() => Alert.alert('Ayuda', 'Acá ves el estado, los firmantes y los documentos del convenio.')}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Ayuda"
+          >
+            <CircleHelp size={24} color={colores.azul} />
+          </Pressable>
+        }
+      />
       <OfflineBanner />
 
       {cargando && <ActivityIndicator style={s.centro} size="large" color={colores.azul} />}
@@ -370,68 +369,68 @@ export default function FichaConvenio() {
   );
 }
 
-const s = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: colores.fondo },
-  barra: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8 },
-  contenido: { padding: 16, paddingTop: 4 },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  encabezado: { marginBottom: 14 },
-  etiquetas: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  tipo: { color: colores.azul, fontWeight: '700', fontSize: 12 },
-  titulo: { color: colores.texto, fontSize: 22, fontWeight: '800', lineHeight: 28 },
-  expediente: { color: colores.textoSuave, fontSize: 12, marginTop: 4 },
-  accionesConvenio: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  botonEditar: {
-    minHeight: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colores.azul,
-    borderRadius: 10,
-  },
-  botonEditarTxt: { color: colores.azul, fontWeight: '700' },
-  botonRevision: {
-    minHeight: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: colores.azul,
-  },
-  botonDeshabilitado: { opacity: 0.6 },
-  botonRevisionTxt: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  botonEliminar: {
-    minHeight: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colores.rojo,
-    borderRadius: 10,
-    backgroundColor: colores.rojoClaro,
-  },
-  botonEliminarTxt: { color: colores.rojo, fontSize: 14, fontWeight: '700' },
-  pdfModal: { flex: 1, backgroundColor: colores.fondo },
-  pdfHeader: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colores.borde,
-    backgroundColor: colores.tarjeta,
-  },
-  pdfTitulo: { flex: 1, color: colores.texto, fontSize: 16, fontWeight: '700' },
-  pdfAccion: { flexDirection: 'row', alignItems: 'center', gap: 5, padding: 4 },
-  pdfGuardarTxt: { color: colores.azul, fontSize: 13, fontWeight: '700' },
-  error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
-  reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  reintentarTxt: { color: colores.azul, fontWeight: '700' },
-});
+const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    pantalla: { flex: 1, backgroundColor: colores.fondo },
+    contenido: { padding: 16, paddingTop: 4 },
+    centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    encabezado: { marginBottom: 14 },
+    etiquetas: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+    tipo: { color: colores.azul, fontWeight: '700', fontSize: fs(12) },
+    titulo: { color: colores.texto, fontSize: fs(22), fontWeight: '800', lineHeight: fs(28) },
+    expediente: { color: colores.textoSuave, fontSize: fs(12), marginTop: 4 },
+    accionesConvenio: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    botonEditar: {
+      minHeight: 40,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colores.azul,
+      borderRadius: 10,
+    },
+    botonEditarTxt: { color: colores.azul, fontWeight: '700' },
+    botonRevision: {
+      minHeight: 40,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      backgroundColor: colores.azul,
+    },
+    botonDeshabilitado: { opacity: 0.6 },
+    botonRevisionTxt: { color: colores.sobreAzul, fontSize: fs(15), fontWeight: '700' },
+    botonEliminar: {
+      minHeight: 40,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colores.rojo,
+      borderRadius: 10,
+      backgroundColor: colores.rojoClaro,
+    },
+    botonEliminarTxt: { color: colores.rojo, fontSize: fs(14), fontWeight: '700' },
+    pdfModal: { flex: 1, backgroundColor: colores.fondo },
+    pdfHeader: {
+      minHeight: 52,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colores.borde,
+      backgroundColor: colores.tarjeta,
+    },
+    pdfTitulo: { flex: 1, color: colores.texto, fontSize: fs(16), fontWeight: '700' },
+    pdfAccion: { flexDirection: 'row', alignItems: 'center', gap: 5, padding: 4 },
+    pdfGuardarTxt: { color: colores.azul, fontSize: fs(13), fontWeight: '700' },
+    error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
+    reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+    reintentarTxt: { color: colores.azul, fontWeight: '700' },
+  });

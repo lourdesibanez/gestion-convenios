@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Modal,
   Pressable,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { ChevronDown, X } from 'lucide-react-native';
 import { Label } from '@/components/atoms';
-import { colors, spacing } from '@/theme';
+import { spacing, useTema, type Colores } from '@/theme';
 
 export type SelectFieldOption = {
   value: string;
@@ -35,6 +35,8 @@ export function SelectField({
   required = false,
   disabled = false,
 }: Props) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [open, setOpen] = useState(false);
   const selectedLabel =
     options.find((option) => option.value === value)?.label ?? placeholder;
@@ -111,62 +113,65 @@ export function SelectField({
   );
 }
 
-const styles = StyleSheet.create({
-  field: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  selector: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: '#C8D4E5',
-    borderRadius: 10,
-    backgroundColor: colors.background,
-  },
-  selectorText: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 14,
-  },
-  backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: spacing.lg,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  modalCard: {
-    maxHeight: '75%',
-    padding: spacing.md,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  modalTitle: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  option: {
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  optionText: {
-    color: colors.text,
-    fontSize: 15,
-  },
-  optionSelected: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    field: {
+      flex: 1,
+      gap: spacing.xs,
+    },
+    selector: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      backgroundColor: colors.background,
+    },
+    selectorText: {
+      flex: 1,
+      color: colors.text,
+      fontSize: fs(14),
+    },
+    backdrop: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: spacing.lg,
+      backgroundColor: colors.overlay,
+    },
+    modalCard: {
+      maxHeight: '75%',
+      padding: spacing.md,
+      borderRadius: 16,
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    modalTitle: {
+      color: colors.text,
+      fontSize: fs(17),
+      fontWeight: '700',
+    },
+    option: {
+      paddingVertical: 13,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    optionText: {
+      color: colors.text,
+      fontSize: fs(15),
+    },
+    optionSelected: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
+  });

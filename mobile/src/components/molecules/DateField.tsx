@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Modal,
   Platform,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { colors, radius, spacing, typography } from '@/theme';
+import { radius, spacing, useTema, type Colores, type Tipografia } from '@/theme';
 import { Input, Label, Button } from '@/components/atoms';
 
 type Props = {
@@ -71,6 +71,8 @@ export function DateField({
   onChangeValue,
   required = false,
 }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => parseDate(value) ?? new Date());
 
@@ -136,68 +138,71 @@ export function DateField({
   );
 }
 
-const styles = StyleSheet.create({
-  field: {
-    gap: spacing.xs,
-  },
-  label: {
-    ...typography.small,
-    color: colors.text,
-  },
-  selector: {
-    minHeight: 52,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  value: {
-    ...typography.body,
-    color: colors.text,
-  },
-  placeholder: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-  error: {
-    ...typography.small,
-    color: colors.error,
-  },
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  modal: {
-    gap: spacing.md,
-    padding: spacing.lg,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.md,
-    borderTopRightRadius: radius.md,
-  },
-  modalTitle: {
-    ...typography.label,
-    color: colors.text,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  androidPickerContainer: {
-    flex: 1,
-    width: '100%',
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    field: {
+      gap: spacing.xs,
     },
-    androidPicker: {
-    flex: 1,
-    width: '100%',
+    label: {
+      ...typography.small,
+      color: colors.text,
     },
-required: {
-    color: colors.error,
-},
-});
+    selector: {
+      minHeight: 52,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+    },
+    disabled: {
+      opacity: 0.5,
+    },
+    value: {
+      ...typography.body,
+      color: colors.text,
+    },
+    placeholder: {
+      ...typography.body,
+      color: colors.textMuted,
+    },
+    error: {
+      ...typography.small,
+      color: colors.error,
+    },
+    backdrop: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: colors.overlay,
+    },
+    modal: {
+      gap: spacing.md,
+      padding: spacing.lg,
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderTopLeftRadius: radius.md,
+      borderTopRightRadius: radius.md,
+    },
+    modalTitle: {
+      ...typography.label,
+      color: colors.text,
+    },
+    actions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    androidPickerContainer: {
+      flex: 1,
+      width: '100%',
+      },
+      androidPicker: {
+      flex: 1,
+      width: '100%',
+      },
+  required: {
+      color: colors.error,
+  },
+  });

@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { WifiOff } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useOffline } from '@/services/useOffline';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 
 type Props = { mensaje?: string };
 
@@ -9,6 +10,8 @@ type Props = { mensaje?: string };
 export function OfflineBanner({
   mensaje = 'Sin conexión.',
 }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   const offline = useOffline();
   if (!offline) return null;
 
@@ -18,24 +21,25 @@ export function OfflineBanner({
       accessibilityRole="alert"
       accessibilityLiveRegion="polite" // Android: el lector de pantalla lo anuncia al aparecer
     >
-      <WifiOff color="#FFFFFF" size={16} />
+      <WifiOff color={colors.background} size={16} />
       <Text style={styles.text}>{mensaje}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.textMuted, // gris con buen contraste para texto blanco
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  text: {
-    ...typography.small,
-    color: '#FFFFFF',
-    flex: 1,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    banner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.textMuted, // gris; el texto usa colors.background para contrastar en claro y oscuro
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    text: {
+      ...typography.small,
+      color: colors.background,
+      flex: 1,
+    },
+  });

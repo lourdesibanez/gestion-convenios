@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Share, Fingerprint, Delete, Signature, Check } from 'lucide-react-native';
@@ -7,7 +7,7 @@ import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { firmaService, type RegistrarFirmaRespuesta } from '@/features/firma/services/firmaService';
-import { colors } from '@/theme';
+import { useTema, type Colores } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
@@ -17,6 +17,8 @@ import { OfflineBanner } from '@/components/molecules';
 import { HeaderBack } from '@/components/molecules';
 
 export default function SignatureScreen() {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const { id, titulo, codigo } = useLocalSearchParams<{
     id: string;
     titulo: string;
@@ -276,7 +278,7 @@ export default function SignatureScreen() {
                 onPress={() => setFirmaModalVisible(true)}
                 style={styles.confirmButton}
             >
-                <Signature size={19} color="#FFFFFF" />
+                <Signature size={19} color={colors.onPrimary} />
                 <Text style={styles.confirmText}>Firmar convenio</Text>
             </Pressable>
             </View>
@@ -375,9 +377,9 @@ export default function SignatureScreen() {
                     ]}
                     >
                     {registrando ? (
-                        <ActivityIndicator color="#FFFFFF" />
+                        <ActivityIndicator color={colors.onPrimary} />
                     ) : (
-                        <Fingerprint size={19} color="#FFFFFF" />
+                        <Fingerprint size={19} color={colors.onPrimary} />
                     )}
                     <Text style={styles.confirmText}>
                         {registrando ? 'Registrando firma…' : 'Confirmar firma con huella'}
@@ -393,134 +395,137 @@ export default function SignatureScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.surface },
-  iconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
-  messageText: { color: colors.textMuted },
-  error: { color: colors.error, textAlign: 'center' },
-  retry: { color: colors.primary, fontWeight: '700', padding: 8 },
-  shareError: { color: colors.error, padding: 8, textAlign: 'center' },
-  content: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  pdfFrame: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  signatureHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  signatureTitle: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  clearButton: {
-    padding: 6,
-  },
-  signatureBox: {
-    minHeight: 134,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: '#B9CBE5',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    padding: 10,
-  },
-  signatureHint: {
-    alignSelf: 'flex-start',
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  acceptRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  checkbox: {
-    width: 21,
-    height: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 4,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  acceptText: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  locationText: {
-    flex: 1,
-    color: colors.textMuted,
-    fontSize: 11,
-    lineHeight: 19,
-  },
-  confirmButton: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-  },
-  confirmButtonDisabled: {
-    opacity: 0.5,
-  },
-  confirmText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-  },
-  signatureCard: {
-    maxHeight: '90%',
-    padding: 16,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    gap: 14,
-  },
-  footer: {
-    padding: 12,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  signatureCanvas: {
-    width: '100%',
-    height: 100,
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.surface },
+    iconButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
+    messageText: { color: colors.textMuted },
+    error: { color: colors.error, textAlign: 'center' },
+    retry: { color: colors.primary, fontWeight: '700', padding: 8 },
+    shareError: { color: colors.error, padding: 8, textAlign: 'center' },
+    content: {
+      padding: 16,
+      paddingBottom: 24,
+    },
+    pdfFrame: {
+      flex: 1,
+      overflow: 'hidden',
+    },
+    signatureHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    signatureTitle: {
+      color: colors.primary,
+      fontSize: fs(16),
+      fontWeight: '700',
+    },
+    clearButton: {
+      padding: 6,
+    },
+    signatureBox: {
+      minHeight: 134,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: '#B9CBE5',
+      borderStyle: 'dashed',
+      borderRadius: 12,
+      padding: 10,
+    },
+    signatureHint: {
+      alignSelf: 'flex-start',
+      color: colors.textMuted,
+      fontSize: fs(12),
+    },
+    acceptRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    checkbox: {
+      width: 21,
+      height: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.primary,
+      borderRadius: 4,
+    },
+    checkboxChecked: {
+      backgroundColor: colors.primary,
+    },
+    checkmark: {
+      color: colors.onPrimary,
+      fontSize: fs(15),
+      fontWeight: '700',
+      lineHeight: fs(18),
+    },
+    acceptText: {
+      flex: 1,
+      color: colors.text,
+      fontSize: fs(14),
+      lineHeight: fs(20),
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    locationText: {
+      flex: 1,
+      color: colors.textMuted,
+      fontSize: fs(11),
+      lineHeight: fs(19),
+    },
+    confirmButton: {
+      minHeight: 54,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+    },
+    confirmButtonDisabled: {
+      opacity: 0.5,
+    },
+    confirmText: {
+      color: colors.onPrimary,
+      fontSize: fs(15),
+      fontWeight: '700',
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: colors.overlay,
+    },
+    signatureCard: {
+      maxHeight: '90%',
+      padding: 16,
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      gap: 14,
+    },
+    footer: {
+      padding: 12,
+      backgroundColor: colors.background,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    signatureCanvas: {
+      width: '100%',
+      height: 100,
+    },
+  });

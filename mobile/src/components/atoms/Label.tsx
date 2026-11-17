@@ -1,5 +1,6 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 
 type Props = {
   children: string;
@@ -7,6 +8,8 @@ type Props = {
 };
 
 export function Label({ children, required }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   return (
     <Text style={styles.label}>
       {children}
@@ -15,13 +18,14 @@ export function Label({ children, required }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  label: {
-    ...typography.label,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  required: {
-    color: colors.error,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    label: {
+      ...typography.label,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    required: {
+      color: colors.error,
+    },
+  });
