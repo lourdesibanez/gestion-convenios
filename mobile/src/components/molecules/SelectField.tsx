@@ -1,20 +1,11 @@
 import { useState, useMemo } from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { ChevronDown, X } from 'lucide-react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronDown } from 'lucide-react-native';
 import { Label } from '@/components/atoms';
 import { spacing, useTema, type Colores } from '@/theme';
+import { ModalOpciones, type OpcionModal } from './ModalOpciones';
 
-export type SelectFieldOption = {
-  value: string;
-  label: string;
-};
+export type SelectFieldOption = OpcionModal;
 
 type Props = {
   label: string;
@@ -60,55 +51,17 @@ export function SelectField({
         </Pressable>
       </View>
 
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-        transparent
+      <ModalOpciones
         visible={open}
-      >
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable
-            style={styles.modalCard}
-            onPress={(event) => event.stopPropagation()}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{label}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Cerrar"
-                hitSlop={8}
-                onPress={() => setOpen(false)}
-              >
-                <X size={21} color={colors.textMuted} />
-              </Pressable>
-            </View>
-
-            <ScrollView>
-              {options.map((option) => (
-                <Pressable
-                  key={`${label}-${option.value}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: option.value === value }}
-                  onPress={() => {
-                    onValueChange(option.value);
-                    setOpen(false);
-                  }}
-                  style={styles.option}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      option.value === value && styles.optionSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        titulo={label}
+        opciones={options}
+        valorSeleccionado={value}
+        onSeleccionar={(valor) => {
+          onValueChange(valor);
+          setOpen(false);
+        }}
+        onCerrar={() => setOpen(false)}
+      />
     </>
   );
 }
@@ -135,43 +88,5 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       flex: 1,
       color: colors.text,
       fontSize: fs(14),
-    },
-    backdrop: {
-      flex: 1,
-      justifyContent: 'center',
-      padding: spacing.lg,
-      backgroundColor: colors.overlay,
-    },
-    modalCard: {
-      maxHeight: '75%',
-      padding: spacing.md,
-      borderRadius: 16,
-      backgroundColor: colors.elevated,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing.sm,
-    },
-    modalTitle: {
-      color: colors.text,
-      fontSize: fs(17),
-      fontWeight: '700',
-    },
-    option: {
-      paddingVertical: 13,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    optionText: {
-      color: colors.text,
-      fontSize: fs(15),
-    },
-    optionSelected: {
-      color: colors.primary,
-      fontWeight: '700',
     },
   });

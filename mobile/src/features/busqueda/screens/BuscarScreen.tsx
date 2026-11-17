@@ -6,12 +6,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import type { File as ExpoFile } from 'expo-file-system';
 import { ChevronDown, ChevronRight, FileText, X } from 'lucide-react-native';
-import { SelectField, type SelectFieldOption, SinConexion } from '@/components/molecules';
+import { ModalOpciones, SelectField, type SelectFieldOption, SinConexion } from '@/components/molecules';
 import { spacing, useTema, type Colores } from '@/theme';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
@@ -167,48 +166,17 @@ function SelectorOrdenamiento({
         <ChevronDown size={17} color={colors.textMuted} />
       </Pressable>
 
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setAbierto(false)}
-        transparent
+      <ModalOpciones
         visible={abierto}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={() => setAbierto(false)}>
-          <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{titulo}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Cerrar"
-                onPress={() => setAbierto(false)}
-                hitSlop={8}
-              >
-                <X size={21} color={colors.textMuted} />
-              </Pressable>
-            </View>
-
-            {opciones.map((opcion) => (
-              <Pressable
-                key={`${titulo}-${opcion.valor}`}
-                onPress={() => {
-                  onSeleccionar(opcion.valor);
-                  setAbierto(false);
-                }}
-                style={styles.option}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    opcion.valor === valor && styles.optionSelected,
-                  ]}
-                >
-                  {opcion.etiqueta}
-                </Text>
-              </Pressable>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
+        titulo={titulo}
+        opciones={adaptarOpciones(opciones)}
+        valorSeleccionado={valor}
+        onSeleccionar={(nuevo) => {
+          onSeleccionar(nuevo);
+          setAbierto(false);
+        }}
+        onCerrar={() => setAbierto(false)}
+      />
     </>
   );
 }
@@ -248,7 +216,7 @@ function NodoArbol({nodo,raiz = false, }: {
         <View
           style={[
             styles.typeBadge,
-            { backgroundColor: nodo.categoria === 'adenda' ? '#B45309' : colors.primary },
+            { backgroundColor: nodo.categoria === 'adenda' ? colors.status.pendiente : colors.primary },
           ]}
         >
           <Text style={styles.typeBadgeText}>
@@ -431,6 +399,14 @@ export function BuscarScreen() {
   };
 
   const tipos = opcionesConTodos(catalogos.tipos);
+  // Años de firma: del actual hacia atrás hasta 2000.
+  const anioActual = new Date().getFullYear();
+  const anios = opcionesConTodos(
+    Array.from({ length: anioActual - 1999 }, (_, i) => {
+      const anio = String(anioActual - i);
+      return { valor: anio, etiqueta: anio };
+    }),
+  );
   const opcionesUnidades: Opcion[] = opcionesConTodos(
     unidades.map((unidad) => ({
       valor: String(unidad.id),
@@ -457,35 +433,32 @@ export function BuscarScreen() {
         ) : (
           <>
             <View style={styles.filterRow}>
-              <View style={styles.filterField}>
-                <Text style={styles.filterLabel}>Año de firma</Text>
-                <TextInput
-                  accessibilityLabel="Año de firma"
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  onChangeText={(valor) => actualizarFiltro('anio', valor.replace(/\D/g, ''))}
-                  placeholder="Todos"
-                  placeholderTextColor={colors.textMuted}
-                  style={styles.selector}
-                  value={filtros.anio ?? ''}
-                />
-              </View>
+              <SelectField
+                label="Año de firma"
+                value={filtros.anio ?? ''}
+                options={adaptarOpciones(anios)}
+                onValueChange={(valor) => actualizarFiltro('anio', valor)}
+                placeholder="Todos"
+              />
 
-              <Selector
-                titulo="Tipo de convenio"
-                valor={filtros.tipo ?? ''}
-                opciones={tipos}
-                onSeleccionar={(valor) => actualizarFiltro('tipo', valor)}
+              <SelectField
+                label="Tipo de convenio"
+                value={filtros.tipo ?? ''}
+                options={adaptarOpciones(tipos)}
+                onValueChange={(valor) => actualizarFiltro('tipo', valor)}
+                placeholder="Todos"
               />
             </View>
 
             <View style={styles.filterRow}>
-              <Selector
-                titulo="Unidad"
-                valor={filtros.unidad ?? ''}
-                opciones={opcionesUnidades}
-                onSeleccionar={(valor) => actualizarFiltro('unidad', valor)}
+              <SelectField
+                label="Unidad"
+                value={filtros.unidad ?? ''}
+                options={adaptarOpciones(opcionesUnidades)}
+                onValueChange={(valor) => actualizarFiltro('unidad', valor)}
+                placeholder="Todos"
               />
+
             </View>
           </>
         )}
@@ -602,7 +575,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       gap: spacing.sm,
       padding: spacing.md,
       borderWidth: 1,
-      borderColor: '#DEE5F0',
+      borderColor: colors.border,
       borderRadius: 16,
       backgroundColor: colors.background,
     },
@@ -614,68 +587,6 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
     filterRow: {
       flexDirection: 'row',
       gap: spacing.sm,
-    },
-    filterField: {
-      flex: 1,
-      gap: 6,
-    },
-    filterLabel: {
-      color: colors.text,
-      fontSize: fs(13),
-      fontWeight: '600',
-    },
-    selector: {
-      minHeight: 44,
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-      paddingHorizontal: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 10,
-      backgroundColor: colors.background,
-      color: colors.text,
-      fontSize: fs(14),
-    },
-    modalBackdrop: {
-      flex: 1,
-      justifyContent: 'center',
-      padding: spacing.lg,
-      backgroundColor: colors.overlay,
-    },
-    modalCard: {
-      maxHeight: '75%',
-      padding: spacing.md,
-      borderRadius: 16,
-      backgroundColor: colors.elevated,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing.sm,
-    },
-    modalTitle: {
-      color: colors.text,
-      fontSize: fs(17),
-      fontWeight: '700',
-    },
-    option: {
-      paddingVertical: 13,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    optionText: {
-      color: colors.text,
-      fontSize: fs(15),
-    },
-    optionSelected: {
-      color: colors.primary,
-      fontWeight: '700',
     },
     resultsHeader: {
       flexDirection: 'row',
@@ -713,7 +624,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       marginBottom: spacing.sm,
       padding: spacing.sm,
       borderWidth: 1,
-      borderColor: '#DEE5F0',
+      borderColor: colors.border,
       borderRadius: 15,
       backgroundColor: colors.background,
     },
@@ -721,7 +632,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       marginBottom: spacing.xs,
       borderWidth: 0,
       borderLeftWidth: 2,
-      borderLeftColor: '#D9E2EF',
+      borderLeftColor: colors.border,
       borderRadius: 0,
     },
     nodeHeader: {
@@ -767,7 +678,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       marginLeft: 26,
       paddingLeft: spacing.sm,
       borderLeftWidth: 2,
-      borderLeftColor: '#D9E2EF',
+      borderLeftColor: colors.border,
     },
     documentRow: {
       flexDirection: 'row',

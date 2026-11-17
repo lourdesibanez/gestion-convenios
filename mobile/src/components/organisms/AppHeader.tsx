@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming,ZoomIn} from 'react-native-reanimated';
-import { Bell, Camera, QrCode, Search, X } from 'lucide-react-native';
+import { Bell, Camera, Search, X } from 'lucide-react-native';
 import { router, useFocusEffect, usePathname } from 'expo-router';
 import { Avatar } from '@/components/atoms';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -185,7 +185,6 @@ export function AppHeader() {
                 <Text numberOfLines={1} style={styles.searchText}>
                   {offline ? 'Buscador sin conexión' : 'Buscar convenio, código o parte...'}
                 </Text>
-                <QrCode size={21} color={colors.primary} />
               </Pressable>
             )}
           </Animated.View>

@@ -10,3 +10,4 @@ export * from './SinConexion';
 export * from './SegmentedControl';
 export * from './UnidadSelector';
 export * from './HeaderBack';
+export * from './ModalOpciones';

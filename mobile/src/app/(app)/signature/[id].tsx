@@ -434,9 +434,10 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       minHeight: 134,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      // Siempre blanco, como el papel: el trazo (#315B96, fijo) se guarda como imagen y va en el PDF firmado.
+      backgroundColor: '#FFFFFF',
       borderWidth: 1.5,
-      borderColor: '#B9CBE5',
+      borderColor: colors.border,
       borderStyle: 'dashed',
       borderRadius: 12,
       padding: 10,

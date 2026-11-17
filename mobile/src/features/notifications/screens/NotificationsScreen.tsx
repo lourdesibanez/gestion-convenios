@@ -425,9 +425,10 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       borderWidth: 1,
       borderColor: colors.border,
     },
+    // Sin leer: fondo azul suave del tema (acompaña al punto naranja en claro y oscuro).
     unreadCard: {
-      borderColor: colors.primarySoft,
-      backgroundColor: '#F8FAFD',
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
     },
     iconBox: {
       width: 42,
@@ -477,7 +478,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: '#F59E0B',
+      backgroundColor: colors.status.pendiente,
     },
     centered: {
       flex: 1,
