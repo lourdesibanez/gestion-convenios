@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { File, type File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CircleHelp, Pencil, Share2, Trash2, X } from 'lucide-react-native';
+import { CircleHelp, Pencil, Share2, Trash2, ArrowDownToLine } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
@@ -36,7 +36,7 @@ export default function FichaConvenio() {
   const [enviandoARevision, setEnviandoARevision] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [descargandoDocumentoId, setDescargandoDocumentoId] = useState<number | null>(null);
-  const [pdfDescargado, setPdfDescargado] = useState<{ archivo: ExpoFile; nombre: string } | null>(null);
+  const [pdfDescargado, setPdfDescargado] = useState<{ archivo: ExpoFile; nombre: string; descripcion: string } | null>(null);
   const esPerfilConsulta =
     tipoPerfil?.trim().toLocaleLowerCase('es-AR') === 'consulta';
   const puedeVerConvenio =
@@ -88,7 +88,7 @@ export default function FichaConvenio() {
     }
   };
 
-  const abrirDocumento = async (documento: { id: number; nombre: string }) => {
+  const abrirDocumento = async (documento: { id: number; nombre: string; descripcion: string }) => {
     if (offline) {
       Alert.alert('Sin conexión', 'Para abrir documentos necesitás conexión.');
       return;
@@ -99,7 +99,7 @@ export default function FichaConvenio() {
     setDescargandoDocumentoId(documento.id);
     try {
       const archivo = await busquedaService.descargarPdf(documento.id);
-      setPdfDescargado({ archivo, nombre: documento.nombre });
+        setPdfDescargado({ archivo, nombre: documento.nombre, descripcion: documento.descripcion });
     } catch (cause) {
       Alert.alert(
         'No se pudo descargar el documento',
@@ -332,39 +332,31 @@ export default function FichaConvenio() {
           <ComentariosConvenio idConvenio={Number(id)} />
         </ScrollView>
       )}
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setPdfDescargado(null)}
-        visible={pdfDescargado !== null}
-      >
-        <SafeAreaView style={s.pdfModal}>
-          <View style={s.pdfHeader}>
-            <Text numberOfLines={1} style={s.pdfTitulo}>
-              {pdfDescargado?.nombre}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Guardar o compartir documento"
-              hitSlop={8}
-              onPress={() => void compartirDocumento()}
-              style={s.pdfAccion}
+            <Modal
+              animationType="slide"
+              onRequestClose={() => setPdfDescargado(null)}
+              visible={pdfDescargado !== null}
             >
-              <Share2 size={20} color={colores.azul} />
-              <Text style={s.pdfGuardarTxt}>Guardar</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar documento"
-              hitSlop={8}
-              onPress={() => setPdfDescargado(null)}
-              style={s.pdfAccion}
-            >
-              <X size={22} color={colores.textoSuave} />
-            </Pressable>
-          </View>
-          {pdfDescargado ? <PdfJsViewer file={pdfDescargado.archivo} /> : null}
-        </SafeAreaView>
-      </Modal>
+              <SafeAreaView style={s.pdfModal}>
+                <HeaderBack
+                  titulo={pdfDescargado?.nombre}
+                  subtitulo={pdfDescargado?.descripcion}
+                  onVolver={() => setPdfDescargado(null)}
+                  acciones={
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Guardar o compartir documento"
+                      hitSlop={8}
+                      onPress={() => void compartirDocumento()}
+                    >
+                      <ArrowDownToLine size={22} color={colores.azul} />
+                    </Pressable>
+                  }
+                />
+                {pdfDescargado ? <PdfJsViewer file={pdfDescargado.archivo} /> : null}
+              </SafeAreaView>
+            </Modal>
+
     </SafeAreaView>
   );
 }
@@ -417,19 +409,6 @@ const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) 
     },
     botonEliminarTxt: { color: colores.rojo, fontSize: fs(14), fontWeight: '700' },
     pdfModal: { flex: 1, backgroundColor: colores.fondo },
-    pdfHeader: {
-      minHeight: 52,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colores.borde,
-      backgroundColor: colores.tarjeta,
-    },
-    pdfTitulo: { flex: 1, color: colores.texto, fontSize: fs(16), fontWeight: '700' },
-    pdfAccion: { flexDirection: 'row', alignItems: 'center', gap: 5, padding: 4 },
-    pdfGuardarTxt: { color: colores.azul, fontSize: fs(13), fontWeight: '700' },
     error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
     reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
     reintentarTxt: { color: colores.azul, fontWeight: '700' },

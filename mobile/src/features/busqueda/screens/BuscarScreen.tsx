@@ -6,7 +6,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import type { File as ExpoFile } from 'expo-file-system';
@@ -400,6 +399,14 @@ export function BuscarScreen() {
   };
 
   const tipos = opcionesConTodos(catalogos.tipos);
+  // Años de firma: del actual hacia atrás hasta 2000.
+  const anioActual = new Date().getFullYear();
+  const anios = opcionesConTodos(
+    Array.from({ length: anioActual - 1999 }, (_, i) => {
+      const anio = String(anioActual - i);
+      return { valor: anio, etiqueta: anio };
+    }),
+  );
   const opcionesUnidades: Opcion[] = opcionesConTodos(
     unidades.map((unidad) => ({
       valor: String(unidad.id),
@@ -426,19 +433,13 @@ export function BuscarScreen() {
         ) : (
           <>
             <View style={styles.filterRow}>
-              <View style={styles.filterField}>
-                <Text style={styles.filterLabel}>Año de firma</Text>
-                <TextInput
-                  accessibilityLabel="Año de firma"
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  onChangeText={(valor) => actualizarFiltro('anio', valor.replace(/\D/g, ''))}
-                  placeholder="Todos"
-                  placeholderTextColor={colors.textMuted}
-                  style={styles.selector}
-                  value={filtros.anio ?? ''}
-                />
-              </View>
+              <SelectField
+                label="Año de firma"
+                value={filtros.anio ?? ''}
+                options={adaptarOpciones(anios)}
+                onValueChange={(valor) => actualizarFiltro('anio', valor)}
+                placeholder="Todos"
+              />
 
               <SelectField
                 label="Tipo de convenio"
@@ -586,30 +587,6 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
     filterRow: {
       flexDirection: 'row',
       gap: spacing.sm,
-    },
-    filterField: {
-      flex: 1,
-      gap: 6,
-    },
-    filterLabel: {
-      color: colors.text,
-      fontSize: fs(13),
-      fontWeight: '600',
-    },
-    selector: {
-      minHeight: 44,
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-      paddingHorizontal: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 10,
-      backgroundColor: colors.background,
-      color: colors.text,
-      fontSize: fs(14),
     },
     resultsHeader: {
       flexDirection: 'row',
