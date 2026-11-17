@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { File } from 'expo-file-system';
+import { useTema, type Colores } from '@/theme';
 import {
   pdfjsViewerBundle,
   pdfjsWorkerBundle,
@@ -12,8 +13,14 @@ type Props = {
 };
 
 export function PdfJsViewer({ file }: Props) {
+  const { colors } = useTema();
+  const styles = useMemo(() => crearEstilos(colors), [colors]);
   const [html, setHtml] = useState<string>();
   const [error, setError] = useState<string>();
+
+  // Alrededor de las hojas sigue el tema; las hojas quedan blancas como el papel.
+  const fondo = colors.surface;
+  const colorError = colors.error;
 
   useEffect(() => {
     let activo = true;
@@ -29,10 +36,10 @@ export function PdfJsViewer({ file }: Props) {
               <meta name="viewport" content="width=device-width, initial-scale=1">
               <style>
                 * { box-sizing: border-box; }
-                body { margin: 0; background: #e8ebef; font-family: sans-serif; }
+                body { margin: 0; background: ${fondo}; font-family: sans-serif; }
                 #pages { padding: 12px; }
                 canvas { display: block; max-width: 100%; height: auto; margin: 0 auto 12px; background: white; }
-                #error { padding: 20px; color: #a11; }
+                #error { padding: 20px; color: ${colorError}; }
               </style>
               <script>${pdfjsViewerBundle}</script>
             </head>
@@ -93,7 +100,7 @@ export function PdfJsViewer({ file }: Props) {
     return () => {
       activo = false;
     };
-  }, [file]);
+  }, [file, fondo, colorError]);
 
   if (error) {
     return <Text style={styles.error}>{error}</Text>;
@@ -102,8 +109,8 @@ export function PdfJsViewer({ file }: Props) {
   if (!html) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator />
-        <Text>Preparando PDF…</Text>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={styles.textoCarga}>Preparando PDF…</Text>
       </View>
     );
   }
@@ -113,18 +120,22 @@ export function PdfJsViewer({ file }: Props) {
       originWhitelist={['*']}
       source={{ html }}
       javaScriptEnabled
-      style={styles.webview}
+      // Evita el destello blanco mientras carga.
+      style={[styles.webview, { backgroundColor: fondo }]}
     />
   );
 }
 
-const styles = StyleSheet.create({
-  webview: { flex: 1 },
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  error: { padding: 20, color: '#a11' },
-});
+const crearEstilos = (colors: Colores) =>
+  StyleSheet.create({
+    webview: { flex: 1 },
+    loading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      backgroundColor: colors.surface,
+    },
+    textoCarga: { color: colors.textMuted },
+    error: { padding: 20, color: colors.error },
+  });

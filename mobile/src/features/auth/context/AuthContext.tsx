@@ -8,7 +8,9 @@ import {
 } from '@/services/biometrics';
 import { getPushToken } from '@/services/pushNotifications';
 import { tokenStorage } from '@/services/tokenStorage';
+import { usuarioStorage } from '@/services/usuarioStorage';
 import { authService, Usuario } from '../services/authService';
+import { pendientesCache } from '@/features/firma/services/pendientesCache';
 
 // locked: hay sesión guardada, pero hace falta la huella (o la contraseña) para entrar.
 type Status = 'loading' | 'signedIn' | 'locked' | 'signedOut';
@@ -82,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const enterWithStoredToken = async (): Promise<string | null> => {
     try {
       const usuarioAutenticado = await authService.me();
-      console.log(usuarioAutenticado);
+      await usuarioStorage.set(usuarioAutenticado); // se refresca la copia local
       setUsuario(usuarioAutenticado);
       setTipoPerfil(usuarioAutenticado.tipo_perfil);
       setStatus('signedIn');
@@ -94,9 +96,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await forgetDevice();
         return 'Tu sesión venció. Ingresá con tu correo y contraseña.';
       }
+
+      // Sin conexión (status 0): si hay sesión guardada, se entra en modo offline.
+      if (e instanceof ApiError && e.status === 0) {
+        const guardado = await usuarioStorage.get();
+        if (guardado) {
+          setUsuario(guardado);
+          setTipoPerfil(guardado.tipo_perfil);
+          setStatus('signedIn');
+          return null;
+        }
+      }
+
       return e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.';
     }
   };
+
 
   const signIn = async (token: string, usuario: Usuario) => {
     // Si había otra sesión guardada (por ejemplo, bloqueada), se revoca antes de reemplazarla.
@@ -104,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authService.logout().catch(() => {});
     }
     await tokenStorage.set(token);
+    await usuarioStorage.set(usuario);
     setUsuario(usuario);
     setTipoPerfil(usuario.tipo_perfil);
     setStatus('signedIn');
@@ -145,6 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Aunque la API falle, la sesión se cierra igual en el celular.
     }
     await tokenStorage.remove();
+    await usuarioStorage.remove(); //cuando alguien cambia de cuenta, no quedan los datos del usuario anterior en el celular
+    await pendientesCache.borrar(); // los datos offline son del usuario que se va
     await biometricPreference.disable();
     setBiometricEnabled(false);
     setUsuario(null);

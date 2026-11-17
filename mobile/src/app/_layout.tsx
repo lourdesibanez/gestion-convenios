@@ -5,21 +5,28 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '@/features/auth/context/AuthContext';
 import { notificationService } from '@/features/notifications/services/notificationService';
+import { TemaProvider, useTema } from '@/theme';
+import { UnidadProvider } from '@/features/unidades/context/UnidadContext';
 
 // El splash queda visible hasta saber si hay sesión, así no se ve el login un instante.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <RootNavigator />
-    </AuthProvider>
+    <TemaProvider>
+      <AuthProvider>
+        <UnidadProvider>
+          <RootNavigator />
+        </UnidadProvider>
+      </AuthProvider>
+    </TemaProvider>
   );
 }
 
 function RootNavigator() {
   const { status } = useAuth();
+  const { esOscuro } = useTema();
+
   const ultimaRespuestaProcesada = useRef<string | null>(null);
 
   useEffect(() => {
@@ -71,17 +78,22 @@ function RootNavigator() {
     }
   }, [status]);
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      
-      <Stack.Protected guard={status === 'signedIn'}>
-        <Stack.Screen name="(app)" />
-      </Stack.Protected>
+    return (
+      <>
+        <StatusBar style={esOscuro ? 'light' : 'dark'} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
 
-      <Stack.Protected guard={status !== 'signedIn'}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-    </Stack>
-  );
+          <Stack.Protected guard={status === 'signedIn'}>
+            <Stack.Screen name="(app)" />
+          </Stack.Protected>
+
+          <Stack.Protected guard={status !== 'signedIn'}>
+            <Stack.Screen name="(auth)" />
+          </Stack.Protected>
+        </Stack>
+      </>
+    );
+
+
 }

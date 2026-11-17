@@ -1,8 +1,8 @@
 import { FilePenLine } from 'lucide-react-native';
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, radius, spacing, typography } from '@/theme';
+import { radius, spacing, useTema, type Colores, type Tipografia } from '@/theme';
 
 type Props = {
   title: string;
@@ -11,6 +11,8 @@ type Props = {
 };
 
 export function AuthTemplate({ title, subtitle, children }: Props) {
+  const { colors, typography, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography, fs), [colors, typography, fs]);
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
@@ -34,49 +36,50 @@ export function AuthTemplate({ title, subtitle, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  flex: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.xl,
-  },
-  header: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  logo: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.md * 2,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: colors.background,
-    borderRadius: radius.md * 1.5,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    flex: {
+      flex: 1,
+    },
+    scroll: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: spacing.lg,
+      gap: spacing.xl,
+    },
+    header: {
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    logo: {
+      width: 72,
+      height: 72,
+      borderRadius: radius.md * 2,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.sm,
+    },
+    title: {
+      fontSize: fs(24),
+      fontWeight: '700',
+      color: colors.primary,
+      textAlign: 'center',
+    },
+    subtitle: {
+      ...typography.body,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    card: {
+      backgroundColor: colors.background,
+      borderRadius: radius.md * 1.5,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+  });

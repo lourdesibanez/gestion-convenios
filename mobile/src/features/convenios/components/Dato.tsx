@@ -1,9 +1,14 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ConvenioDetalle } from '../Tipos';
 import { Seccion } from './Seccion';
-import { colores, fechaCorta } from './temas';
+import { fechaCorta, useColoresConvenio, type ColoresConvenio } from './temas';
+import { useTema } from '@/theme';
 
 function Fila({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+  const colores = useColoresConvenio();
+  const { fs } = useTema();
+  const s = useMemo(() => crearEstilos(colores, fs), [colores, fs]);
   return (
     <View style={s.fila}>
       <Text style={s.etiqueta}>{etiqueta}</Text>
@@ -13,6 +18,9 @@ function Fila({ etiqueta, children }: { etiqueta: string; children: React.ReactN
 }
 
 export function Datos({ c, onAbrirPadre }: { c: ConvenioDetalle; onAbrirPadre: (id: number) => void }) {
+  const colores = useColoresConvenio();
+  const { fs } = useTema();
+  const s = useMemo(() => crearEstilos(colores, fs), [colores, fs]);
   return (
     <Seccion titulo="Datos">
       <Fila etiqueta="Procedencia">
@@ -40,8 +48,9 @@ export function Datos({ c, onAbrirPadre }: { c: ConvenioDetalle; onAbrirPadre: (
   );
 }
 
-const s = StyleSheet.create({
-  fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 },
-  etiqueta: { color: colores.textoSuave, fontSize: 13 },
-  valor: { color: colores.texto, fontSize: 13, fontWeight: '700', flexShrink: 1, textAlign: 'right', marginLeft: 12 },
-});
+const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 },
+    etiqueta: { color: colores.textoSuave, fontSize: fs(13) },
+    valor: { color: colores.texto, fontSize: fs(13), fontWeight: '700', flexShrink: 1, textAlign: 'right', marginLeft: 12 },
+  });

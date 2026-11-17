@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SendHorizontal, Ban } from 'lucide-react-native';
-import { colors } from '@/theme';
+import { useTema, type Colores } from '@/theme';
 import { ComentarioConvenio as Comentario, comentarioService} from '../services/comentarioService';
+import { useOffline } from '@/services/useOffline';
 
 type Props = {
   idConvenio: number;
@@ -29,6 +30,8 @@ function fechaComentario(fecha: string): string {
 }
 
 function ComentarioItem({ comentario }: { comentario: Comentario }) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   return (
     <View style={styles.commentRow}>
       <View
@@ -72,12 +75,16 @@ function ComentarioItem({ comentario }: { comentario: Comentario }) {
 }
 
 export function ComentariosConvenio({ idConvenio }: Props) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [texto, setTexto] = useState('');
   const [cargando, setCargando] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string>();
   const [intento, setIntento] = useState(0);
+  const offline = useOffline();
+
 
   useEffect(() => {
     let activo = true;
@@ -87,6 +94,7 @@ export function ComentariosConvenio({ idConvenio }: Props) {
       setCargando(false);
       return;
     }
+    if (offline) return; // sin red no se piden; al volver la red se cargan solos
 
     setCargando(true);
     setError(undefined);
@@ -116,7 +124,7 @@ export function ComentariosConvenio({ idConvenio }: Props) {
     return () => {
       activo = false;
     };
-  }, [idConvenio, intento]);
+  }, [idConvenio, intento, offline]);
 
   const enviarComentario = async () => {
     const comentario = texto.trim();
@@ -142,6 +150,16 @@ export function ComentariosConvenio({ idConvenio }: Props) {
       setEnviando(false);
     }
   };
+
+  if (offline) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Comentarios internos</Text>
+        <Text style={styles.empty}>Los comentarios necesitan conexión.</Text>
+      </View>
+    );
+  }
+
 
   return (
     <View style={styles.container}>
@@ -197,9 +215,9 @@ export function ComentariosConvenio({ idConvenio }: Props) {
           ]}
         >
           {enviando ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
+            <ActivityIndicator color={colors.onPrimary} size="small" />
           ) : (
-            <SendHorizontal size={20} color="#FFFFFF" />
+            <SendHorizontal size={20} color={colors.onPrimary} />
           )}
         </Pressable>
       </View>
@@ -212,115 +230,116 @@ export function ComentariosConvenio({ idConvenio }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#DEE5F0',
-    borderRadius: 16,
-    backgroundColor: colors.background,
-  },
-  title: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  commentRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  avatar: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 17,
-    backgroundColor: colors.primary,
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  offensiveAvatar: {
-    backgroundColor: '#FEECEC',
-  },
-  commentBubble: {
-    flex: 1,
-    gap: 4,
-    padding: 10,
-    borderRadius: 14,
-    backgroundColor: colors.surface,
-  },
-  offensiveBubble: {
-    backgroundColor: '#FEECEC',
-  },
-  commentAuthor: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  commentText: {
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  offensiveText: {
-    color: colors.error,
-    fontStyle: 'italic',
-  },
-  composer: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingLeft: 12,
-    borderWidth: 1,
-    borderColor: '#B9CBE5',
-    borderRadius: 12,
-  },
-  input: {
-    flex: 1,
-    maxHeight: 100,
-    paddingVertical: 10,
-    color: colors.text,
-    fontSize: 14,
-  },
-  sendButton: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 4,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-  },
-  sendDisabled: {
-    opacity: 0.5,
-  },
-  empty: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  message: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  error: {
-    color: colors.error,
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  retry: {
-    padding: 8,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  note: {
-    color: colors.textMuted,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    container: {
+      gap: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#DEE5F0',
+      borderRadius: 16,
+      backgroundColor: colors.background,
+    },
+    title: {
+      color: colors.primary,
+      fontSize: fs(16),
+      fontWeight: '700',
+    },
+    commentRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    avatar: {
+      width: 34,
+      height: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 17,
+      backgroundColor: colors.primary,
+    },
+    avatarText: {
+      color: colors.onPrimary,
+      fontSize: fs(12),
+      fontWeight: '700',
+    },
+    offensiveAvatar: {
+      backgroundColor: '#FEECEC',
+    },
+    commentBubble: {
+      flex: 1,
+      gap: 4,
+      padding: 10,
+      borderRadius: 14,
+      backgroundColor: colors.surface,
+    },
+    offensiveBubble: {
+      backgroundColor: '#FEECEC',
+    },
+    commentAuthor: {
+      color: colors.textMuted,
+      fontSize: fs(12),
+      fontWeight: '600',
+    },
+    commentText: {
+      color: colors.text,
+      fontSize: fs(14),
+      lineHeight: fs(20),
+    },
+    offensiveText: {
+      color: colors.error,
+      fontStyle: 'italic',
+    },
+    composer: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingLeft: 12,
+      borderWidth: 1,
+      borderColor: '#B9CBE5',
+      borderRadius: 12,
+    },
+    input: {
+      flex: 1,
+      maxHeight: 100,
+      paddingVertical: 10,
+      color: colors.text,
+      fontSize: fs(14),
+    },
+    sendButton: {
+      width: 38,
+      height: 38,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 4,
+      borderRadius: 10,
+      backgroundColor: colors.primary,
+    },
+    sendDisabled: {
+      opacity: 0.5,
+    },
+    empty: {
+      color: colors.textMuted,
+      fontSize: fs(13),
+    },
+    message: {
+      alignItems: 'center',
+      gap: 8,
+    },
+    error: {
+      color: colors.error,
+      fontSize: fs(13),
+      textAlign: 'center',
+    },
+    retry: {
+      padding: 8,
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    note: {
+      color: colors.textMuted,
+      fontSize: fs(11),
+      lineHeight: fs(16),
+    },
+  });
