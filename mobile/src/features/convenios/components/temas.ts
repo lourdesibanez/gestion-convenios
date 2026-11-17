@@ -24,8 +24,6 @@ export function useColoresConvenio() {
       rojo: colors.error,
       rojoClaro: esOscuro ? '#3A1F22' : '#FCEAE8',
       pdf: '#D9363E',
-      elevado: colors.elevated, // modales
-      overlay: colors.overlay,
     }),
     [colors, esOscuro],
   );

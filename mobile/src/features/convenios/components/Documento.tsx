@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import type { Documento } from '../Tipos';
 import type { TipoDocumentoConvenio } from '../services/creacionConvenioService';
 import { Seccion } from './Seccion';
 import { fechaHora, useColoresConvenio, type ColoresConvenio } from './temas';
 import { useTema } from '@/theme';
+import { ModalOpciones } from '@/components/molecules';
+
 
 export type OpcionSubidaDocumento = {
   tipo: TipoDocumentoConvenio;
@@ -85,38 +87,16 @@ export function Documentos({
           </Pressable>
         ))}
       </Seccion>
-      <Modal
+      <ModalOpciones
         visible={puedeSubir && selectorAbierto}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectorAbierto(false)}
-      >
-        <View style={s.modalFondo}>
-          <View style={s.modal}>
-            <Text style={s.modalTitulo}>Tipo de documento</Text>
-            {tiposSubida.map((opcion) => (
-              <Pressable
-                key={opcion.tipo}
-                accessibilityRole="button"
-                onPress={() => {
-                  setSelectorAbierto(false);
-                  onSubir(opcion.tipo);
-                }}
-                style={s.opcion}
-              >
-                <Text style={s.opcionTexto}>{opcion.etiqueta}</Text>
-              </Pressable>
-            ))}
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setSelectorAbierto(false)}
-              style={s.opcion}
-            >
-              <Text style={s.cancelar}>Cancelar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        titulo="Tipo de documento"
+        opciones={tiposSubida.map((opcion) => ({ value: opcion.tipo, label: opcion.etiqueta }))}
+        onSeleccionar={(tipo) => {
+          setSelectorAbierto(false);
+          onSubir(tipo as TipoDocumentoConvenio);
+        }}
+        onCerrar={() => setSelectorAbierto(false)}
+      />
     </>
   );
 }
@@ -126,12 +106,6 @@ const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) 
     botonSubir: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
     botonDeshabilitado: { opacity: 0.5 },
     botonSubirTxt: { color: colores.azul, fontWeight: '700', fontSize: fs(12) },
-    modalFondo: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: colores.overlay },
-    modal: { backgroundColor: colores.elevado, borderWidth: 1, borderColor: colores.borde, borderRadius: 14, padding: 16 },
-    modalTitulo: { color: colores.texto, fontWeight: '800', fontSize: fs(16), marginBottom: 8 },
-    opcion: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colores.borde },
-    opcionTexto: { color: colores.texto, fontWeight: '600', fontSize: fs(15) },
-    cancelar: { color: colores.azul, fontWeight: '700', fontSize: fs(15) },
     fila: {
       flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, marginTop: 6,
       borderRadius: 10, borderWidth: 1, borderColor: colores.borde, backgroundColor: colores.tarjetaSuave,
