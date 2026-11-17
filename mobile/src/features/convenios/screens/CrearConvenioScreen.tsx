@@ -26,6 +26,7 @@ import {
   type TipoDocumentoConvenio,
 } from '../services/creacionConvenioService';
 import { useUnidad } from '@/features/unidades/context/UnidadContext';
+import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
 
 type CampoTexto =
   | 'titulo'
@@ -437,7 +438,8 @@ export function CrearConvenioScreen() {
         <HeaderBack 
           titulo={modoEdicion ? 'Editar convenio' : 'Nuevo convenio'}
           onVolver={() => solicitarVolver()}
-          volverDeshabilitado={guardando} 
+          volverDeshabilitado={guardando}
+          acciones={<BotonAyuda seccion="crear" color={colors.primary} />}
         />
         {errorCarga ? (
           <Text style={styles.error}>{errorCarga}</Text>
