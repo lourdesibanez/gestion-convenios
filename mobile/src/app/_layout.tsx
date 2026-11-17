@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '@/features/auth/context/AuthContext';
 import { notificationService } from '@/features/notifications/services/notificationService';
 import { TemaProvider, useTema } from '@/theme';
+import { UnidadProvider } from '@/features/unidades/context/UnidadContext';
 
 // El splash queda visible hasta saber si hay sesión, así no se ve el login un instante.
 SplashScreen.preventAutoHideAsync();
@@ -14,7 +15,9 @@ export default function RootLayout() {
   return (
     <TemaProvider>
       <AuthProvider>
-        <RootNavigator />
+        <UnidadProvider>
+          <RootNavigator />
+        </UnidadProvider>
       </AuthProvider>
     </TemaProvider>
   );

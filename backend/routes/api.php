@@ -25,6 +25,7 @@ Route::prefix('auth')->group(function () {
         Route::get('me',                            [AuthController::class, 'obtenerUsuarioAutenticado']);
         Route::post('logout',                       [AuthController::class, 'cerrarSesion']);
         Route::post('push-token',                   [AuthController::class, 'guardarTokenPush']);
+        Route::get('me/units',                      [AuthController::class, 'unidades']);
     });
 });
 

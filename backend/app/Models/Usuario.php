@@ -163,4 +163,23 @@ class Usuario extends Authenticatable
             ->activos()
             ->whereHas('perfil.permisos', fn ($query) => $query->where('nombre', $nombre));
     }
+
+    public function unidades(): array
+    {
+        $perfiles = $this->perfiles()->activos()->with(['perfil', 'institucion'])->get();
+        $rolesGlobales = $perfiles->whereNull('id_institucion')->pluck('perfil.nombre');
+
+        $instituciones = $rolesGlobales->isNotEmpty()
+            ? Institucion::where('es_interna', true)->orderBy('nombre')->get(['id', 'nombre'])
+            : $perfiles->pluck('institucion')->filter()->unique('id')->sortBy('nombre');
+
+        return $instituciones->map(fn (Institucion $institucion) => [
+            'id'     => $institucion->id,
+            'nombre' => $institucion->nombre,
+            'roles'  => $perfiles->where('id_institucion', $institucion->id)
+                ->pluck('perfil.nombre')
+                ->merge($rolesGlobales)
+                ->unique()->values()->all(),
+        ])->values()->all();
+    }
 }

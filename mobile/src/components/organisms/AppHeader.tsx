@@ -1,15 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  ZoomIn,
-} from 'react-native-reanimated';
+import Animated, {Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming,ZoomIn} from 'react-native-reanimated';
 import { Bell, Camera, QrCode, Search, X } from 'lucide-react-native';
 import { router, useFocusEffect, usePathname } from 'expo-router';
 import { Avatar } from '@/components/atoms';
@@ -18,7 +10,8 @@ import { homeService } from '@/features/home/services/homeService';
 import { useBusqueda } from '@/features/busqueda/context/BusquedaContext';
 import { useOffline } from '@/services/useOffline';
 import { spacing, useTema, type Colores } from '@/theme';
-
+import { UnidadSelector } from '@/components/molecules';
+import { useUnidad } from '@/features/unidades/context/UnidadContext';
 
 export function AppHeader() {
   const { usuario } = useAuth();
@@ -37,6 +30,7 @@ export function AppHeader() {
   // Efecto persiana: el alto del fondo azul se anima hasta el alto del contenido.
   const altura = useSharedValue(0);
   const estiloPersiana = useAnimatedStyle(() => ({ height: altura.value }));
+  const { unidades, unidadActiva, setUnidadActiva } = useUnidad();
 
   const medirContenido = (alto: number) => {
     // La primera vez se fija sin animar, para que no "baje" al abrir la app.
@@ -132,10 +126,18 @@ export function AppHeader() {
             </Pressable>
 
             <View style={styles.userInfo}>
-              {!!unidad && (
-                <Text numberOfLines={1} style={styles.unit}>
-                  {unidad}
-                </Text>
+              {unidades.length > 1 ? (
+                <UnidadSelector
+                  unidades={unidades}
+                  idActiva={unidadActiva?.id ?? null}
+                  onCambiar={setUnidadActiva}
+                />
+              ) : (
+                !!unidad && (
+                  <Text numberOfLines={1} style={styles.unit}>
+                    {unidad}
+                  </Text>
+                )
               )}
               <Text numberOfLines={1} style={styles.greeting}>
                 Hola, {usuario?.nombre}

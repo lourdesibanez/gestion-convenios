@@ -25,6 +25,7 @@ import {
   type OpcionesCreacionConvenio,
   type TipoDocumentoConvenio,
 } from '../services/creacionConvenioService';
+import { useUnidad } from '@/features/unidades/context/UnidadContext';
 
 type CampoTexto =
   | 'titulo'
@@ -145,7 +146,7 @@ export function CrearConvenioScreen() {
   const scrollViewRef = useRef<ScrollViewInstance | null>(null);
   const [confirmacionSalidaVisible, setConfirmacionSalidaVisible] = useState(false);
   const [formularioModificado, setFormularioModificado] = useState(false);
-
+  const { unidadActiva } = useUnidad();
   const volverAlInicioDelPaso = () => {
     Keyboard.dismiss();
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
@@ -183,6 +184,11 @@ export function CrearConvenioScreen() {
             : Promise.resolve(null),
         ]);
         setOpciones(opcionesCargadas);
+        
+        if (!edicion && unidadActiva) {
+          // Solo se preselecciona si puede crear ahí: la lista ya viene filtrada por permiso.
+          setInstitucion(opcionesCargadas.instituciones.find((o) => o.id === unidadActiva.id) ?? null);
+        }
 
         if (edicion) {
           const datos = edicion.convenio;

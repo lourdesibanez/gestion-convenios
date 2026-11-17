@@ -27,6 +27,7 @@ import { router } from 'expo-router';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { useOffline } from '@/services/useOffline';
 import { EstadoBadge } from '@/components/atoms';
+import { useUnidad } from '@/features/unidades/context/UnidadContext';
 
 type Opcion = {
   valor: string;
@@ -333,7 +334,15 @@ export function BuscarScreen() {
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState('');
   const solicitudActual = useRef(0);
+  const { unidadActiva } = useUnidad();
 
+  useEffect(() => {
+    setFiltros((actuales) => ({
+      ...actuales,
+      unidad: unidadActiva ? String(unidadActiva.id) : undefined,
+    }));
+  }, [unidadActiva]);
+  
   const cargarCatalogos = useCallback(async () => {
     setCatalogosCargando(true);
     setCatalogosError('');
