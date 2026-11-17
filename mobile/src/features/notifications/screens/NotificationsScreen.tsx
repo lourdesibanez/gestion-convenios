@@ -11,16 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  ArrowLeft,
-  Bell,
-  CheckCheck,
-  ChevronRight,
-  FileText,
-  MessageCircle,
-  PenLine,
-  Signature,
-} from 'lucide-react-native';
+import {Bell, CheckCheck, ChevronRight, FileText, MessageCircle, PenLine, Signature} from 'lucide-react-native';
 import { colors, spacing } from '@/theme';
 import { EstadoBadge } from '@/components/atoms';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -29,6 +20,7 @@ import {
   type Notificacion,
   type NotificacionesResponse,
 } from '@/features/notifications/services/notificationService';
+import { HeaderBack } from '@/components/molecules';
 
 type Filtro = 'todas' | 'por_firmar' | 'convenios';
 
@@ -248,27 +240,21 @@ export function NotificationsScreen() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-          hitSlop={8}
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <ArrowLeft size={22} color={colors.text} />
-        </Pressable>
-        <Text style={styles.title}>Notificaciones</Text>
-        <Pressable
-          accessibilityRole="button"
-          disabled={sinLeer === 0}
-          onPress={() => void marcarTodasLeidas()}
-          style={styles.markReadButton}
-        >
-          <CheckCheck size={17} color={sinLeer > 0 ? colors.primary : colors.textMuted} />
-          <Text style={[styles.markReadText, sinLeer === 0 && styles.disabledText]}>Marcar leídas</Text>
-        </Pressable>
-      </View>
+      <HeaderBack
+        titulo="Notificaciones"
+        acciones={
+          <Pressable
+            accessibilityRole="button"
+            disabled={sinLeer === 0}
+            onPress={() => void marcarTodasLeidas()}
+            style={styles.markReadButton}
+          >
+            <CheckCheck size={17} color={sinLeer > 0 ? colors.primary : colors.textMuted} />
+            <Text style={[styles.markReadText, sinLeer === 0 && styles.disabledText]}>Marcar leídas</Text>
+          </Pressable>
+        }
+      />
+
 
       {esConsulta ? (
         <View style={styles.consultaNotice}>
@@ -356,25 +342,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: colors.surface,
-  },
-  header: {
-    minHeight: 58,
-    paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    width: 36,
-    alignItems: 'flex-start',
-  },
-  title: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
   },
   markReadButton: {
     flexDirection: 'row',

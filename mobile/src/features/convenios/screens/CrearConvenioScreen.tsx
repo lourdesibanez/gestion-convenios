@@ -11,10 +11,10 @@ import {
 } from 'react-native';
 import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, FilePlus2 } from 'lucide-react-native';
+import { FilePlus2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
-import { DateField, FormField, SelectField } from '@/components/molecules';
+import { DateField, FormField, SelectField, HeaderBack } from '@/components/molecules';
 import { ApiError } from '@/services/api';
 import { colors, radius, spacing, typography } from '@/theme';
 import {
@@ -430,23 +430,13 @@ export function CrearConvenioScreen() {
   };
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
+    <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safe}>
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.titleRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-            disabled={guardando}
-            onPress={() => solicitarVolver()}
-            style={styles.backButton}
-          >
-            <ChevronLeft size={24} color={colors.primary} />
-          </Pressable>
-
-          <Text style={styles.title}>
-            {modoEdicion ? 'Editar convenio' : 'Nuevo convenio'}
-          </Text>
-        </View>
+        <HeaderBack 
+          titulo={modoEdicion ? 'Editar convenio' : 'Nuevo convenio'}
+          onVolver={() => solicitarVolver()}
+          volverDeshabilitado={guardando} 
+        />
         {errorCarga ? (
           <Text style={styles.error}>{errorCarga}</Text>
         ) : !opciones ? (
@@ -824,12 +814,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  title: {
-    ...typography.label,
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.primary,
-  },
   section: {
     ...typography.label,
     color: colors.text,
@@ -926,17 +910,6 @@ const styles = StyleSheet.create({
   dateFieldColumn: {
     flex: 1,
     minWidth: 0,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   confirmationBackdrop: {
     flex: 1,

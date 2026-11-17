@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Share, Fingerprint, Delete, Signature, Check } from 'lucide-react-native';
+import { Share, Fingerprint, Delete, Signature, Check } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
@@ -14,6 +14,7 @@ import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { FirmaExitosa } from '@/features/convenios/components/FirmaExitosa';
 import { OfflineBanner } from '@/components/molecules';
+import { HeaderBack } from '@/components/molecules';
 
 export default function SignatureScreen() {
   const { id, titulo, codigo } = useLocalSearchParams<{
@@ -231,31 +232,22 @@ export default function SignatureScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
       <OfflineBanner />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-          onPress={() => router.back()}
-          style={styles.iconButton}
-        >
-          <ChevronLeft color={colors.text} size={24} />
-        </Pressable>
+      <HeaderBack
+        titulo={titulo}
+        subtitulo={codigo}
+        acciones={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Compartir PDF"
+            disabled={!file}
+            onPress={() => void compartir()}
+            style={styles.iconButton}
+          >
+            <Share color={file ? colors.primary : colors.textMuted} size={22} />
+          </Pressable>
+        }
+      />
 
-        <View style={styles.headerText}>
-            <Text numberOfLines={1} style={styles.title}>{titulo}</Text>
-            <Text style={styles.code}>{codigo}</Text>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Compartir PDF"
-          disabled={!file}
-          onPress={() => void compartir()}
-          style={styles.iconButton}
-        >
-          <Share color={file ? colors.primary : colors.textMuted} size={22} />
-        </Pressable>
-      </View>
 
       {shareError ? <Text style={styles.shareError}>{shareError}</Text> : null}
 
@@ -403,151 +395,132 @@ export default function SignatureScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  header: {
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
   iconButton: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { color: colors.text, fontSize: 14, fontWeight: '700' },
   message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   messageText: { color: colors.textMuted },
   error: { color: colors.error, textAlign: 'center' },
   retry: { color: colors.primary, fontWeight: '700', padding: 8 },
   shareError: { color: colors.error, padding: 8, textAlign: 'center' },
-  headerText: {
+  content: {
+    padding: 16,
+    paddingBottom: 24,
+  },
+  pdfFrame: {
     flex: 1,
-    marginLeft: 4,
-    },
-    code: {
+    overflow: 'hidden',
+  },
+  signatureHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  signatureTitle: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  clearButton: {
+    padding: 6,
+  },
+  signatureBox: {
+    minHeight: 134,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: '#B9CBE5',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 10,
+  },
+  signatureHint: {
+    alignSelf: 'flex-start',
     color: colors.textMuted,
     fontSize: 12,
-    },
-    content: {
-  padding: 16,
-  paddingBottom: 24,
-},
-pdfFrame: {
-  flex: 1,
-  overflow: 'hidden',
-},
-signatureHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-},
-signatureTitle: {
-  color: colors.primary,
-  fontSize: 16,
-  fontWeight: '700',
-},
-clearButton: {
-  padding: 6,
-},
-signatureBox: {
-  minHeight: 134,
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: colors.surface,
-  borderWidth: 1.5,
-  borderColor: '#B9CBE5',
-  borderStyle: 'dashed',
-  borderRadius: 12,
-  padding: 10,
-},
-signatureHint: {
-  alignSelf: 'flex-start',
-  color: colors.textMuted,
-  fontSize: 12,
-},
-acceptRow: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  gap: 10,
-},
-checkbox: {
-  width: 21,
-  height: 21,
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderWidth: 2,
-  borderColor: colors.primary,
-  borderRadius: 4,
-},
-checkboxChecked: {
-  backgroundColor: colors.primary,
-},
-checkmark: {
-  color: '#FFFFFF',
-  fontSize: 15,
-  fontWeight: '700',
-  lineHeight: 18,
-},
-acceptText: {
-  flex: 1,
-  color: colors.text,
-  fontSize: 14,
-  lineHeight: 20,
-},
-locationRow: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  gap: 8,
-},
-locationText: {
-  flex: 1,
-  color: colors.textMuted,
-  fontSize: 11,
-  lineHeight: 19,
-},
-confirmButton: {
-  minHeight: 54,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 10,
-  backgroundColor: colors.primary,
-  borderRadius: 12,
-},
-confirmButtonDisabled: {
-  opacity: 0.5,
-},
-confirmText: {
-  color: '#FFFFFF',
-  fontSize: 15,
-  fontWeight: '700',
-},
-modalOverlay: {
-  flex: 1,
-  justifyContent: 'flex-end',
-  backgroundColor: 'rgba(0, 0, 0, 0.45)',
-},
-signatureCard: {
-  maxHeight: '90%',
-  padding: 16,
-  backgroundColor: colors.background,
-  borderTopLeftRadius: 20,
-  borderTopRightRadius: 20,
-  gap: 14,
-},
-footer: {
-  padding: 12,
-  backgroundColor: colors.background,
-  borderTopWidth: 1,
-  borderTopColor: colors.border,
-},
-signatureCanvas: {
-  width: '100%',
-  height: 100,
-},
+  },
+  acceptRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  checkbox: {
+    width: 21,
+    height: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 4,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  checkmark: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  acceptText: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  locationText: {
+    flex: 1,
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 19,
+  },
+  confirmButton: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.5,
+  },
+  confirmText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  signatureCard: {
+    maxHeight: '90%',
+    padding: 16,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    gap: 14,
+  },
+  footer: {
+    padding: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  signatureCanvas: {
+    width: '100%',
+    height: 100,
+  },
 });
