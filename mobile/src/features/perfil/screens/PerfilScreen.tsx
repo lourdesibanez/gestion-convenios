@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LogOut } from 'lucide-react-native';
+import { LogOut, BookOpen, ChevronRight } from 'lucide-react-native';
 import { SegmentedControl, type SegmentedOption } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { radius, spacing, useTema, type Colores, type TamanoLetra, type Tipografia } from '@/theme';
+import { router } from 'expo-router';
 
 // Cada opción se muestra con su propio tamaño, así se ve la diferencia antes de elegir.
 const OPCIONES_LETRA: SegmentedOption<TamanoLetra>[] = [
@@ -57,8 +58,20 @@ export function PerfilScreen() {
           </View>
         </View>
 
-        {/* Acciones de la cuenta */}
+        {/* Ayuda y cuenta */}
         <View style={styles.tarjeta}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/manual')}
+            style={styles.filaAccion}
+          >
+            <BookOpen size={20} color={colors.text} />
+            <Text style={styles.filaTexto}>Manual de uso</Text>
+            <ChevronRight size={20} color={colors.textMuted} />
+          </Pressable>
+
+          <View style={styles.separador} />
+
           <Pressable
             accessibilityRole="button"
             onPress={confirmSignOut}
@@ -68,6 +81,7 @@ export function PerfilScreen() {
             <Text style={styles.cerrarSesion}>Cerrar sesión</Text>
           </Pressable>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -105,5 +119,6 @@ const crearEstilos = (colors: Colores, typography: Tipografia) =>
     filaTitulo: { ...typography.label, color: colors.text },
     filaSubtitulo: { ...typography.small, color: colors.textMuted },
     filaAccion: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 44 },
+    filaTexto: { ...typography.body, flex: 1, color: colors.text },
     cerrarSesion: { ...typography.body, color: colors.error, fontWeight: '600' },
   });

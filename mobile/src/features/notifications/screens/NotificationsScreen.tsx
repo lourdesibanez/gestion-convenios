@@ -21,6 +21,8 @@ import {
   type NotificacionesResponse,
 } from '@/features/notifications/services/notificationService';
 import { HeaderBack } from '@/components/molecules';
+import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
+
 
 type Filtro = 'todas' | 'por_firmar' | 'convenios';
 
@@ -246,15 +248,18 @@ export function NotificationsScreen() {
       <HeaderBack
         titulo="Notificaciones"
         acciones={
-          <Pressable
-            accessibilityRole="button"
-            disabled={sinLeer === 0}
-            onPress={() => void marcarTodasLeidas()}
-            style={styles.markReadButton}
-          >
-            <CheckCheck size={17} color={sinLeer > 0 ? colors.primary : colors.textMuted} />
-            <Text style={[styles.markReadText, sinLeer === 0 && styles.disabledText]}>Marcar leídas</Text>
-          </Pressable>
+          <>
+            <Pressable
+              accessibilityRole="button"
+              disabled={sinLeer === 0}
+              onPress={() => void marcarTodasLeidas()}
+              style={styles.markReadButton}
+            >
+              <CheckCheck size={17} color={sinLeer > 0 ? colors.primary : colors.textMuted} />
+              <Text style={[styles.markReadText, sinLeer === 0 && styles.disabledText]}>Marcar leídas</Text>
+            </Pressable>
+            <BotonAyuda seccion="notificaciones" color={colors.primary} />
+          </>
         }
       />
 

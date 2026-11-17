@@ -15,6 +15,8 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { FirmaExitosa } from '@/features/convenios/components/FirmaExitosa';
 import { OfflineBanner } from '@/components/molecules';
 import { HeaderBack } from '@/components/molecules';
+import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
+
 
 export default function SignatureScreen() {
   const { colors, fs } = useTema();
@@ -238,16 +240,20 @@ export default function SignatureScreen() {
         titulo={titulo}
         subtitulo={codigo}
         acciones={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Compartir PDF"
-            disabled={!file}
-            onPress={() => void compartir()}
-            style={styles.iconButton}
-          >
-            <Share color={file ? colors.primary : colors.textMuted} size={22} />
-          </Pressable>
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Compartir PDF"
+              disabled={!file}
+              onPress={() => void compartir()}
+              style={styles.iconButton}
+            >
+              <Share color={file ? colors.primary : colors.textMuted} size={22} />
+            </Pressable>
+            <BotonAyuda seccion="firma" color={colors.primary} />
+          </>
         }
+
       />
 
 
