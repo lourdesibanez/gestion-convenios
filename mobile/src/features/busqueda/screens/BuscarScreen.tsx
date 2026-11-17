@@ -506,10 +506,29 @@ export function BuscarScreen() {
         ListEmptyComponent={
           buscando ? (
             <ActivityIndicator style={styles.empty} color={colors.primary} />
-          ) : error ? undefined : (
+          ) : error ? undefined : activo ? (
+            // Con filtros: explica el motivo y ofrece salir del "callejón"
+            <View style={styles.emptyBox}>
+              <Text style={styles.empty}>No hay convenios con estos filtros.</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  setFiltros((actuales) => ({
+                    ...actuales,
+                    anio: undefined,
+                    tipo: undefined,
+                    unidad: undefined,
+                  }))
+                }
+              >
+                <Text style={styles.emptyAction}>Limpiar filtros</Text>
+              </Pressable>
+            </View>
+          ) : (
             <Text style={styles.empty}>No se encontraron convenios.</Text>
           )
         }
+
         ListFooterComponent={
           total > 0 ? (
             <View style={styles.pagination}>
@@ -616,6 +635,8 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       color: colors.textMuted,
       textAlign: 'center',
     },
+    emptyBox: { alignItems: 'center', gap: spacing.sm },
+    emptyAction: { color: colors.primary, fontSize: fs(14), fontWeight: '700' },
     errorText: {
       color: colors.error,
       fontSize: fs(13),
