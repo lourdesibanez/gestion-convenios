@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FirmaController;
 use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\TipoInstrumentoController;
+use App\Http\Controllers\IdentidadController;
 
 Route::prefix('auth')->group(function () {
     Route::post('login',                            [AuthController::class, 'iniciarSesion'])->middleware('throttle:5,1,login');
@@ -24,6 +25,11 @@ Route::prefix('auth')->group(function () {
         Route::get('me',                            [AuthController::class, 'obtenerUsuarioAutenticado']);
         Route::post('logout',                       [AuthController::class, 'cerrarSesion']);
         Route::post('push-token',                   [AuthController::class, 'guardarTokenPush']);
+
+        Route::get('identity',                          [IdentidadController::class, 'obtener'])->name('identity.show');
+        Route::post('identity/signature',               [IdentidadController::class, 'guardarFirma'])->name('identity.signature');
+        Route::post('identity/biometrics',              [IdentidadController::class, 'registrarBiometria'])->name('identity.biometrics');
+
     });
 });
 
