@@ -236,7 +236,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       gap: 12,
       padding: 16,
       borderWidth: 1,
-      borderColor: '#DEE5F0',
+      borderColor: colors.border,
       borderRadius: 16,
       backgroundColor: colors.background,
     },
@@ -264,7 +264,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       fontWeight: '700',
     },
     offensiveAvatar: {
-      backgroundColor: '#FEECEC',
+      backgroundColor: `${colors.error}1F`, // rojo suave (≈12%)
     },
     commentBubble: {
       flex: 1,
@@ -274,7 +274,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       backgroundColor: colors.surface,
     },
     offensiveBubble: {
-      backgroundColor: '#FEECEC',
+      backgroundColor: `${colors.error}1F`, // rojo suave (≈12%)
     },
     commentAuthor: {
       color: colors.textMuted,
@@ -297,7 +297,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       gap: 8,
       paddingLeft: 12,
       borderWidth: 1,
-      borderColor: '#B9CBE5',
+      borderColor: colors.border,
       borderRadius: 12,
     },
     input: {

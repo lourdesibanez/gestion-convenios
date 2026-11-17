@@ -198,7 +198,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       paddingHorizontal: 14,
       paddingVertical: 12,
       borderBottomWidth: 1,
-      borderBottomColor: '#EEF0F3',
+      borderBottomColor: colors.border,
     },
     filaUltima: {
       borderBottomWidth: 0,

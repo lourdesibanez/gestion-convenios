@@ -217,7 +217,7 @@ function NodoArbol({nodo,raiz = false, }: {
         <View
           style={[
             styles.typeBadge,
-            { backgroundColor: nodo.categoria === 'adenda' ? '#B45309' : colors.primary },
+            { backgroundColor: nodo.categoria === 'adenda' ? colors.status.pendiente : colors.primary },
           ]}
         >
           <Text style={styles.typeBadgeText}>
@@ -574,7 +574,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       gap: spacing.sm,
       padding: spacing.md,
       borderWidth: 1,
-      borderColor: '#DEE5F0',
+      borderColor: colors.border,
       borderRadius: 16,
       backgroundColor: colors.background,
     },
@@ -647,7 +647,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       marginBottom: spacing.sm,
       padding: spacing.sm,
       borderWidth: 1,
-      borderColor: '#DEE5F0',
+      borderColor: colors.border,
       borderRadius: 15,
       backgroundColor: colors.background,
     },
@@ -655,7 +655,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       marginBottom: spacing.xs,
       borderWidth: 0,
       borderLeftWidth: 2,
-      borderLeftColor: '#D9E2EF',
+      borderLeftColor: colors.border,
       borderRadius: 0,
     },
     nodeHeader: {
@@ -701,7 +701,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       marginLeft: 26,
       paddingLeft: spacing.sm,
       borderLeftWidth: 2,
-      borderLeftColor: '#D9E2EF',
+      borderLeftColor: colors.border,
     },
     documentRow: {
       flexDirection: 'row',
