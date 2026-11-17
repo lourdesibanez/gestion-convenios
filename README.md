@@ -35,6 +35,7 @@ Orientada a las autoridades que firman y consultan convenios:
 - Home con resumen: convenios firmados en el último año, vigentes, en trámite, últimos movimientos y pendientes de firma.
 - Buscador en el header y buscador avanzado con filtros; resultados en forma de árbol (convenio padre → hijos → resoluciones → documentos).
 - Firmador de convenios con visor de PDF con zoom, firma manuscrita + huella y opción de compartir por WhatsApp o email.
+- Carga móvil de convenios y adjuntos (resoluciones, borradores y anexos) como borradores.
 - Comentarios entre usuarios dentro de cada convenio, con detección automática de comentarios ofensivos.
 - Registro de identidad (firma, huella y reconocimiento facial).
 - Perfil: tamaño de letra, modo claro/oscuro y foto de perfil.
@@ -178,3 +179,5 @@ eas build -p android --profile preview
 ```
 
 Al finalizar, EAS devuelve el enlace de descarga del `.apk`.
+
+Para el acceso de cada desarrollador al proyecto EAS y la configuración de credenciales de Expo Push/FCM, consultar la [guía de compilación móvil](mobile/README.md).

@@ -2,16 +2,203 @@
 
 namespace App\Services;
 
+use App\Models\Estado;
+use App\Models\Institucion;
 use App\Models\Instrumento;
+use App\Models\TipoInstrumento;
 use App\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ConvenioService
 {
     private const ESTADOS_PUBLICOS = ['firmado'];
+
+    /**
+     * @return array{
+     *     puede_crear: bool,
+     *     tipos: Collection<int, TipoInstrumento>,
+     *     instituciones: Collection<int, Institucion>
+     * }
+     */
+    public function opcionesCreacion(Usuario $usuario): array
+    {
+        // Solo las unidades donde puede crear (permisos por rol y unidad).
+        $institucionesPermitidas = $usuario->institucionesConPermiso('instrumento.crear');
+        $instituciones = Institucion::query()
+            ->where('es_interna', true)
+            ->when(
+                $institucionesPermitidas !== null,
+                fn ($query) => $query->whereIn('id', $institucionesPermitidas),
+            )
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
+        return [
+            'puede_crear' => $usuario->tienePermiso('instrumento.crear'),
+            'tipos' => TipoInstrumento::query()
+                ->orderBy('nombre')
+                ->get(['id', 'nombre']),
+            'instituciones' => $instituciones,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    public function crear(Usuario $usuario, array $datos): Instrumento
+    {
+        return DB::transaction(function () use ($usuario, $datos): Instrumento {
+            $instrumento = Instrumento::create([
+                'codigo' => 'BORRADOR-'.Str::uuid(),
+                'titulo' => $datos['titulo'],
+                'id_tipo_instrumento' => $datos['id_tipo_instrumento'],
+                'id_institucion' => $datos['id_institucion'],
+                'id_estado' => Estado::where('nombre', 'borrador')->value('id'),
+                'fecha_inicio' => $datos['fecha_inicio'] ?? null,
+                'fecha_fin' => $datos['fecha_fin'] ?? null,
+                'fecha_preaviso' => $datos['fecha_preaviso'] ?? null,
+                'numero_resolucion' => $datos['numero_resolucion'] ?? null,
+                'referencia_expediente' => $datos['referencia_expediente'] ?? null,
+                'notas' => $datos['notas'] ?? null,
+            ]);
+
+            DB::table('convenio')->insert([
+                'id_instrumento' => $instrumento->id,
+                'objeto' => $datos['objeto'] ?? null,
+                'marco_legal' => $datos['marco_legal'] ?? null,
+                'obligaciones' => $datos['obligaciones'] ?? null,
+                'condiciones_terminacion' => $datos['condiciones_terminacion'] ?? null,
+                'condiciones_renovacion' => $datos['condiciones_renovacion'] ?? null,
+                'confidencialidad' => $datos['confidencialidad'] ?? null,
+                'alcance_actividades' => $datos['alcance_actividades'] ?? null,
+                'created_at' => now(),
+                'created_by' => $usuario->id,
+            ]);
+
+            return $instrumento->load(['tipo', 'institucion', 'estado']);
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    public function actualizar(Usuario $usuario, Instrumento $instrumento, array $datos): Instrumento
+    {
+        return DB::transaction(function () use ($usuario, $instrumento, $datos): Instrumento {
+            $actualizado = DB::table('instrumento')
+                ->where('id', $instrumento->id)
+                ->whereNull('deleted_at')
+                ->where('created_by', $usuario->id)
+                ->where('id_estado', Estado::where('nombre', 'borrador')->value('id'))
+                ->where('version', $datos['version'])
+                ->update([
+                    'titulo' => $datos['titulo'],
+                    'id_tipo_instrumento' => $datos['id_tipo_instrumento'],
+                    'id_institucion' => $datos['id_institucion'],
+                    'fecha_inicio' => $datos['fecha_inicio'] ?? null,
+                    'fecha_fin' => $datos['fecha_fin'] ?? null,
+                    'fecha_preaviso' => $datos['fecha_preaviso'] ?? null,
+                    'numero_resolucion' => $datos['numero_resolucion'] ?? null,
+                    'referencia_expediente' => $datos['referencia_expediente'] ?? null,
+                    'notas' => $datos['notas'] ?? null,
+                    'version' => DB::raw('version + 1'),
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            if ($actualizado !== 1) {
+                abort(409, 'El convenio cambió desde que lo abriste. Recargalo e intentá nuevamente.');
+            }
+
+            $detalleExiste = DB::table('convenio')
+                ->where('id_instrumento', $instrumento->id)
+                ->exists();
+            if (! $detalleExiste) {
+                abort(409, 'No se encontró el detalle del convenio para actualizar.');
+            }
+
+            DB::table('convenio')
+                ->where('id_instrumento', $instrumento->id)
+                ->update([
+                    'objeto' => $datos['objeto'] ?? null,
+                    'marco_legal' => $datos['marco_legal'] ?? null,
+                    'obligaciones' => $datos['obligaciones'] ?? null,
+                    'condiciones_terminacion' => $datos['condiciones_terminacion'] ?? null,
+                    'condiciones_renovacion' => $datos['condiciones_renovacion'] ?? null,
+                    'confidencialidad' => $datos['confidencialidad'] ?? null,
+                    'alcance_actividades' => $datos['alcance_actividades'] ?? null,
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+        });
+    }
+
+    public function enviarARevision(Usuario $usuario, Instrumento $instrumento): Instrumento
+    {
+        return DB::transaction(function () use ($usuario, $instrumento): Instrumento {
+            $idBorrador = Estado::query()->where('nombre', 'borrador')->firstOrFail()->id;
+            $idRevision = Estado::query()->where('nombre', 'revision')->firstOrFail()->id;
+
+            $actualizado = DB::table('instrumento')
+                ->where('id', $instrumento->id)
+                ->whereNull('deleted_at')
+                ->where('created_by', $usuario->id)
+                ->where('id_estado', $idBorrador)
+                ->update([
+                    'id_estado' => $idRevision,
+                    'version' => DB::raw('version + 1'),
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            if ($actualizado !== 1) {
+                abort(409, 'El convenio ya no está en borrador. Recargalo e intentá nuevamente.');
+            }
+
+            DB::table('historial_estado')->insert([
+                'id_instrumento' => $instrumento->id,
+                'id_estado_anterior' => $idBorrador,
+                'id_estado_nuevo' => $idRevision,
+                'id_usuario' => $usuario->id,
+                'created_at' => now(),
+            ]);
+
+            DB::table('usuario_instrumento')->insert([
+                'id_usuario' => $usuario->id,
+                'id_instrumento' => $instrumento->id,
+                'accion' => 'envio_revision',
+                'created_at' => now(),
+            ]);
+
+            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+        });
+    }
+
+    public function eliminarBorrador(Usuario $usuario, Instrumento $instrumento): void
+    {
+        DB::transaction(function () use ($usuario, $instrumento): void {
+            $idBorrador = Estado::query()->where('nombre', 'borrador')->firstOrFail()->id;
+            $borrador = Instrumento::query()
+                ->whereKey($instrumento->id)
+                ->where('created_by', $usuario->id)
+                ->where('id_estado', $idBorrador)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $borrador) {
+                abort(409, 'El convenio ya no está en borrador. Recargalo e intentá nuevamente.');
+            }
+
+            $borrador->delete();
+        });
+    }
 
     public function listar(Usuario $usuario, array $filtros): LengthAwarePaginator {
         // Primero identificamos todos los instrumentos que coinciden con la búsqueda.
@@ -243,6 +430,7 @@ class ConvenioService
                 'i.uuid',
                 'i.codigo',
                 'i.titulo',
+                'i.id_tipo_instrumento',
                 't.nombre as tipo',
                 't.categoria',
                 't.ambito',
@@ -351,6 +539,11 @@ class ConvenioService
 
         return [
             'instrumento_model' => $instrumento,
+            'puede_firmar' => $usuario->tienePermiso('instrumento.firmar')
+                && $usuario->firmas()
+                    ->pendientes()
+                    ->where('id_instrumento', $instrumento->id)
+                    ->exists(),
             'convenio' => $convenio,
             'partes' => $partes,
             'representantes' => $representantes,
@@ -368,7 +561,8 @@ class ConvenioService
             ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
             ->join('estado as e', 'e.id', '=', 'i.id_estado')
             ->where('e.nombre', 'revision')
-            ->whereIn('i.id', Instrumento::visiblePara($usuario)->select('id'))
+            // Solo de las unidades donde el usuario puede aprobar.
+            ->whereIn('i.id', Instrumento::visiblePara($usuario, 'instrumento.aprobar')->select('id'))
             ->select(
                 'i.id',
                 'i.codigo',
@@ -438,11 +632,7 @@ class ConvenioService
         }
 
         if (!empty($filtros['tipo'])) {
-            $query->where('t.ambito', $filtros['tipo']);
-        }
-
-        if (!empty($filtros['categoria'])) {
-            $query->where('t.categoria', $filtros['categoria']);
+            $query->where('i.id_tipo_instrumento', $filtros['tipo']);
         }
 
         if (!empty($filtros['unidad'])) {

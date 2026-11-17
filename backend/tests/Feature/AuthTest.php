@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Perfil;
 use App\Models\Usuario;
+use App\Models\UsuarioPerfil;
+use Database\Seeders\CatalogoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -14,16 +18,30 @@ class AuthTest extends TestCase
     {
         parent::setUp();
 
-        // Expone codigo_debug en la respuesta del login.
         config(['app.debug' => true]);
     }
 
     private function iniciarLogin(Usuario $usuario): array
     {
-        return $this->postJson('/api/auth/login', [
+        $desafio = $this->postJson('/api/auth/login', [
             'email' => $usuario->email,
             'password' => 'password',
-        ])->assertOk()->json();
+        ])->assertOk()->assertJsonStructure(['codigo_debug'])->json();
+
+        $this->assertSame($this->codigoDelUltimoCorreo(), $desafio['codigo_debug']);
+
+        return $desafio;
+    }
+
+    private function codigoDelUltimoCorreo(): string
+    {
+        $mensaje = Mail::mailer()->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+        $texto = $mensaje->getTextBody();
+        preg_match('/\b(\d{6})\b/', $texto, $coincidencias);
+
+        $this->assertArrayHasKey(1, $coincidencias);
+
+        return $coincidencias[1];
     }
 
     public function test_login_con_contrasena_incorrecta_falla(): void
@@ -48,7 +66,28 @@ class AuthTest extends TestCase
             'destino' => 'l•••••@unlpam.edu.ar',
             'canales_disponibles' => ['mail'],
             'reenviar_en_segundos' => 60,
-        ]);
+        ])->assertJsonStructure(['codigo_debug']);
+    }
+
+    public function test_codigo_de_restauracion_se_muestra_en_modo_debug(): void
+    {
+        $usuario = Usuario::factory()->create();
+
+        $this->postJson('/api/auth/forgot-password', [
+            'email' => $usuario->email,
+        ])->assertOk()
+            ->assertJsonStructure(['message', 'expira_en_minutos', 'codigo_debug']);
+    }
+
+    public function test_codigo_debug_no_se_expone_con_debug_desactivado(): void
+    {
+        config(['app.debug' => false]);
+        $usuario = Usuario::factory()->create();
+
+        $this->postJson('/api/auth/login', [
+            'email' => $usuario->email,
+            'password' => 'password',
+        ])->assertOk()->assertJsonPath('codigo_debug', null);
     }
 
     public function test_canales_disponibles_segun_datos_del_usuario(): void
@@ -73,7 +112,6 @@ class AuthTest extends TestCase
     {
         $usuario = Usuario::factory()->create(['telefono' => '2954123678']);
         $anterior = $this->iniciarLogin($usuario);
-
         $this->travel(61)->seconds();
 
         $nuevo = $this->postJson('/api/auth/resend-code', [
@@ -135,14 +173,29 @@ class AuthTest extends TestCase
             ->assertJsonMissingPath('contrasena');
     }
 
+    public function test_auth_me_devuelve_el_tipo_de_perfil_activo(): void
+    {
+        $this->seed(CatalogoSeeder::class);
+        $usuario = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $usuario->id,
+            'id_perfil' => Perfil::where('nombre', 'consulta')->value('id'),
+            'id_institucion' => null,
+        ]);
+
+        $this->actingAs($usuario)
+            ->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('tipo_perfil', 'consulta');
+    }
+
     public function test_codigo_incorrecto_no_entrega_token(): void
     {
         $desafio = $this->iniciarLogin(Usuario::factory()->create());
-        $codigoIncorrecto = $desafio['codigo_debug'] === '111111' ? '222222' : '111111';
 
         $this->postJson('/api/auth/verify-code', [
             'id_desafio' => $desafio['id_desafio'],
-            'codigo' => $codigoIncorrecto,
+            'codigo' => '000000',
             'dispositivo' => 'celular',
         ])->assertStatus(422)->assertJsonValidationErrors('codigo');
     }

@@ -6,6 +6,7 @@ use App\Models\Instrumento;
 use App\Models\ParteFirmante;
 use App\Models\Usuario;
 
+/** Permisos por rol y unidad: se exigen en la unidad del convenio de la parte. */
 class ParteFirmantePolicy
 {
     public function viewAny(Usuario $usuario): bool
@@ -15,20 +16,17 @@ class ParteFirmantePolicy
 
     public function view(Usuario $usuario, ParteFirmante $parte): bool
     {
-        return $usuario->tienePermiso('instrumento.ver')
-            && $this->instrumentoVisible($usuario, $parte->instrumento);
+        return $this->permisoEnUnidad($usuario, 'instrumento.ver', $parte->instrumento);
     }
 
     public function create(Usuario $usuario, Instrumento $instrumento): bool
     {
-        return $usuario->tienePermiso('instrumento.editar')
-            && $this->instrumentoVisible($usuario, $instrumento);
+        return $this->permisoEnUnidad($usuario, 'instrumento.editar', $instrumento);
     }
 
     public function update(Usuario $usuario, ParteFirmante $parte): bool
     {
-        return $usuario->tienePermiso('instrumento.editar')
-            && $this->instrumentoVisible($usuario, $parte->instrumento);
+        return $this->permisoEnUnidad($usuario, 'instrumento.editar', $parte->instrumento);
     }
 
     public function delete(Usuario $usuario, ParteFirmante $parte): bool
@@ -36,14 +34,9 @@ class ParteFirmantePolicy
         return $this->update($usuario, $parte);
     }
 
-    private function instrumentoVisible(Usuario $usuario, ?Instrumento $instrumento): bool
+    private function permisoEnUnidad(Usuario $usuario, string $permiso, ?Instrumento $instrumento): bool
     {
-        if (! $instrumento) {
-            return false;
-        }
-
-        $instituciones = $usuario->institucionesVisibles();
-
-        return $instituciones === null || in_array($instrumento->id_institucion, $instituciones, true);
+        return $instrumento !== null
+            && $usuario->tienePermiso($permiso, $instrumento->id_institucion);
     }
 }

@@ -1,25 +1,31 @@
-import { useEffect, useState, useRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert } from 'react-native';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Share, Fingerprint, Delete, Signature } from 'lucide-react-native';
+import { Share, Fingerprint, Delete, Signature, Check } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
-import { firmaService } from '@/features/firma/services/firmaService';
-import { colors } from '@/theme';
+import { firmaService, type RegistrarFirmaRespuesta } from '@/features/firma/services/firmaService';
+import { useTema, type Colores } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
-
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { FirmaExitosa } from '@/features/convenios/components/FirmaExitosa';
+import { OfflineBanner } from '@/components/molecules';
+import { HeaderBack } from '@/components/molecules';
 
 export default function SignatureScreen() {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const { id, titulo, codigo } = useLocalSearchParams<{
     id: string;
     titulo: string;
     codigo: string;
     }>();
   const router = useRouter();
+  const { tipoPerfil } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -29,10 +35,12 @@ export default function SignatureScreen() {
   const [firmaModalVisible, setFirmaModalVisible] = useState(false);
   const [firmaPath, setFirmaPath] = useState('');
   const firmaSvgRef = useRef<Svg | null>(null);
-const firmaPathRef = useRef('');
-const canvasSize = useRef({ width: 300, height: 100 });
-const [registrando, setRegistrando] = useState(false);
-const [firmaError, setFirmaError] = useState<string>();
+  const firmaPathRef = useRef('');
+  const canvasSize = useRef({ width: 300, height: 100 });
+  const [registrando, setRegistrando] = useState(false);
+  const [firmaError, setFirmaError] = useState<string>();
+  const [resultadoFirma, setResultadoFirma] = useState<RegistrarFirmaRespuesta | null>(null);
+  const [firmaRegistradaPng, setFirmaRegistradaPng] = useState<string | null>(null);
 
     const dibujoResponder = useRef(
         PanResponder.create({
@@ -71,6 +79,12 @@ const [firmaError, setFirmaError] = useState<string>();
     setError(undefined);
     setFile(null);
 
+    if (tipoPerfil === 'consulta') {
+      setError('Tu perfil no tiene permiso para firmar convenios.');
+      setLoading(false);
+      return;
+    }
+
     firmaService.descargarPdfPendiente(idInstrumento)
       .then((downloadedFile) => {
         if (active) setFile(downloadedFile);
@@ -87,7 +101,7 @@ const [firmaError, setFirmaError] = useState<string>();
     return () => {
       active = false;
     };
-  }, [id, attempt]);
+  }, [id, attempt, tipoPerfil]);
 
   const exportarFirmaPng = (): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -113,6 +127,11 @@ const [firmaError, setFirmaError] = useState<string>();
 
     const confirmarFirma = async () => {
     setFirmaError(undefined);
+
+      if (tipoPerfil === 'consulta') {
+        setFirmaError('Tu perfil no tiene permiso para firmar convenios.');
+        return;
+      }
 
     if (!acepta || !firmaPathRef.current.trim()) {
         setFirmaError('Dibujá tu firma y aceptá el documento para continuar.');
@@ -156,36 +175,10 @@ const [firmaError, setFirmaError] = useState<string>();
             longitud: ubicación.coords.longitude,
         });
 
-        let direccionTexto = '';
-        try {
-            const [direccion] = await Location.reverseGeocodeAsync({
-                latitude: resultado.latitud,
-                longitude: resultado.longitud,
-            });
-
-            if (direccion) {
-                direccionTexto = [
-                    direccion.streetNumber,
-                    direccion.street,
-                    direccion.district,
-                    direccion.city,
-                    direccion.region,
-                    direccion.country,
-                ]
-                    .filter(Boolean)
-                    .join(', ');
-            }
-        } catch {
-            // Si no se puede resolver la dirección, se muestran las coordenadas.
-        }
-
         setFirmaModalVisible(false);
+        setFirmaRegistradaPng(firma);
+        setResultadoFirma(resultado);
 
-        Alert.alert(
-        'Firma registrada',
-        `Fecha: ${new Date(resultado.firmado_en).toLocaleString('es-AR')}\n` +
-            `Ubicación: ${direccionTexto || `${resultado.latitud}, ${resultado.longitud}`}`,
-        );
     } catch (cause) {
         setFirmaError(
         cause instanceof Error ? cause.message : 'No se pudo registrar la firma.',
@@ -196,7 +189,7 @@ const [firmaError, setFirmaError] = useState<string>();
     };
 
   const compartir = async () => {
-    if (!file) return;
+    if (!resultadoFirma && !file) return;
 
     setShareError(undefined);
 
@@ -206,42 +199,57 @@ const [firmaError, setFirmaError] = useState<string>();
         return;
       }
 
-      await Sharing.shareAsync(file.uri, {
+      const archivo = resultadoFirma
+        ? await firmaService.descargarPdfFirmado(Number(id))
+        : file;
+
+      if (!archivo) return;
+
+      await Sharing.shareAsync(archivo.uri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Compartir convenio',
+        dialogTitle: resultadoFirma
+          ? 'Compartir PDF firmado'
+          : 'Compartir convenio',
       });
-    } catch {
-      setShareError('No se pudo compartir el PDF.');
+    } catch (cause) {
+      setShareError(
+        cause instanceof Error ? cause.message : 'No se pudo compartir el PDF.',
+      );
     }
   };
 
+  if (resultadoFirma) {
+    return (
+      <FirmaExitosa
+        codigo={codigo}
+        resultado={resultadoFirma}
+        firmaPng={firmaRegistradaPng}
+        shareError={shareError}
+        onVolver={() => router.replace('/home')}
+        onCompartir={() => void compartir()}
+      />
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-          onPress={() => router.back()}
-          style={styles.iconButton}
-        >
-          <ChevronLeft color={colors.text} size={24} />
-        </Pressable>
+      <OfflineBanner />
+      <HeaderBack
+        titulo={titulo}
+        subtitulo={codigo}
+        acciones={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Compartir PDF"
+            disabled={!file}
+            onPress={() => void compartir()}
+            style={styles.iconButton}
+          >
+            <Share color={file ? colors.primary : colors.textMuted} size={22} />
+          </Pressable>
+        }
+      />
 
-        <View style={styles.headerText}>
-            <Text numberOfLines={1} style={styles.title}>{titulo}</Text>
-            <Text style={styles.code}>{codigo}</Text>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Compartir PDF"
-          disabled={!file}
-          onPress={() => void compartir()}
-          style={styles.iconButton}
-        >
-          <Share color={file ? colors.primary : colors.textMuted} size={22} />
-        </Pressable>
-      </View>
 
       {shareError ? <Text style={styles.shareError}>{shareError}</Text> : null}
 
@@ -270,7 +278,7 @@ const [firmaError, setFirmaError] = useState<string>();
                 onPress={() => setFirmaModalVisible(true)}
                 style={styles.confirmButton}
             >
-                <Signature size={19} color="#FFFFFF" />
+                <Signature size={19} color={colors.onPrimary} />
                 <Text style={styles.confirmText}>Firmar convenio</Text>
             </Pressable>
             </View>
@@ -369,9 +377,9 @@ const [firmaError, setFirmaError] = useState<string>();
                     ]}
                     >
                     {registrando ? (
-                        <ActivityIndicator color="#FFFFFF" />
+                        <ActivityIndicator color={colors.onPrimary} />
                     ) : (
-                        <Fingerprint size={19} color="#FFFFFF" />
+                        <Fingerprint size={19} color={colors.onPrimary} />
                     )}
                     <Text style={styles.confirmText}>
                         {registrando ? 'Registrando firma…' : 'Confirmar firma con huella'}
@@ -387,153 +395,138 @@ const [firmaError, setFirmaError] = useState<string>();
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.surface },
-  header: {
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
-  messageText: { color: colors.textMuted },
-  error: { color: colors.error, textAlign: 'center' },
-  retry: { color: colors.primary, fontWeight: '700', padding: 8 },
-  shareError: { color: colors.error, padding: 8, textAlign: 'center' },
-  headerText: {
-    flex: 1,
-    marginLeft: 4,
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.surface },
+    iconButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    code: {
-    color: colors.textMuted,
-    fontSize: 12,
-    },
+    message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
+    messageText: { color: colors.textMuted },
+    error: { color: colors.error, textAlign: 'center' },
+    retry: { color: colors.primary, fontWeight: '700', padding: 8 },
+    shareError: { color: colors.error, padding: 8, textAlign: 'center' },
     content: {
-  padding: 16,
-  paddingBottom: 24,
-},
-pdfFrame: {
-  flex: 1,
-  overflow: 'hidden',
-},
-signatureHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-},
-signatureTitle: {
-  color: colors.primary,
-  fontSize: 16,
-  fontWeight: '700',
-},
-clearButton: {
-  padding: 6,
-},
-signatureBox: {
-  minHeight: 134,
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: colors.surface,
-  borderWidth: 1.5,
-  borderColor: '#B9CBE5',
-  borderStyle: 'dashed',
-  borderRadius: 12,
-  padding: 10,
-},
-signatureHint: {
-  alignSelf: 'flex-start',
-  color: colors.textMuted,
-  fontSize: 12,
-},
-acceptRow: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  gap: 10,
-},
-checkbox: {
-  width: 21,
-  height: 21,
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderWidth: 2,
-  borderColor: colors.primary,
-  borderRadius: 4,
-},
-checkboxChecked: {
-  backgroundColor: colors.primary,
-},
-checkmark: {
-  color: '#FFFFFF',
-  fontSize: 15,
-  fontWeight: '700',
-  lineHeight: 18,
-},
-acceptText: {
-  flex: 1,
-  color: colors.text,
-  fontSize: 14,
-  lineHeight: 20,
-},
-locationRow: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  gap: 8,
-},
-locationText: {
-  flex: 1,
-  color: colors.textMuted,
-  fontSize: 11,
-  lineHeight: 19,
-},
-confirmButton: {
-  minHeight: 54,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 10,
-  backgroundColor: colors.primary,
-  borderRadius: 12,
-},
-confirmButtonDisabled: {
-  opacity: 0.5,
-},
-confirmText: {
-  color: '#FFFFFF',
-  fontSize: 15,
-  fontWeight: '700',
-},
-modalOverlay: {
-  flex: 1,
-  justifyContent: 'flex-end',
-  backgroundColor: 'rgba(0, 0, 0, 0.45)',
-},
-signatureCard: {
-  maxHeight: '90%',
-  padding: 16,
-  backgroundColor: colors.background,
-  borderTopLeftRadius: 20,
-  borderTopRightRadius: 20,
-  gap: 14,
-},
-footer: {
-  padding: 12,
-  backgroundColor: colors.background,
-  borderTopWidth: 1,
-  borderTopColor: colors.border,
-},
-signatureCanvas: {
-  width: '100%',
-  height: 100,
-},
-});
+      padding: 16,
+      paddingBottom: 24,
+    },
+    pdfFrame: {
+      flex: 1,
+      overflow: 'hidden',
+    },
+    signatureHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    signatureTitle: {
+      color: colors.primary,
+      fontSize: fs(16),
+      fontWeight: '700',
+    },
+    clearButton: {
+      padding: 6,
+    },
+    signatureBox: {
+      minHeight: 134,
+      alignItems: 'center',
+      justifyContent: 'center',
+      // Siempre blanco, como el papel: el trazo (#315B96, fijo) se guarda como imagen y va en el PDF firmado.
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+      borderRadius: 12,
+      padding: 10,
+    },
+    signatureHint: {
+      alignSelf: 'flex-start',
+      color: colors.textMuted,
+      fontSize: fs(12),
+    },
+    acceptRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    checkbox: {
+      width: 21,
+      height: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.primary,
+      borderRadius: 4,
+    },
+    checkboxChecked: {
+      backgroundColor: colors.primary,
+    },
+    checkmark: {
+      color: colors.onPrimary,
+      fontSize: fs(15),
+      fontWeight: '700',
+      lineHeight: fs(18),
+    },
+    acceptText: {
+      flex: 1,
+      color: colors.text,
+      fontSize: fs(14),
+      lineHeight: fs(20),
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    locationText: {
+      flex: 1,
+      color: colors.textMuted,
+      fontSize: fs(11),
+      lineHeight: fs(19),
+    },
+    confirmButton: {
+      minHeight: 54,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+    },
+    confirmButtonDisabled: {
+      opacity: 0.5,
+    },
+    confirmText: {
+      color: colors.onPrimary,
+      fontSize: fs(15),
+      fontWeight: '700',
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: colors.overlay,
+    },
+    signatureCard: {
+      maxHeight: '90%',
+      padding: 16,
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      gap: 14,
+    },
+    footer: {
+      padding: 12,
+      backgroundColor: colors.background,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    signatureCanvas: {
+      width: '100%',
+      height: 100,
+    },
+  });

@@ -83,6 +83,34 @@ class ArchivoTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_perfil_consulta_no_puede_subir_archivos(): void
+    {
+        Storage::fake('local');
+        $instrumento = Instrumento::factory()->create();
+        $consulta = Usuario::factory()->create();
+        $this->asignarPerfil($consulta, 'consulta', null);
+
+        $this->actingAs($consulta)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_subir_archivo', false);
+
+        $this->actingAs($consulta)
+            ->post('/api/documents', [
+                'id_instrumento' => $instrumento->id,
+                'tipo_documento' => 'convenio',
+                'archivo' => UploadedFile::fake()->createWithContent(
+                    'contrato.pdf',
+                    "%PDF-1.4\nDocumento de prueba\n",
+                ),
+            ], ['Accept' => 'application/json'])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('archivo', [
+            'id_instrumento' => $instrumento->id,
+        ]);
+    }
+
     private function asignarPerfil(Usuario $usuario, string $perfil, ?int $idInstitucion): void
     {
         UsuarioPerfil::create([

@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { Bell, Mail, MessageSquareText } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '@/theme';
+import { radius, spacing, useTema, type Colores } from '@/theme';
 
 export type Canal = 'mail' | 'sms' | 'push';
 
@@ -18,6 +19,8 @@ type Props = {
 };
 
 export function ChannelSelector({ selected, available, disabled = false, onSelect }: Props) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   return (
     <View style={styles.row}>
       {OPTIONS.map(({ canal, label, icon: Icon }) => {
@@ -50,38 +53,39 @@ export function ChannelSelector({ selected, available, disabled = false, onSelec
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  chip: {
-    flex: 1,
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  selected: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  unavailable: {
-    opacity: 0.4,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.text,
-  },
-  labelSelected: {
-    color: colors.primary,
-    fontWeight: '500',
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    chip: {
+      flex: 1,
+      height: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    selected: {
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+      borderWidth: 2,
+    },
+    unavailable: {
+      opacity: 0.4,
+    },
+    label: {
+      fontSize: fs(15),
+      fontWeight: '500',
+      color: colors.text,
+    },
+    labelSelected: {
+      color: colors.primary,
+      fontWeight: '500',
+    },
+  });

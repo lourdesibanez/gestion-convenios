@@ -78,8 +78,26 @@ class HomeTest extends TestCase
 
         $home = $this->home($usuario);
 
-        $this->assertSame(['nombre' => 'Laura', 'apellido' => 'Iriarte', 'iniciales' => 'LI', 'unidad' => 'Secretaría Legal y Técnica'], $home['usuario']);
+        $this->assertSame([
+            'nombre' => 'Laura',
+            'apellido' => 'Iriarte',
+            'iniciales' => 'LI',
+            'unidad' => 'Secretaría Legal y Técnica',
+            'es_consulta' => false,
+        ], $home['usuario']);
         $this->assertSame(2, $home['notificaciones_sin_leer']);
+    }
+
+    public function test_encabezado_identifica_el_perfil_consulta(): void
+    {
+        $usuario = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $usuario->id,
+            'id_perfil' => Perfil::where('nombre', 'consulta')->value('id'),
+            'id_institucion' => $this->unidad->id,
+        ]);
+
+        $this->assertTrue($this->home($usuario)['usuario']['es_consulta']);
     }
 
     public function test_resumen_aplica_las_definiciones(): void

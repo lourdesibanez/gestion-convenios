@@ -5,6 +5,10 @@ namespace App\Policies;
 use App\Models\Instrumento;
 use App\Models\Usuario;
 
+/**
+ * Permisos por rol y unidad: sobre un convenio puntual se exige el permiso en
+ * la unidad responsable de ese convenio (o en un perfil de alcance global).
+ */
 class InstrumentoPolicy
 {
     public function viewAny(Usuario $usuario): bool
@@ -12,21 +16,43 @@ class InstrumentoPolicy
         return $usuario->tienePermiso('instrumento.ver');
     }
 
-    public function view(Usuario $usuario, Instrumento $instrumento): bool
+    /** En qué unidad puede crear se valida en ConvenioStoreRequest. */
+    public function create(Usuario $usuario): bool
     {
-        return $usuario->tienePermiso('instrumento.ver')
-            && $this->estaDentroDelAlcance($usuario, $instrumento);
+        return $usuario->tienePermiso('instrumento.crear');
     }
 
+    public function view(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.ver', $instrumento->id_institucion);
+    }
+
+    public function update(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.editar', $instrumento->id_institucion)
+            && $this->esBorradorPropio($usuario, $instrumento);
+    }
+
+    public function delete(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $this->update($usuario, $instrumento);
+    }
+
+    public function sendToReview(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $usuario->tienePermiso('instrumento.enviar_revision', $instrumento->id_institucion)
+            && $this->esBorradorPropio($usuario, $instrumento);
+    }
+
+    /** El listado se limita a las unidades donde puede aprobar (ConvenioService). */
     public function viewRevision(Usuario $usuario): bool
     {
         return $usuario->tienePermiso('instrumento.aprobar');
     }
 
-    private function estaDentroDelAlcance(Usuario $usuario, Instrumento $instrumento): bool
+    private function esBorradorPropio(Usuario $usuario, Instrumento $instrumento): bool
     {
-        $ids = $usuario->institucionesVisibles();
-
-        return $ids === null || in_array($instrumento->id_institucion, $ids, true);
+        return (int) $instrumento->created_by === (int) $usuario->id
+            && $instrumento->estado?->nombre === 'borrador';
     }
 }

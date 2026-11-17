@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '@/services/api';
 import { HomeData, homeService } from '../services/homeService';
+import { useUnidad } from '@/features/unidades/context/UnidadContext';
 
 export function useHome() {
   const [data, setData] = useState<HomeData>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>();
+  const { unidadActiva } = useUnidad();
+  const idUnidad = unidadActiva?.id ?? null;
 
   const load = useCallback(async () => {
     setError(undefined);
     try {
-      setData(await homeService.get());
+      setData(await homeService.get(idUnidad));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.');
     }
-  }, []);
+  }, [idUnidad]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));

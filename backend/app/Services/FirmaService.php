@@ -22,6 +22,7 @@ class FirmaService
 
     public function __construct(
         private PdfFirmadoService $pdfFirmado,
+        private NotificacionFirmaService $notificacionesFirma,
     ) {}
 
     public function registrar(Usuario $usuario, int $id_instrumento, array $datos): array {
@@ -29,7 +30,7 @@ class FirmaService
         $rutasCreadas = [];
 
         try {
-            return DB::transaction(function () use (
+            $resultado = DB::transaction(function () use (
                 $usuario,
                 $id_instrumento,
                 $datos,
@@ -179,13 +180,20 @@ class FirmaService
                 }
 
                 return [
-                    'mensaje' => 'La firma se registró correctamente.',
-                    'firmado_en' => $firmadoEn->toIso8601String(),
-                    'latitud' => $firma->latitud,
-                    'longitud' => $firma->longitud,
-                    'hash_documento' => $hashPdf,
-                    'documento' => $nombrePdf,
-                    'convenio_completo' => ! $quedanFirmasPendientes,
+                    'respuesta' => [
+                        'mensaje' => 'La firma se registró correctamente.',
+                        'firmado_en' => $firmadoEn->toIso8601String(),
+                        'latitud' => $firma->latitud,
+                        'longitud' => $firma->longitud,
+                        'hash_documento' => $hashPdf,
+                        'documento' => $nombrePdf,
+                        'convenio_completo' => ! $quedanFirmasPendientes,
+                    ],
+                    'pushes' => $this->notificacionesFirma->registrarFirma(
+                        $instrumento,
+                        $usuario,
+                        ! $quedanFirmasPendientes,
+                    ),
                 ];
             });
         } catch (Throwable $error) {
@@ -195,6 +203,10 @@ class FirmaService
 
             throw $error;
         }
+
+        $this->notificacionesFirma->despacharPushes($resultado['pushes']);
+
+        return $resultado['respuesta'];
     }
     public function listarPendientes(Usuario $usuario): LengthAwarePaginator
     {

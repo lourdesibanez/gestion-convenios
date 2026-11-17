@@ -2,13 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Models\Estado;
+use App\Models\Firma;
 use App\Models\Institucion;
 use App\Models\Instrumento;
 use App\Models\Perfil;
+use App\Models\TipoInstrumento;
 use App\Models\Usuario;
 use App\Models\UsuarioPerfil;
 use Database\Seeders\CatalogoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ConvenioTest extends TestCase
@@ -47,6 +51,52 @@ class ConvenioTest extends TestCase
         $this->assertSame(2, $respuesta->json('meta.last_page'));
     }
 
+    public function test_busqueda_usa_los_mismos_tipos_que_creacion(): void
+    {
+        $tiposCreacion = $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/create-options')
+            ->assertOk()
+            ->json('data.tipos');
+
+        $tiposBusqueda = $this->actingAs($this->usuario)
+            ->getJson('/api/types')
+            ->assertOk()
+            ->json('data.tipos');
+
+        $this->assertSame(
+            array_map(
+                fn (array $tipo): array => [
+                    'valor' => (string) $tipo['id'],
+                    'etiqueta' => $tipo['nombre'],
+                ],
+                $tiposCreacion,
+            ),
+            $tiposBusqueda,
+        );
+    }
+
+    public function test_filtro_tipo_busca_por_id_de_tipo_instrumento(): void
+    {
+        $tipo = TipoInstrumento::query()->where('nombre', 'Convenio marco de colaboración')->firstOrFail();
+        $coincide = Instrumento::factory()->create([
+            'id_institucion' => $this->unidad->id,
+            'id_tipo_instrumento' => $tipo->id,
+        ]);
+        Instrumento::factory()->create([
+            'id_institucion' => $this->unidad->id,
+            'id_tipo_instrumento' => TipoInstrumento::query()
+                ->whereKeyNot($tipo->id)
+                ->value('id'),
+        ]);
+
+        $respuesta = $this->actingAs($this->usuario)
+            ->getJson('/api/agreements?tipo='.$tipo->id)
+            ->assertOk();
+
+        $this->assertSame(1, $respuesta->json('meta.total'));
+        $this->assertSame($coincide->id, $respuesta->json('data.0.id'));
+    }
+
     public function test_detalle_tiene_formato_resource_y_respeta_el_alcance(): void
     {
         $propio = Instrumento::factory()->create([
@@ -61,12 +111,319 @@ class ConvenioTest extends TestCase
             ->getJson('/api/agreements/'.$propio->id)
             ->assertOk()
             ->assertJsonStructure(['convenio' => ['id', 'codigo'], 'partes', 'archivos'])
+            ->assertJsonPath('puede_subir_archivo', true)
             ->assertJsonMissingPath('ok')
             ->assertJsonMissingPath('data');
 
         $this->actingAs($this->usuario)
             ->getJson('/api/agreements/'.$ajeno->id)
             ->assertNotFound();
+    }
+
+    public function test_detalle_solo_habilita_firma_a_un_usuario_asignado(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('aprobado')
+            ->create(['id_institucion' => $this->unidad->id]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_firmar', false);
+
+        Firma::create([
+            'id_instrumento' => $instrumento->id,
+            'id_usuario' => $this->usuario->id,
+        ]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_firmar', true);
+    }
+
+    public function test_gestion_puede_crear_un_convenio_completo_en_borrador(): void
+    {
+        $tipo = TipoInstrumento::query()->where('categoria', 'especifico')->firstOrFail();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/create-options')
+            ->assertOk()
+            ->assertJsonPath('data.puede_crear', true)
+            ->assertJsonFragment(['id' => $this->unidad->id, 'nombre' => $this->unidad->nombre]);
+
+        $respuesta = $this->actingAs($this->usuario)
+            ->postJson('/api/agreements', [
+                'titulo' => 'Convenio móvil de prueba',
+                'id_tipo_instrumento' => $tipo->id,
+                'id_institucion' => $this->unidad->id,
+                'fecha_inicio' => '2027-01-15',
+                'fecha_fin' => '2028-01-15',
+                'fecha_preaviso' => '2027-11-15',
+                'numero_resolucion' => 'RES-123',
+                'referencia_expediente' => 'EXP-456',
+                'notas' => 'Notas de prueba',
+                'objeto' => 'Objeto del convenio',
+                'marco_legal' => 'Marco legal',
+                'obligaciones' => 'Obligaciones',
+                'condiciones_terminacion' => 'Condiciones de terminación',
+                'condiciones_renovacion' => 'Condiciones de renovación',
+                'confidencialidad' => 'Confidencialidad',
+                'alcance_actividades' => 'Alcance de actividades',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.estado', 'borrador')
+            ->assertJsonPath('data.titulo', 'Convenio móvil de prueba');
+
+        $id = $respuesta->json('data.id');
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $id,
+            'id_estado' => Estado::where('nombre', 'borrador')->value('id'),
+            'id_institucion' => $this->unidad->id,
+            'created_by' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseHas('convenio', [
+            'id_instrumento' => $id,
+            'objeto' => 'Objeto del convenio',
+            'alcance_actividades' => 'Alcance de actividades',
+            'created_by' => $this->usuario->id,
+        ]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$id)
+            ->assertOk()
+            ->assertJsonPath('convenio.titulo', 'Convenio móvil de prueba');
+    }
+
+    public function test_creador_puede_editar_su_borrador_y_se_incrementa_la_version(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_editar', true);
+
+        $this->actingAs($this->usuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version))
+            ->assertOk()
+            ->assertJsonPath('data.titulo', 'Título actualizado')
+            ->assertJsonPath('data.version', $instrumento->version + 1);
+
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $instrumento->id,
+            'titulo' => 'Título actualizado',
+            'version' => $instrumento->version + 1,
+            'updated_by' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseHas('convenio', [
+            'id_instrumento' => $instrumento->id,
+            'objeto' => 'Objeto actualizado',
+            'updated_by' => $this->usuario->id,
+        ]);
+    }
+
+    public function test_otro_usuario_no_puede_editar_un_borrador_ajeno(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+        $otroUsuario = Usuario::factory()->create();
+        $this->asignarPerfil($otroUsuario, 'gestion', $this->unidad->id);
+
+        $this->actingAs($otroUsuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_editar', false);
+
+        $this->actingAs($otroUsuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version))
+            ->assertForbidden();
+    }
+
+    public function test_un_borrador_no_se_puede_editar_con_una_version_anterior(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version + 1))
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $instrumento->id,
+            'titulo' => $instrumento->titulo,
+            'version' => $instrumento->version,
+        ]);
+    }
+
+    public function test_el_creador_no_puede_editar_un_convenio_fuera_de_borrador(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('revision')
+            ->create([
+                'id_institucion' => $this->unidad->id,
+                'created_by' => $this->usuario->id,
+            ])
+            ->refresh();
+
+        $this->actingAs($this->usuario)
+            ->patchJson('/api/agreements/'.$instrumento->id, $this->datosEdicion($instrumento->version))
+            ->assertForbidden();
+    }
+
+    public function test_gestion_puede_enviar_su_borrador_a_revision_y_registra_el_movimiento(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_enviar_revision', true);
+
+        $this->actingAs($this->usuario)
+            ->postJson('/api/agreements/'.$instrumento->id.'/submit-review')
+            ->assertOk()
+            ->assertJsonPath('data.estado', 'revision')
+            ->assertJsonPath('data.version', $instrumento->version + 1);
+
+        $this->assertDatabaseHas('instrumento', [
+            'id' => $instrumento->id,
+            'id_estado' => Estado::where('nombre', 'revision')->value('id'),
+            'updated_by' => $this->usuario->id,
+            'version' => $instrumento->version + 1,
+        ]);
+        $this->assertDatabaseHas('historial_estado', [
+            'id_instrumento' => $instrumento->id,
+            'id_estado_anterior' => Estado::where('nombre', 'borrador')->value('id'),
+            'id_estado_nuevo' => Estado::where('nombre', 'revision')->value('id'),
+            'id_usuario' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseHas('usuario_instrumento', [
+            'id_instrumento' => $instrumento->id,
+            'id_usuario' => $this->usuario->id,
+            'accion' => 'envio_revision',
+        ]);
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('convenio.estado', 'revision')
+            ->assertJsonPath('puede_editar', false)
+            ->assertJsonPath('puede_enviar_revision', false);
+    }
+
+    public function test_otro_usuario_no_puede_enviar_un_borrador_ajeno_a_revision(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+        $otroUsuario = Usuario::factory()->create();
+        $this->asignarPerfil($otroUsuario, 'gestion', $this->unidad->id);
+
+        $this->actingAs($otroUsuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_enviar_revision', false);
+
+        $this->actingAs($otroUsuario)
+            ->postJson('/api/agreements/'.$instrumento->id.'/submit-review')
+            ->assertForbidden();
+    }
+
+    public function test_creador_puede_eliminar_su_borrador_con_borrado_logico(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+
+        $this->actingAs($this->usuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_eliminar', true);
+
+        $this->actingAs($this->usuario)
+            ->deleteJson('/api/agreements/'.$instrumento->id)
+            ->assertNoContent();
+
+        $this->assertSoftDeleted('instrumento', [
+            'id' => $instrumento->id,
+            'deleted_by' => $this->usuario->id,
+        ]);
+        $this->assertDatabaseMissing('instrumento', [
+            'id' => $instrumento->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_otro_usuario_no_puede_eliminar_un_borrador_ajeno(): void
+    {
+        $instrumento = $this->crearBorradorPropio();
+        $otroUsuario = Usuario::factory()->create();
+        $this->asignarPerfil($otroUsuario, 'gestion', $this->unidad->id);
+
+        $this->actingAs($otroUsuario)
+            ->getJson('/api/agreements/'.$instrumento->id)
+            ->assertOk()
+            ->assertJsonPath('puede_eliminar', false);
+
+        $this->actingAs($otroUsuario)
+            ->deleteJson('/api/agreements/'.$instrumento->id)
+            ->assertForbidden();
+    }
+
+    public function test_el_creador_no_puede_eliminar_un_convenio_que_ya_salio_de_borrador(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('revision')
+            ->create([
+                'id_institucion' => $this->unidad->id,
+                'created_by' => $this->usuario->id,
+            ]);
+
+        $this->actingAs($this->usuario)
+            ->deleteJson('/api/agreements/'.$instrumento->id)
+            ->assertForbidden();
+    }
+
+    public function test_no_se_puede_enviar_a_revision_un_convenio_que_ya_salio_de_borrador(): void
+    {
+        $instrumento = Instrumento::factory()
+            ->enEstado('revision')
+            ->create([
+                'id_institucion' => $this->unidad->id,
+                'created_by' => $this->usuario->id,
+            ]);
+
+        $this->actingAs($this->usuario)
+            ->postJson('/api/agreements/'.$instrumento->id.'/submit-review')
+            ->assertForbidden();
+    }
+
+    public function test_revision_no_puede_crear_convenios(): void
+    {
+        $usuarioRevision = Usuario::factory()->create();
+        $this->asignarPerfil($usuarioRevision, 'revision', $this->unidad->id);
+
+        $this->actingAs($usuarioRevision)
+            ->getJson('/api/agreements/create-options')
+            ->assertOk()
+            ->assertJsonPath('data.puede_crear', false);
+
+        $this->actingAs($usuarioRevision)
+            ->postJson('/api/agreements', [
+                'titulo' => 'No autorizado',
+                'id_tipo_instrumento' => 1,
+                'id_institucion' => $this->unidad->id,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_no_se_puede_crear_un_convenio_en_una_unidad_ajena(): void
+    {
+        $unidadAjena = Institucion::factory()->interna()->create();
+
+        $this->actingAs($this->usuario)
+            ->postJson('/api/agreements', [
+                'titulo' => 'Unidad ajena',
+                'id_tipo_instrumento' => 1,
+                'id_institucion' => $unidadAjena->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('id_institucion');
     }
 
     public function test_consulta_publica_solo_expone_convenios_firmados(): void
@@ -128,5 +485,36 @@ class ConvenioTest extends TestCase
             'id_perfil' => Perfil::where('nombre', $perfil)->value('id'),
             'id_institucion' => $idInstitucion,
         ]);
+    }
+
+    private function crearBorradorPropio(): Instrumento
+    {
+        $instrumento = Instrumento::factory()->create([
+            'id_institucion' => $this->unidad->id,
+            'created_by' => $this->usuario->id,
+        ]);
+
+        DB::table('convenio')->insert([
+            'id_instrumento' => $instrumento->id,
+            'objeto' => 'Objeto inicial',
+            'created_at' => now(),
+            'created_by' => $this->usuario->id,
+        ]);
+
+        return $instrumento->refresh();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function datosEdicion(int $version): array
+    {
+        return [
+            'version' => $version,
+            'titulo' => 'Título actualizado',
+            'id_tipo_instrumento' => TipoInstrumento::query()->value('id'),
+            'id_institucion' => $this->unidad->id,
+            'objeto' => 'Objeto actualizado',
+        ];
     }
 }

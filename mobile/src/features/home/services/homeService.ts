@@ -6,6 +6,7 @@ export type HomeData = {
     apellido: string;
     iniciales: string;
     unidad: string;
+    es_consulta: boolean;
   };
   notificaciones_sin_leer: number;
   resumen: {
@@ -36,5 +37,5 @@ export type HomeData = {
 };
 
 export const homeService = {
-  get: () => api.get<HomeData>('/home'),
+  get: (unidad?: number | null) => api.get<HomeData>(unidad ? `/home?unidad=${unidad}` : '/home'),
 };

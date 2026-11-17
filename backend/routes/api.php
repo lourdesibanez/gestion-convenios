@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConvenioController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InstitucionController;
+use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\ParteFirmanteController;
 use App\Http\Controllers\RepresentanteController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +31,7 @@ Route::prefix('auth')->group(function () {
         Route::post('identity/signature',               [IdentidadController::class, 'guardarFirma'])->name('identity.signature');
         Route::post('identity/biometrics',              [IdentidadController::class, 'registrarBiometria'])->name('identity.biometrics');
 
+        Route::get('me/units',                      [AuthController::class, 'unidades']);
     });
 });
 
@@ -40,6 +42,9 @@ Route::get('public/agreements/{id}', [ConvenioController::class, 'obtenerDetalle
 // ---------- Solo con token (administración) ----------
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('home',                              [HomeController::class, 'obtenerDatos']);
+    Route::get('notifications',                     [NotificacionController::class, 'listar'])->name('notifications.index');
+    Route::patch('notifications/read-all',          [NotificacionController::class, 'marcarTodasLeidas'])->name('notifications.read-all');
+    Route::patch('notifications/{id}/read',          [NotificacionController::class, 'marcarLeida'])->name('notifications.read');
 
     Route::get('people',                            [RepresentanteController::class, 'listar'])->name('people.index');
     Route::post('people',                           [RepresentanteController::class, 'crear'])->name('people.store');
@@ -67,7 +72,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('documents.download');
 
     Route::get('agreements',                        [ConvenioController::class, 'listar'])->name('agreements.index');
+    Route::post('agreements',                       [ConvenioController::class, 'crear'])->name('agreements.store');
+    Route::post('agreements/{id}/submit-review',     [ConvenioController::class, 'enviarARevision'])->name('agreements.submit-review');
+    Route::delete('agreements/{id}',                 [ConvenioController::class, 'eliminar'])->name('agreements.destroy');
     Route::get('agreements/review',                 [ConvenioController::class, 'listarEnRevision'])->name('agreements.review');
+    Route::get('agreements/create-options',         [ConvenioController::class, 'opcionesCreacion'])->name('agreements.create-options');
+    Route::match(['put', 'patch'], 'agreements/{id}', [ConvenioController::class, 'actualizar'])->name('agreements.update');
     Route::get('agreements/{id}',                   [ConvenioController::class, 'obtenerDetalle'])->name('agreements.show');
 
     Route::get('signatures/pending',                                [FirmaController::class, 'listarPendientes'])->name('signatures.pending');

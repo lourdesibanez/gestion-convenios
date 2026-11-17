@@ -52,4 +52,26 @@ class InstitucionTest extends TestCase
         $this->getJson('/api/units/'.$institucionPropia->id)->assertOk();
         $this->getJson('/api/units/'.$institucionAjena->id)->assertNotFound();
     }
+
+    public function test_revision_puede_listar_instituciones_y_consulta_no(): void
+    {
+        $this->seed(CatalogoSeeder::class);
+
+        $revision = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $revision->id,
+            'id_perfil' => Perfil::where('nombre', 'revision')->value('id'),
+            'id_institucion' => null,
+        ]);
+
+        $consulta = Usuario::factory()->create();
+        UsuarioPerfil::create([
+            'id_usuario' => $consulta->id,
+            'id_perfil' => Perfil::where('nombre', 'consulta')->value('id'),
+            'id_institucion' => null,
+        ]);
+
+        $this->actingAs($revision)->getJson('/api/units')->assertOk();
+        $this->actingAs($consulta)->getJson('/api/units')->assertForbidden();
+    }
 }

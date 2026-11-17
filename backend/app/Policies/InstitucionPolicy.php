@@ -9,12 +9,14 @@ class InstitucionPolicy
 {
     public function viewAny(Usuario $usuario): bool
     {
-        return $usuario->tienePermiso('institucion.gestionar');
+        return $usuario->tienePermiso('institucion.ver')
+            || $usuario->tienePermiso('institucion.gestionar');
     }
 
     public function view(Usuario $usuario, Institucion $institucion): bool
     {
-        return $usuario->tienePermiso('institucion.gestionar')
+        return ($usuario->tienePermiso('institucion.ver')
+            || $usuario->tienePermiso('institucion.gestionar'))
             && $this->estaDentroDelAlcance($usuario, $institucion);
     }
 
