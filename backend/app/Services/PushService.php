@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\VerificarReciboPushExpo;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -26,11 +27,37 @@ class PushService
             'priority' => 'high',
         ]);
 
-        // Expo responde 200 aunque el envío falle; el detalle viene en data.status.
-        if ($respuesta->failed() || $respuesta->json('data.status') === 'error') {
+        $ticket = $respuesta->json('data');
+
+        if ($respuesta->failed() || ($ticket['status'] ?? null) === 'error') {
             Log::warning('No se pudo enviar el push', [
-                'respuesta' => $respuesta->json(),
+                'http_status' => $respuesta->status(),
+                'error_code' => $ticket['details']['error'] ?? null,
+                'message' => $this->sanitizarMensaje(
+                    $ticket['message'] ?? $respuesta->json('errors.0.message')
+                ),
             ]);
+
+            return;
         }
+
+        if (($ticket['status'] ?? null) !== 'ok' || ! is_string($ticket['id'] ?? null)) {
+            Log::warning('Expo no devolvió un ticket válido para el push', [
+                'http_status' => $respuesta->status(),
+            ]);
+
+            return;
+        }
+
+        VerificarReciboPushExpo::dispatch($ticket['id'])->delay(now()->addMinutes(15));
+    }
+
+    private function sanitizarMensaje(?string $mensaje): ?string
+    {
+        if ($mensaje === null) {
+            return null;
+        }
+
+        return preg_replace('/(?:Exponent|Expo)PushToken\[[^\]]+\]/', '[push-token]', $mensaje);
     }
 }

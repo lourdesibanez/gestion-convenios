@@ -632,11 +632,7 @@ class ConvenioService
         }
 
         if (!empty($filtros['tipo'])) {
-            $query->where('t.ambito', $filtros['tipo']);
-        }
-
-        if (!empty($filtros['categoria'])) {
-            $query->where('t.categoria', $filtros['categoria']);
+            $query->where('i.id_tipo_instrumento', $filtros['tipo']);
         }
 
         if (!empty($filtros['unidad'])) {

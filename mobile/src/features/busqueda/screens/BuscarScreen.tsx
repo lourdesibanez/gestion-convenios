@@ -327,7 +327,6 @@ export function BuscarScreen() {
   const offline = useOffline();
   const [catalogos, setCatalogos] = useState<CatalogosBusqueda>({
     tipos: [],
-    categorias: [],
   });
   const [unidades, setUnidades] = useState<UnidadBusqueda[]>([]);
   const [catalogosCargando, setCatalogosCargando] = useState(true);
@@ -432,7 +431,6 @@ export function BuscarScreen() {
   };
 
   const tipos = opcionesConTodos(catalogos.tipos);
-  const categorias = opcionesConTodos(catalogos.categorias);
   const opcionesUnidades: Opcion[] = opcionesConTodos(
     unidades.map((unidad) => ({
       valor: String(unidad.id),
@@ -441,7 +439,7 @@ export function BuscarScreen() {
   );
 
   const activo =
-    Boolean(filtros.anio || filtros.tipo || filtros.categoria || filtros.unidad);
+    Boolean(filtros.anio || filtros.tipo || filtros.unidad);
 
   const cabecera = (
     <View style={styles.header}>
@@ -473,29 +471,20 @@ export function BuscarScreen() {
                 />
               </View>
 
-              <SelectField
-                label="Tipo"
-                value={filtros.tipo ?? ''}
-                options={adaptarOpciones(tipos)}
-                onValueChange={(valor) => actualizarFiltro('tipo', valor)}
-                placeholder="Todos"
+              <Selector
+                titulo="Tipo de convenio"
+                valor={filtros.tipo ?? ''}
+                opciones={tipos}
+                onSeleccionar={(valor) => actualizarFiltro('tipo', valor)}
               />
             </View>
 
             <View style={styles.filterRow}>
-              <SelectField
-                label="Categoría"
-                value={filtros.categoria ?? ''}
-                options={adaptarOpciones(categorias)}
-                onValueChange={(valor) => actualizarFiltro('categoria', valor)}
-                placeholder="Todos"
-              />
-              <SelectField
-                label="Unidad"
-                value={filtros.unidad ?? ''}
-                options={adaptarOpciones(opcionesUnidades)}
-                onValueChange={(valor) => actualizarFiltro('unidad', valor)}
-                placeholder="Todos"
+              <Selector
+                titulo="Unidad"
+                valor={filtros.unidad ?? ''}
+                opciones={opcionesUnidades}
+                onSeleccionar={(valor) => actualizarFiltro('unidad', valor)}
               />
             </View>
           </>

@@ -6,7 +6,7 @@ import { authService, LoginChallenge } from '../services/authService';
 import { Alert } from 'react-native';
 
 type Challenge = Pick<LoginChallenge,
-  'id_desafio' | 'canal' | 'destino' | 'canales_disponibles'| 'reenviar_en_segundos' | 'codigo_debug' 
+  'id_desafio' | 'canal' | 'destino' | 'canales_disponibles'| 'reenviar_en_segundos' | 'codigo_debug'
 >;
 
 //Acá vive la lógica: la cuenta regresiva, llamar a la API y guardar el token.
