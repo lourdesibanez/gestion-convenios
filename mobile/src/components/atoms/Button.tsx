@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme';
+import { radius, spacing, useTema, type Colores, type Tipografia } from '@/theme';
 
 type Props = {
   title: string;
@@ -19,12 +19,16 @@ export function Button({
   loading = false,
   disabled = false,
 }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   const isPrimary = variant === 'primary';
 
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         isPrimary ? styles.primary : styles.outline,
@@ -33,7 +37,7 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.background : colors.primary} />
+        <ActivityIndicator color={isPrimary ? colors.onPrimary : colors.primary} />
       ) : (
         <View style={styles.content}>
           {icon}
@@ -46,40 +50,25 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    height: 52,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  primary: {
-    backgroundColor: colors.primary,
-  },
-  outline: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pressed: {
-    opacity: 0.8,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  text: {
-    ...typography.button,
-  },
-  textPrimary: {
-    color: colors.background,
-  },
-  textOutline: {
-    color: colors.primary,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    base: {
+      minHeight: 52, // minHeight y no height: con letra grande el texto no se corta
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    primary: { backgroundColor: colors.primary },
+    outline: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    pressed: { opacity: 0.8 },
+    disabled: { opacity: 0.5 },
+    content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    text: { ...typography.button },
+    textPrimary: { color: colors.onPrimary },
+    textOutline: { color: colors.primary },
+  });

@@ -1,5 +1,6 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors, typography } from '@/theme';
+import { useTema, type Colores, type Tipografia } from '@/theme';
 
 type Props = {
   title: string;
@@ -7,6 +8,8 @@ type Props = {
 };
 
 export function TextLink({ title, onPress }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   return (
     <Pressable onPress={onPress} hitSlop={8}>
       {({ pressed }) => (
@@ -16,13 +19,14 @@ export function TextLink({ title, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  text: {
-    ...typography.small,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  pressed: {
-    opacity: 0.6,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    text: {
+      ...typography.small,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    pressed: {
+      opacity: 0.6,
+    },
+  });

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, Divider, TextLink } from '@/components/atoms';
 import { BiometricButton, FormField } from '@/components/molecules';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 
 export type LoginData = {
   email: string;
@@ -46,6 +46,8 @@ export function LoginForm({
   loading = false,
   serverError,
 }: Props) {
+  const { colors, typography } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Errors>({});
@@ -116,20 +118,21 @@ export function LoginForm({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.md,
-  },
-  forgot: {
-    alignItems: 'flex-end',
-  },
-  serverError: {
-    ...typography.small,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  biometricRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    container: {
+      gap: spacing.md,
+    },
+    forgot: {
+      alignItems: 'flex-end',
+    },
+    serverError: {
+      ...typography.small,
+      color: colors.error,
+      textAlign: 'center',
+    },
+    biometricRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+  });

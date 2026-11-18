@@ -83,10 +83,13 @@ class Instrumento extends Model
 
     /**
      * Solo los instrumentos de las unidades del usuario (todos si tiene alcance global).
+     * Con $permiso: solo los de las unidades donde tiene ese permiso.
      */
-    public function scopeVisiblePara(Builder $query, Usuario $usuario): void
+    public function scopeVisiblePara(Builder $query, Usuario $usuario, ?string $permiso = null): void
     {
-        $instituciones = $usuario->institucionesVisibles();
+        $instituciones = $permiso === null
+            ? $usuario->institucionesVisibles()
+            : $usuario->institucionesConPermiso($permiso);
 
         if ($instituciones !== null) {
             $query->whereIn('id_institucion', $instituciones);

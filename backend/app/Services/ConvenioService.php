@@ -27,12 +27,13 @@ class ConvenioService
      */
     public function opcionesCreacion(Usuario $usuario): array
     {
-        $institucionesVisibles = $usuario->institucionesVisibles();
+        // Solo las unidades donde puede crear (permisos por rol y unidad).
+        $institucionesPermitidas = $usuario->institucionesConPermiso('instrumento.crear');
         $instituciones = Institucion::query()
             ->where('es_interna', true)
             ->when(
-                $institucionesVisibles !== null,
-                fn ($query) => $query->whereIn('id', $institucionesVisibles),
+                $institucionesPermitidas !== null,
+                fn ($query) => $query->whereIn('id', $institucionesPermitidas),
             )
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
@@ -560,7 +561,8 @@ class ConvenioService
             ->join('institucion as u', 'u.id', '=', 'i.id_institucion')
             ->join('estado as e', 'e.id', '=', 'i.id_estado')
             ->where('e.nombre', 'revision')
-            ->whereIn('i.id', Instrumento::visiblePara($usuario)->select('id'))
+            // Solo de las unidades donde el usuario puede aprobar.
+            ->whereIn('i.id', Instrumento::visiblePara($usuario, 'instrumento.aprobar')->select('id'))
             ->select(
                 'i.id',
                 'i.codigo',

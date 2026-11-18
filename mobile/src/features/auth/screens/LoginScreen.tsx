@@ -6,6 +6,7 @@ import { AuthTemplate } from '@/components/templates';
 import { spacing } from '@/theme';
 import { useAuth } from '../context/AuthContext';
 import { useLogin } from '../hooks/useLogin';
+import { OfflineBanner } from '@/components/molecules';
 
 export function LoginScreen() {
   const { login, loading, error } = useLogin();
@@ -40,6 +41,7 @@ export function LoginScreen() {
       title={locked ? 'Hola de nuevo' : 'Gestión de Convenios'}
       subtitle={locked ? 'Usá tu huella o ingresá con tu contraseña' : 'Ingresá con tu cuenta institucional'}
     >
+      <OfflineBanner mensaje="Sin conexión. Necesitás internet para iniciar sesión." />
       <LoginForm
         onSubmit={login}
         loading={loading}

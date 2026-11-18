@@ -11,23 +11,16 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  ArrowLeft,
-  Bell,
-  CheckCheck,
-  ChevronRight,
-  FileText,
-  MessageCircle,
-  PenLine,
-  Signature,
-} from 'lucide-react-native';
-import { colors, spacing } from '@/theme';
+import {Bell, CheckCheck, ChevronRight, FileText, MessageCircle, PenLine, Signature} from 'lucide-react-native';
+import { spacing, useTema, type Colores } from '@/theme';
+import { EstadoBadge } from '@/components/atoms';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   notificationService,
   type Notificacion,
   type NotificacionesResponse,
 } from '@/features/notifications/services/notificationService';
+import { HeaderBack } from '@/components/molecules';
 
 type Filtro = 'todas' | 'por_firmar' | 'convenios';
 
@@ -72,6 +65,7 @@ function esDeHoy(fecha: string): boolean {
 }
 
 function IconoNotificacion({ tipo }: { tipo: string }) {
+  const { colors } = useTema();
   const iconProps = { size: 20, color: colors.primary };
 
   if (tipo === 'firma_pendiente' || tipo === 'firma_registrada') {
@@ -86,6 +80,8 @@ function IconoNotificacion({ tipo }: { tipo: string }) {
 }
 
 export function NotificationsScreen() {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const { tipoPerfil } = useAuth();
   const esConsulta = tipoPerfil?.trim().toLocaleLowerCase('es-AR') === 'consulta';
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
@@ -232,7 +228,7 @@ export function NotificationsScreen() {
                 <View style={styles.agreementRow}>
                   <Text style={styles.agreementCode}>{notificacion.convenio.codigo}</Text>
                   {!!notificacion.convenio.estado && (
-                    <Text style={styles.agreementState}>{notificacion.convenio.estado}</Text>
+                    <EstadoBadge estado={notificacion.convenio.estado} />
                   )}
                 </View>
               )}
@@ -247,27 +243,21 @@ export function NotificationsScreen() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-          hitSlop={8}
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <ArrowLeft size={22} color={colors.text} />
-        </Pressable>
-        <Text style={styles.title}>Notificaciones</Text>
-        <Pressable
-          accessibilityRole="button"
-          disabled={sinLeer === 0}
-          onPress={() => void marcarTodasLeidas()}
-          style={styles.markReadButton}
-        >
-          <CheckCheck size={17} color={sinLeer > 0 ? colors.primary : colors.textMuted} />
-          <Text style={[styles.markReadText, sinLeer === 0 && styles.disabledText]}>Marcar leídas</Text>
-        </Pressable>
-      </View>
+      <HeaderBack
+        titulo="Notificaciones"
+        acciones={
+          <Pressable
+            accessibilityRole="button"
+            disabled={sinLeer === 0}
+            onPress={() => void marcarTodasLeidas()}
+            style={styles.markReadButton}
+          >
+            <CheckCheck size={17} color={sinLeer > 0 ? colors.primary : colors.textMuted} />
+            <Text style={[styles.markReadText, sinLeer === 0 && styles.disabledText]}>Marcar leídas</Text>
+          </Pressable>
+        }
+      />
+
 
       {esConsulta ? (
         <View style={styles.consultaNotice}>
@@ -351,218 +341,197 @@ export function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  header: {
-    minHeight: 58,
-    paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    width: 36,
-    alignItems: 'flex-start',
-  },
-  title: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  markReadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  markReadText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  disabledText: {
-    color: colors.textMuted,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
-  },
-  consultaNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
-  },
-  consultaNoticeText: {
-    flex: 1,
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  filterChip: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  selectedFilter: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filterText: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  selectedFilterText: {
-    color: colors.background,
-  },
-  content: {
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  group: {
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  groupTitle: {
-    marginBottom: 2,
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  unreadCard: {
-    borderColor: colors.primarySoft,
-    backgroundColor: '#F8FAFD',
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 13,
-    backgroundColor: colors.primarySoft,
-  },
-  cardContent: {
-    flex: 1,
-    gap: 4,
-  },
-  cardHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  cardTitle: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  cardTime: {
-    color: colors.textMuted,
-    fontSize: 11,
-  },
-  message: {
-    color: colors.textMuted,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  agreementRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: 2,
-  },
-  agreementCode: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  agreementState: {
-    color: colors.textMuted,
-    fontSize: 11,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#F59E0B',
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-  },
-  helperText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  retryButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-  },
-  retryText: {
-    color: colors.background,
-    fontWeight: '700',
-  },
-  empty: {
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 64,
-  },
-  emptyIcon: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 30,
-    backgroundColor: colors.primarySoft,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  loadMoreButton: {
-    alignItems: 'center',
-    padding: spacing.md,
-  },
-  loadMoreText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    markReadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    markReadText: {
+      color: colors.primary,
+      fontSize: fs(12),
+      fontWeight: '600',
+    },
+    disabledText: {
+      color: colors.textMuted,
+    },
+    filterRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      backgroundColor: colors.background,
+    },
+    consultaNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      backgroundColor: colors.background,
+    },
+    consultaNoticeText: {
+      flex: 1,
+      color: colors.primary,
+      fontSize: fs(13),
+      fontWeight: '600',
+    },
+    filterChip: {
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    selectedFilter: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    filterText: {
+      color: colors.textMuted,
+      fontSize: fs(13),
+      fontWeight: '600',
+    },
+    selectedFilterText: {
+      color: colors.background,
+    },
+    content: {
+      padding: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    group: {
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    groupTitle: {
+      marginBottom: 2,
+      color: colors.textMuted,
+      fontSize: fs(13),
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 16,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    // Sin leer: fondo azul suave del tema (acompaña al punto naranja en claro y oscuro).
+    unreadCard: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    iconBox: {
+      width: 42,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 13,
+      backgroundColor: colors.primarySoft,
+    },
+    cardContent: {
+      flex: 1,
+      gap: 4,
+    },
+    cardHeading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    cardTitle: {
+      flex: 1,
+      color: colors.text,
+      fontSize: fs(14),
+      fontWeight: '700',
+    },
+    cardTime: {
+      color: colors.textMuted,
+      fontSize: fs(11),
+    },
+    message: {
+      color: colors.textMuted,
+      fontSize: fs(13),
+      lineHeight: fs(18),
+    },
+    agreementRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginTop: 2,
+    },
+    agreementCode: {
+      color: colors.primary,
+      fontSize: fs(12),
+      fontWeight: '700',
+    },
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.status.pendiente,
+    },
+    centered: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.md,
+      padding: spacing.lg,
+    },
+    helperText: {
+      color: colors.textMuted,
+      fontSize: fs(14),
+      textAlign: 'center',
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: fs(14),
+      textAlign: 'center',
+    },
+    retryButton: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: 10,
+      backgroundColor: colors.primary,
+    },
+    retryText: {
+      color: colors.background,
+      fontWeight: '700',
+    },
+    empty: {
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: 64,
+    },
+    emptyIcon: {
+      width: 60,
+      height: 60,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 30,
+      backgroundColor: colors.primarySoft,
+    },
+    emptyTitle: {
+      color: colors.text,
+      fontSize: fs(18),
+      fontWeight: '700',
+    },
+    loadMoreButton: {
+      alignItems: 'center',
+      padding: spacing.md,
+    },
+    loadMoreText: {
+      color: colors.primary,
+      fontSize: fs(14),
+      fontWeight: '700',
+    },
+  });

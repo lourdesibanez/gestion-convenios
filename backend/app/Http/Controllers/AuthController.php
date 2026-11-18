@@ -90,7 +90,7 @@ class AuthController extends Controller
      * Login directo para la web: valida email y contraseña y entrega el token,
      * sin código de verificación.
      */
-    
+
     public function obtenerUsuarioAutenticado(Request $request): UsuarioResource
     {
         return new UsuarioResource($request->user());
@@ -129,4 +129,10 @@ class AuthController extends Controller
             'usuario' => $usuario,
         ]);
     }
+
+    public function unidades(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $request->user()->unidades()]);
+    }
+
 }

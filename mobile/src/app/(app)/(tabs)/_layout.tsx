@@ -1,21 +1,26 @@
 import { Tabs } from 'expo-router';
 import { House, Search, Signature, UserRound } from 'lucide-react-native';
-import { colors } from '@/theme';
-import { StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTema } from '@/theme';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/organisms/AppHeader';
 import { BusquedaProvider } from '@/features/busqueda/context/BusquedaContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { OfflineBanner } from '@/components/molecules';
 
 export default function AppLayout() {
   const insets = useSafeAreaInsets();
   const { tipoPerfil } = useAuth();
+  const { colors, fs } = useTema();
 
   return (
       <BusquedaProvider>
-        <SafeAreaView edges={['top']} style={styles.safe}>
+        {/* Fondo gris claro: así se ven las esquinas redondeadas del header.
+            La zona de la hora (inset superior) la pinta el propio header. */}
+        <View style={{ flex: 1, backgroundColor: colors.surface }}>
           <AppHeader />
-          <View style={styles.tabs}>
+          <OfflineBanner />
+          <View style={{ flex: 1 }}>
             <Tabs
               screenOptions={{
                 headerShown: false,
@@ -28,7 +33,7 @@ export default function AppLayout() {
                   backgroundColor: colors.background,
                   borderTopColor: colors.border,
                 },
-                tabBarLabelStyle: { fontSize: 12 },
+                tabBarLabelStyle: { fontSize: fs(12) },
               }}
             >
             
@@ -67,19 +72,8 @@ export default function AppLayout() {
             />
             </Tabs>
           </View>
-        </SafeAreaView>
+        </View>
       </BusquedaProvider>
 
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.primary,
-  },
-  tabs: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-});
