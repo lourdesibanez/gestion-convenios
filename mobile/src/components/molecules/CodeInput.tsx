@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, TextInputInstance } from 'react-native';
-import { colors, radius, spacing } from '@/theme';
+import { radius, spacing, useTema, type Colores } from '@/theme';
 
 const LENGTH = 6;
 
@@ -13,6 +13,8 @@ type Props = {
 //Son las 6 cajitas del código. Por detrás hay un solo TextInput invisible: el usuario escribe ahí y las cajitas solo muestran cada dígito. 
 // Así el celular puede autocompletar el código desde el SMS o el mail, y borrar funciona normal.
 export function CodeInput({ value, onChange, hasError = false }: Props) {
+  const { colors, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const inputRef = useRef<TextInputInstance>(null);
   const [focused, setFocused] = useState(false);
 
@@ -46,37 +48,38 @@ export function CodeInput({ value, onChange, hasError = false }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  box: {
-    flex: 1,
-    height: 56,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  current: {
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  error: {
-    borderColor: colors.error,
-  },
-  digit: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  hiddenInput: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
-    opacity: 0,
-  },
-});
+const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    box: {
+      flex: 1,
+      height: 56,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    current: {
+      borderWidth: 2,
+      borderColor: colors.primary,
+    },
+    error: {
+      borderColor: colors.error,
+    },
+    digit: {
+      fontSize: fs(24),
+      fontWeight: '700',
+      color: colors.text,
+    },
+    hiddenInput: {
+      position: 'absolute',
+      width: 1,
+      height: 1,
+      opacity: 0,
+    },
+  });

@@ -1,17 +1,35 @@
-export const colores = {
-  fondo: '#F3F5F9',
-  tarjeta: '#FFFFFF',
-  borde: '#E1E6EF',
-  texto: '#1B2540',
-  textoSuave: '#6B7690',
-  azul: '#1F4E9C',
-  azulClaro: '#E6EEFB',
-  naranja: '#B5651D',
-  verde: '#2E7D4F',
-  rojo: '#B3261E',
-  rojoClaro: '#FCEAE8',
-  pdf: '#D9363E',
-};
+import { useMemo } from 'react';
+import { useTema } from '@/theme';
+
+/**
+ * Colores de la ficha del convenio, tomados del tema (claro u oscuro).
+ * Mantiene los nombres de antes para no tocar cada estilo de la ficha.
+ */
+export function useColoresConvenio() {
+  const { colors, esOscuro } = useTema();
+
+  return useMemo(
+    () => ({
+      fondo: colors.surface,
+      tarjeta: colors.background,
+      tarjetaSuave: colors.surface,
+      borde: colors.border,
+      texto: colors.text,
+      textoSuave: colors.textMuted,
+      azul: colors.primary,
+      azulClaro: colors.primarySoft,
+      sobreAzul: colors.onPrimary, // texto/íconos sobre un fondo azul
+      naranja: colors.status.revision,
+      verde: colors.status.firmado,
+      rojo: colors.error,
+      rojoClaro: esOscuro ? '#3A1F22' : '#FCEAE8',
+      pdf: '#D9363E',
+    }),
+    [colors, esOscuro],
+  );
+}
+
+export type ColoresConvenio = ReturnType<typeof useColoresConvenio>;
 
 export const fechaCorta = (iso: string | null) => {
   if (!iso) return '—';

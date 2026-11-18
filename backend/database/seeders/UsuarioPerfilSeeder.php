@@ -25,6 +25,11 @@ class UsuarioPerfilSeeder extends SeederIdempotente
                 [13, 14, 2, 2, 1],    // gestión: Secretaría Legal y Técnica
                 [14, 15, 3, 2, 1],    // revisión: Secretaría Legal y Técnica
                 [15, 16, 4, 2, 1],    // consulta: Secretaría Legal y Técnica
+                [16, 1, 3, 12, 1],    // lourdesibanez: revisión en Rectorado UNLPam
+                [17, 2, 2, 13, 1],    // marianosalto: gestión en Cs. Exactas y Naturales
+                [18, 3, 3, 17, 1],    // obarskiguillermo: revisión en Asesoría Letrada Institucional
+                [19, 14, 2, 15, 1],   // gestión: también en Cs. Veterinarias
+                [20, 15, 3, 16, 1],   // revisión: también en Cultura y Extensión Universitaria
             ],
         ));
     }

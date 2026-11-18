@@ -9,6 +9,6 @@ class ComentarioPolicy
 {
     public function create(Usuario $usuario, Instrumento $instrumento): bool
     {
-        return $usuario->tienePermiso('comentario.crear');
+        return $usuario->tienePermiso('comentario.crear', $instrumento->id_institucion);
     }
 }

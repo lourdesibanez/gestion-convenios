@@ -16,7 +16,7 @@ export default function Login() {
 
     // Si ya hay sesión, no tiene sentido ver el login
     useEffect(() => {
-      if (!sesionCargando && isAuth) router.replace('/admin')
+      if (!sesionCargando && isAuth) router.replace('/dashboard')
     }, [sesionCargando, isAuth, router])
 
     const handleChange = (e) => {
@@ -35,7 +35,7 @@ export default function Login() {
           password: datos.password,
         })
         login(data.usuario, data.token, datos.recordarme)
-        router.replace('/admin')
+        router.replace('/dashboard')
       } catch (err) {
         if (err.status === 422) setError(err.datos?.errors?.email?.[0] ?? 'Revisá los datos ingresados.')
         else if (err.status === 403) setError(err.datos?.message ?? 'El usuario está suspendido.')

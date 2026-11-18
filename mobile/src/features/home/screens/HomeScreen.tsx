@@ -14,10 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
 import { StatCard } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 import { useHome } from '../hooks/useHome';
-import { useState, useEffect } from 'react';
-
+import { useState, useMemo } from 'react';
+import { SinConexion } from '@/components/molecules';
+import { useOffline } from '@/services/useOffline';
+import { EstadoBadge } from '@/components/atoms';
 
 function fechaRelativa(fecha: string) {
   const diferencia = Date.now() - new Date(fecha).getTime();
@@ -31,17 +33,29 @@ function fechaRelativa(fecha: string) {
   return `${date.getDate()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-const coloresEstado: Record<string, string> = { ...colors.status };
-
 export function HomeScreen() {
+  const { colors, typography, fs } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography, fs), [colors, typography, fs]);
   const { data, loading, refreshing, error, refresh } = useHome();
   const { tipoPerfil } = useAuth();
   const esConsulta = tipoPerfil === 'consulta';
   const [movimientosAbiertos, setMovimientosAbiertos] = useState(false);
+  const offline = useOffline();
   const ultimosMovimientos = data?.ultimos_movimientos.filter(
     (movimiento) =>
       !esConsulta || movimiento.estado.trim().toLocaleLowerCase('es-AR') === 'firmado',
   ) ?? [];
+
+  // Offline solo se permiten los pendientes de firma
+  if (offline) {
+    return (
+      <SinConexion
+        mensaje="El inicio necesita conexión. Mientras tanto, podés ver tus convenios pendientes de firma."
+        accion={{ titulo: 'Ver pendientes', onPress: () => router.push('/sign') }}
+      />
+    );
+  }
+
 
   if (loading) {
     return (
@@ -59,13 +73,6 @@ export function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />
         }
       >
-        {!esConsulta && (
-          <Button
-            title="Cargar convenio"
-            icon={<FilePlus2 size={20} color={colors.background} />}
-            onPress={() => router.push('/agreement/create')}
-          />
-        )}
         {error || !data ? (
           <View style={styles.errorBox}>
             <Text style={styles.error}>{error}</Text>
@@ -145,16 +152,7 @@ export function HomeScreen() {
                         </Text>
                       </View>
 
-                      <View style={[styles.statusBadge, { backgroundColor: '#E8EEF7' }]}>
-                        <Text
-                          style={[
-                            styles.statusText,
-                            { color: coloresEstado[movimiento.estado] ?? colors.textMuted },
-                          ]}
-                        >
-                          {movimiento.estado}
-                        </Text>
-                      </View>
+                      <EstadoBadge estado={movimiento.estado} />
                     </Pressable>
                   ))}
                 </View>
@@ -215,110 +213,137 @@ export function HomeScreen() {
         )}
 
       </ScrollView>
+
+      {!esConsulta && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Nuevo convenio"
+            onPress={() => router.push('/agreement/create')}
+            style={styles.floatingButton}
+          >
+            <FilePlus2 size={20} color={colors.background} />
+            <Text style={styles.floatingButtonText}>Nuevo convenio</Text>
+          </Pressable>
+        )}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  hello: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  unit: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  section: {
-    ...typography.label,
-    color: colors.text,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  errorBox: {
-    gap: spacing.md,
-  },
-  error: {
-    ...typography.body,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  headerList: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  list: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  itemList: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  signIconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  titleList: {
-    ...typography.label,
-    color: colors.text,
-  },
-  statusBadge: {
-    borderRadius: 16,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    safe: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+    },
+    content: {
+      padding: spacing.lg,
+      gap: spacing.lg,
+      paddingBottom: 100,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    initials: {
+      fontSize: fs(20),
+      fontWeight: '700',
+      color: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    hello: {
+      fontSize: fs(22),
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    unit: {
+      ...typography.small,
+      color: colors.textMuted,
+    },
+    section: {
+      ...typography.label,
+      color: colors.text,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+    },
+    errorBox: {
+      gap: spacing.md,
+    },
+    error: {
+      ...typography.body,
+      color: colors.error,
+      textAlign: 'center',
+    },
+    headerList: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    list: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    itemList: {
+      minHeight: 72,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    signIconButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 12,
+    },
+    titleList: {
+      ...typography.label,
+      color: colors.text,
+    },
+    floatingButton: {
+      position: 'absolute',
+      right: spacing.lg,
+      bottom: spacing.lg,
+      minHeight: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: 18,
+      backgroundColor: colors.primary,
+      elevation: 6,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.22,
+      shadowRadius: 4,
+    },
+    floatingButtonText: {
+      color: colors.background,
+      fontSize: fs(14),
+      fontWeight: '700',
+    },
+  });

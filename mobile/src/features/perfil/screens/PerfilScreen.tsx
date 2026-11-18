@@ -1,11 +1,22 @@
-import { Alert, StyleSheet, View } from 'react-native';
+import { useMemo } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '@/components/atoms';
+import { LogOut } from 'lucide-react-native';
+import { SegmentedControl, type SegmentedOption } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { colors, spacing } from '@/theme';
+import { radius, spacing, useTema, type Colores, type TamanoLetra, type Tipografia } from '@/theme';
+
+// Cada opción se muestra con su propio tamaño, así se ve la diferencia antes de elegir.
+const OPCIONES_LETRA: SegmentedOption<TamanoLetra>[] = [
+  { value: 'chica', label: 'Chica', labelStyle: { fontSize: 13 } },
+  { value: 'mediana', label: 'Mediana', labelStyle: { fontSize: 16 } },
+  { value: 'grande', label: 'Grande', labelStyle: { fontSize: 19 } },
+];
 
 export function PerfilScreen() {
   const { signOut } = useAuth();
+  const { colors, typography, esOscuro, tamanoLetra, setModo, setTamanoLetra } = useTema();
+  const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
 
   const confirmSignOut = () =>
     Alert.alert('Cerrar sesión', '¿Querés cerrar la sesión en este dispositivo?', [
@@ -14,26 +25,85 @@ export function PerfilScreen() {
     ]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.content}>
-        <Button
-          title="Cerrar sesión"
-          variant="outline"
-          onPress={confirmSignOut}
-        />
-      </View>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content}>
+
+        {/* Apariencia: se guarda en el celular y aplica a toda la app */}
+        <View style={styles.tarjeta}>
+          <Text style={styles.tituloSeccion}>Apariencia</Text>
+
+          <SegmentedControl
+            label="Tamaño de letra"
+            options={OPCIONES_LETRA}
+            value={tamanoLetra}
+            onValueChange={setTamanoLetra}
+          />
+          <Text style={styles.ayuda}>Así se verán los textos en toda la app.</Text>
+
+          <View style={styles.separador} />
+
+          <View style={styles.fila}>
+            <View style={styles.filaTextos}>
+              <Text style={styles.filaTitulo}>Modo oscuro</Text>
+              <Text style={styles.filaSubtitulo}>Mantiene contraste AA</Text>
+            </View>
+            <Switch
+              accessibilityLabel="Modo oscuro"
+              value={esOscuro}
+              onValueChange={(activo) => setModo(activo ? 'oscuro' : 'claro')}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.background}
+            />
+          </View>
+        </View>
+
+        {/* Acciones de la cuenta */}
+        <View style={styles.tarjeta}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={confirmSignOut}
+            style={styles.filaAccion}
+          >
+            <LogOut size={20} color={colors.error} />
+            <Text style={styles.cerrarSesion}>Cerrar sesión</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: spacing.lg,
-  },
-});
+const crearEstilos = (colors: Colores, typography: Tipografia) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface },
+    content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.lg },
+    tarjetaUsuario: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: radius.md,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    nombre: { ...typography.button, fontSize: typography.body.fontSize + 2, color: colors.text },
+    email: { ...typography.small, color: colors.textMuted },
+    tarjeta: {
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: radius.md,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    tituloSeccion: { ...typography.label, fontSize: typography.body.fontSize, color: colors.primary },
+    ayuda: { ...typography.small, color: colors.textMuted },
+    separador: { height: 1, backgroundColor: colors.border },
+    fila: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    filaTextos: { flex: 1, gap: 2 },
+    filaTitulo: { ...typography.label, color: colors.text },
+    filaSubtitulo: { ...typography.small, color: colors.textMuted },
+    filaAccion: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 44 },
+    cerrarSesion: { ...typography.body, color: colors.error, fontWeight: '600' },
+  });

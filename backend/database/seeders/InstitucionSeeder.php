@@ -25,6 +25,13 @@ class InstitucionSeeder extends SeederIdempotente
                 [9, 'Cooperativa Agrícola Demo', '30-10000004-9', 'Ruta Provincial 1 km 12, General Pico, La Pampa', 9, false, -35.67, -63.73, $alta, null, 1, null],
                 [10, 'Cámara de Comercio Ficticia', '30-10000005-9', 'Calle 20 N° 745, General Pico, La Pampa', 10, false, -35.659, -63.758, $alta, null, 1, null],
                 [11, 'Instituto Tecnológico Muestra', '30-10000006-9', 'Av. San Martín 310, Santa Rosa, La Pampa', 11, false, -36.617, -64.283, $alta, null, 1, null],
+                // Unidades internas de la UNLPam (sin representante cargado).
+                [12, 'Rectorado UNLPam', '30-00000005-0', 'Coronel Gil 353, Santa Rosa, La Pampa', null, true, -36.6205, -64.2905, $alta, null, 1, null],
+                [13, 'Facultad de Ciencias Exactas y Naturales', '30-00000006-0', 'Av. Uruguay 151, Santa Rosa, La Pampa', null, true, -36.6185, -64.2875, $alta, null, 1, null],
+                [14, 'Facultad de Ciencias Económicas y Jurídicas', '30-00000007-0', 'Coronel Gil 353, Santa Rosa, La Pampa', null, true, -36.6202, -64.2902, $alta, null, 1, null],
+                [15, 'Facultad de Ciencias Veterinarias', '30-00000008-0', 'Calle 5 esq. 116, General Pico, La Pampa', null, true, -35.657, -63.750, $alta, null, 1, null],
+                [16, 'Secretaría de Cultura y Extensión Universitaria', '30-00000009-0', 'Coronel Gil 353, Santa Rosa, La Pampa', null, true, -36.6203, -64.2903, $alta, null, 1, null],
+                [17, 'Asesoría Letrada Institucional', '30-00000010-0', 'Coronel Gil 353, Santa Rosa, La Pampa', null, true, -36.6204, -64.2904, $alta, null, 1, null],
             ],
         );
     }

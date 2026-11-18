@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState, useMemo } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import type { Documento } from '../Tipos';
 import type { TipoDocumentoConvenio } from '../services/creacionConvenioService';
 import { Seccion } from './Seccion';
-import { colores, fechaHora } from './temas';
+import { fechaHora, useColoresConvenio, type ColoresConvenio } from './temas';
+import { useTema } from '@/theme';
+import { ModalOpciones } from '@/components/molecules';
+
 
 export type OpcionSubidaDocumento = {
   tipo: TipoDocumentoConvenio;
@@ -30,6 +33,9 @@ export function Documentos({
   puedeSubir,
   subiendo = false,
 }: Props) {
+  const colores = useColoresConvenio();
+  const { fs } = useTema();
+  const s = useMemo(() => crearEstilos(colores, fs), [colores, fs]);
   const [selectorAbierto, setSelectorAbierto] = useState(false);
 
   return (
@@ -81,60 +87,33 @@ export function Documentos({
           </Pressable>
         ))}
       </Seccion>
-      <Modal
+      <ModalOpciones
         visible={puedeSubir && selectorAbierto}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectorAbierto(false)}
-      >
-        <View style={s.modalFondo}>
-          <View style={s.modal}>
-            <Text style={s.modalTitulo}>Tipo de documento</Text>
-            {tiposSubida.map((opcion) => (
-              <Pressable
-                key={opcion.tipo}
-                accessibilityRole="button"
-                onPress={() => {
-                  setSelectorAbierto(false);
-                  onSubir(opcion.tipo);
-                }}
-                style={s.opcion}
-              >
-                <Text style={s.opcionTexto}>{opcion.etiqueta}</Text>
-              </Pressable>
-            ))}
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setSelectorAbierto(false)}
-              style={s.opcion}
-            >
-              <Text style={s.cancelar}>Cancelar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        titulo="Tipo de documento"
+        opciones={tiposSubida.map((opcion) => ({ value: opcion.tipo, label: opcion.etiqueta }))}
+        onSeleccionar={(tipo) => {
+          setSelectorAbierto(false);
+          onSubir(tipo as TipoDocumentoConvenio);
+        }}
+        onCerrar={() => setSelectorAbierto(false)}
+      />
     </>
   );
 }
 
-const s = StyleSheet.create({
-  botonSubir: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  botonDeshabilitado: { opacity: 0.5 },
-  botonSubirTxt: { color: colores.azul, fontWeight: '700', fontSize: 12 },
-  modalFondo: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0, 0, 0, 0.4)' },
-  modal: { backgroundColor: colores.fondo, borderRadius: 14, padding: 16 },
-  modalTitulo: { color: colores.texto, fontWeight: '800', fontSize: 16, marginBottom: 8 },
-  opcion: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colores.borde },
-  opcionTexto: { color: colores.texto, fontWeight: '600', fontSize: 15 },
-  cancelar: { color: colores.azul, fontWeight: '700', fontSize: 15 },
-  fila: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, marginTop: 6,
-    borderRadius: 10, borderWidth: 1, borderColor: colores.borde, backgroundColor: '#FAFBFD',
-  },
-  icono: { backgroundColor: colores.rojoClaro, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 6 },
-  iconoTxt: { color: colores.pdf, fontWeight: '800', fontSize: 10 },
-  info: { flex: 1 },
-  nombre: { color: colores.texto, fontWeight: '700', fontSize: 13 },
-  detalle: { color: colores.textoSuave, fontSize: 12 },
-  sello: { color: colores.verde, fontSize: 11, marginTop: 2 },
-});
+const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) =>
+  StyleSheet.create({
+    botonSubir: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+    botonDeshabilitado: { opacity: 0.5 },
+    botonSubirTxt: { color: colores.azul, fontWeight: '700', fontSize: fs(12) },
+    fila: {
+      flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, marginTop: 6,
+      borderRadius: 10, borderWidth: 1, borderColor: colores.borde, backgroundColor: colores.tarjetaSuave,
+    },
+    icono: { backgroundColor: colores.rojoClaro, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 6 },
+    iconoTxt: { color: colores.pdf, fontWeight: '800', fontSize: fs(10) },
+    info: { flex: 1 },
+    nombre: { color: colores.texto, fontWeight: '700', fontSize: fs(13) },
+    detalle: { color: colores.textoSuave, fontSize: fs(12) },
+    sello: { color: colores.verde, fontSize: fs(11), marginTop: 2 },
+  });

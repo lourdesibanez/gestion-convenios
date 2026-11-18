@@ -8,20 +8,21 @@ use App\Models\Usuario;
 use App\Models\UsuarioInstrumento;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Datos de la pantalla de inicio, siempre dentro del alcance del usuario.
  */
-class HomeService
-{
+class HomeService {
     public const DIAS_PROXIMO_VENCIMIENTO = 30;
-
     public const MAX_PENDIENTES = 3;
-
     public const MAX_MOVIMIENTOS = 10;
 
-    public function obtenerDatos(Usuario $usuario): array
+    private ?int $unidad = null;
+
+    public function obtenerDatos(Usuario $usuario, ?int $unidad = null): array
     {
+        $this->unidad = $unidad;
         return [
             'usuario'                   => $this->construirEncabezado($usuario),
             'notificaciones_sin_leer'   => $usuario->notificaciones()
@@ -52,7 +53,7 @@ class HomeService
 
     private function calcularResumen(Usuario $usuario): array
     {
-        $visibles = fn () => Instrumento::visiblePara($usuario);
+        $visibles = fn () => $this->visibles($usuario);
         $hoy = today();
 
         return [
@@ -102,7 +103,7 @@ class HomeService
     {
         $ultimos = UsuarioInstrumento::query()
             ->selectRaw('id_instrumento, max(created_at) as fecha')
-            ->whereIn('id_instrumento', Instrumento::visiblePara($usuario)->select('id'))
+            ->whereIn('id_instrumento', $this->visibles($usuario)->select('id'))
             ->groupBy('id_instrumento')
             ->orderByDesc('fecha')
             ->limit(self::MAX_MOVIMIENTOS)
@@ -131,7 +132,7 @@ class HomeService
     {
         $conteos = DB::table('instrumento as i')
             ->join('estado as e', 'e.id', '=', 'i.id_estado')
-            ->whereIn('i.id', Instrumento::visiblePara($usuario)->select('id'))
+            ->whereIn('i.id', $this->visibles($usuario)->select('id'))
             ->select('e.nombre as estado')
             ->selectRaw('COUNT(*) as total')
             ->groupBy('e.nombre')
@@ -153,7 +154,7 @@ class HomeService
         return collect(range($anioActual - 5, $anioActual))
             ->map(fn ($anio) => [
                 'anio' => $anio,
-                'total' => Instrumento::visiblePara($usuario)
+                'total' => $this->visibles($usuario)
                     ->whereBetween('fecha_firma', ["{$anio}-01-01", "{$anio}-12-31"])
                     ->count(),
             ])
@@ -162,7 +163,7 @@ class HomeService
 
     private function proximosAVencer(Usuario $usuario): array
     {
-        return Instrumento::visiblePara($usuario)
+        return $this->visibles($usuario)
             ->vigentes()
             ->whereDate('fecha_fin', '>=', today())
             ->orderBy('fecha_fin')
@@ -183,7 +184,7 @@ class HomeService
         return DB::table('representante_instrumento as ri')
             ->join('instrumento as i', 'i.id', '=', 'ri.id_instrumento')
             ->join('representante as r', 'r.id', '=', 'ri.id_representante')
-            ->whereIn('i.id', Instrumento::visiblePara($usuario)->select('id'))
+            ->whereIn('i.id', $this->visibles($usuario)->select('id'))
             ->whereNull('ri.deleted_at')
             ->whereNull('r.deleted_at');
     }
@@ -204,4 +205,16 @@ class HomeService
             ])
             ->all();
     }
+
+    /**
+     * Convenios visibles para el usuario, filtrados por la unidad elegida.
+     * Si manda una unidad que no es suya, el visiblePara la deja vacía.
+     */
+    private function visibles(Usuario $usuario): Builder
+    {
+        return Instrumento::visiblePara($usuario)
+            ->when($this->unidad, fn ($query) => $query->where('id_institucion', $this->unidad));
+    }
+
+
 }
