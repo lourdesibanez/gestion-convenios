@@ -8,6 +8,7 @@ use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\ParteFirmanteController;
 use App\Http\Controllers\RepresentanteController;
+use App\Http\Controllers\ObservacionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FirmaController;
 use App\Http\Controllers\ComentarioController;
@@ -87,6 +88,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('agreements/{id}/comments',                          [ComentarioController::class, 'listar'],)->name('agreements.comments.index');
     Route::post('agreements/{id}/comments',                         [ComentarioController::class, 'crear'],)->name('agreements.comments.store');
+
+    // ---------- Observaciones privadas de revisión ----------
+
+    Route::get('agreements/{id}/observations',                          [ObservacionController::class, 'listar'])->name('agreements.observations.index');
+
+    Route::post('agreements/{id}/observations',                         [ObservacionController::class, 'crear'])->name('agreements.observations.store');
+
+    Route::patch('observations/{id}/response',                          [ObservacionController::class, 'responder'])->name('observations.response');
+
+    Route::patch('observations/{id}/resolve',                           [ObservacionController::class, 'resolver'])->name('observations.resolve');
+
+    // ---------- Transiciones del circuito de revisión ----------
+
+    Route::post('agreements/{id}/approve',                              [ConvenioController::class, 'aprobar'])->name('agreements.approve');
+
+    Route::post('agreements/{id}/return',                               [ConvenioController::class, 'devolverParaCorreccion'])->name('agreements.return');
 
     Route::get('types',                                             [TipoInstrumentoController::class, 'listar'])->name('types.index');
 });

@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ConvenioIndexRequest;
 use App\Http\Requests\ConvenioStoreRequest;
 use App\Http\Requests\ConvenioUpdateRequest;
+use App\Http\Requests\RevisionAprobarRequest;
+use App\Http\Requests\RevisionDevolverRequest;
 use App\Http\Resources\ConvenioDetalleResource;
 use App\Http\Resources\ConvenioResource;
 use App\Models\Archivo;
 use App\Models\Instrumento;
+use App\Models\Observacion;
 use App\Services\ConvenioService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -119,6 +122,9 @@ class ConvenioController extends Controller
         $detalle['puede_editar'] = $request->user()->can('update', $instrumento);
         $detalle['puede_enviar_revision'] = $request->user()->can('sendToReview', $instrumento);
         $detalle['puede_subir_archivo'] = $request->user()->can('create', [Archivo::class, $instrumento]);
+        $detalle['puede_crear_observacion'] = $request->user()->can('create',[Observacion::class, $instrumento]);
+        $detalle['puede_aprobar'] = $request->user()->can('approve',$instrumento);
+        $detalle['puede_devolver'] = $request->user()->can('returnForCorrection',$instrumento);
         $detalle['puede_eliminar'] = $request->user()->can('delete', $instrumento);
         unset($detalle['instrumento_model']);
 
@@ -130,6 +136,58 @@ class ConvenioController extends Controller
         $this->authorize('viewRevision', Instrumento::class);
 
         return ConvenioResource::collection($this->convenios->listarEnRevision($request->user()));
+    }
+
+    public function aprobar(
+        RevisionAprobarRequest $request,
+        int $id
+    ): JsonResponse {
+        $instrumento = Instrumento::query()
+            ->visiblePara($request->user(), 'instrumento.aprobar')
+            ->findOrFail($id);
+
+        $this->authorize('approve', $instrumento);
+
+        $instrumento = $this->convenios->aprobarRevision(
+            $request->user(),
+            $instrumento,
+            $request->validated('version'),
+            $request->validated('fundamento')
+        );
+
+        return response()->json([
+            'data' => [
+                'id' => $instrumento->id,
+                'estado' => $instrumento->estado->nombre,
+                'version' => $instrumento->version,
+            ],
+        ]);
+    }
+
+    public function devolverParaCorreccion(
+        RevisionDevolverRequest $request,
+        int $id
+    ): JsonResponse {
+        $instrumento = Instrumento::query()
+            ->visiblePara($request->user(), 'instrumento.aprobar')
+            ->findOrFail($id);
+
+        $this->authorize('returnForCorrection', $instrumento);
+
+        $instrumento = $this->convenios->devolverParaCorreccion(
+            $request->user(),
+            $instrumento,
+            $request->validated('version'),
+            $request->validated('fundamento')
+        );
+
+        return response()->json([
+            'data' => [
+                'id' => $instrumento->id,
+                'estado' => $instrumento->estado->nombre,
+                'version' => $instrumento->version,
+            ],
+        ]);
     }
 
 }

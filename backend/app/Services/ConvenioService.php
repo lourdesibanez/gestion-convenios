@@ -576,7 +576,7 @@ class ConvenioService
                 DB::table('observacion as o')
                     ->selectRaw('COUNT(*)')
                     ->whereColumn('o.id_instrumento', 'i.id')
-                    ->where('o.estado', '<>', 'respondida'),
+                    ->where('o.estado', ['pendiente', 'respondida']),
                 'observaciones_pendientes',
             )
             ->orderByDesc('i.created_at')
@@ -784,5 +784,143 @@ class ConvenioService
             'archivos' => $archivos,
             'hijos' => $hijos,
         ];
+    }
+
+    public function aprobarRevision(
+        Usuario $usuario,
+        Instrumento $instrumento,
+        int $version,
+        ?string $fundamento = null
+    ): Instrumento {
+        return DB::transaction(function () use (
+            $usuario,
+            $instrumento,
+            $version,
+            $fundamento
+        ): Instrumento {
+            $actual = Instrumento::query()
+                ->whereKey($instrumento->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $idRevision = Estado::where('nombre', 'revision')->value('id');
+            $idAprobado = Estado::where('nombre', 'aprobado')->value('id');
+
+            if (!$idRevision || !$idAprobado) {
+                abort(500, 'No están configurados los estados necesarios.');
+            }
+
+            if (
+                (int) $actual->id_estado !== (int) $idRevision
+                || (int) $actual->version !== $version
+            ) {
+                abort(409, 'El convenio cambió desde que abriste la revisión. Recargalo e intentá nuevamente.');
+            }
+
+            $hayObservacionesSinResolver = DB::table('observacion')
+                ->where('id_instrumento', $actual->id)
+                ->where('estado', '<>', 'resuelta')
+                ->exists();
+
+            if ($hayObservacionesSinResolver) {
+                abort(409, 'No se puede aprobar el convenio porque tiene observaciones sin resolver.');
+            }
+
+            $actualizado = DB::table('instrumento')
+                ->where('id', $actual->id)
+                ->where('id_estado', $idRevision)
+                ->where('version', $version)
+                ->update([
+                    'id_estado' => $idAprobado,
+                    'version' => DB::raw('version + 1'),
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            if ($actualizado !== 1) {
+                abort(409, 'El convenio cambió durante la aprobación. Recargalo e intentá nuevamente.');
+            }
+
+            DB::table('historial_estado')->insert([
+                'id_instrumento' => $actual->id,
+                'id_estado_anterior' => $idRevision,
+                'id_estado_nuevo' => $idAprobado,
+                'id_usuario' => $usuario->id,
+                'fundamento' => $fundamento,
+                'created_at' => now(),
+            ]);
+
+            return Instrumento::with(['tipo', 'institucion', 'estado'])
+                ->findOrFail($actual->id);
+        });
+    }
+
+    public function devolverParaCorreccion(
+        Usuario $usuario,
+        Instrumento $instrumento,
+        int $version,
+        string $fundamento
+    ): Instrumento {
+        return DB::transaction(function () use (
+            $usuario,
+            $instrumento,
+            $version,
+            $fundamento
+        ): Instrumento {
+            $actual = Instrumento::query()
+                ->whereKey($instrumento->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $idRevision = Estado::where('nombre', 'revision')->value('id');
+            $idBorrador = Estado::where('nombre', 'borrador')->value('id');
+
+            if (!$idRevision || !$idBorrador) {
+                abort(500, 'No están configurados los estados necesarios.');
+            }
+
+            if (
+                (int) $actual->id_estado !== (int) $idRevision
+                || (int) $actual->version !== $version
+            ) {
+                abort(409, 'El convenio cambió desde que abriste la revisión. Recargalo e intentá nuevamente.');
+            }
+
+            $tieneObservacionesPendientes = DB::table('observacion')
+                ->where('id_instrumento', $actual->id)
+                ->where('estado', 'pendiente')
+                ->exists();
+
+            if (!$tieneObservacionesPendientes) {
+                abort(409, 'Registrá al menos una observación pendiente antes de devolver el convenio.');
+            }
+
+            $actualizado = DB::table('instrumento')
+                ->where('id', $actual->id)
+                ->where('id_estado', $idRevision)
+                ->where('version', $version)
+                ->update([
+                    'id_estado' => $idBorrador,
+                    'version' => DB::raw('version + 1'),
+                    'updated_by' => $usuario->id,
+                    'updated_at' => now(),
+                ]);
+
+            if ($actualizado !== 1) {
+                abort(409, 'El convenio cambió durante la devolución. Recargalo e intentá nuevamente.');
+            }
+
+            DB::table('historial_estado')->insert([
+                'id_instrumento' => $actual->id,
+                'id_estado_anterior' => $idRevision,
+                'id_estado_nuevo' => $idBorrador,
+                'id_usuario' => $usuario->id,
+                'fundamento' => $fundamento,
+                'created_at' => now(),
+            ]);
+
+            return Instrumento::with(['tipo', 'institucion', 'estado'])
+                ->findOrFail($actual->id);
+        });
     }
 }

@@ -55,4 +55,24 @@ class InstrumentoPolicy
         return (int) $instrumento->created_by === (int) $usuario->id
             && $instrumento->estado?->nombre === 'borrador';
     }
+
+    public function approve(Usuario $usuario, Instrumento $instrumento): bool
+    {
+        return $instrumento->estado?->nombre === 'revision'
+            && $usuario->tienePermiso(
+                'instrumento.aprobar',
+                $instrumento->id_institucion
+            );
+    }
+
+    public function returnForCorrection(
+        Usuario $usuario,
+        Instrumento $instrumento
+    ): bool {
+        return $instrumento->estado?->nombre === 'revision'
+            && $usuario->tienePermiso(
+                'instrumento.aprobar',
+                $instrumento->id_institucion
+            );
+    }
 }

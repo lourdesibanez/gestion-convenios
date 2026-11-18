@@ -161,3 +161,88 @@ export async function actualizarConvenio(
 
   return respuesta?.data ?? respuesta
 }
+
+// --------------------------------------------------
+// Observaciones de revisión
+// --------------------------------------------------
+
+export async function obtenerObservacionesConvenio(token, id) {
+  const json = await obtenerUno(
+    `/api/agreements/${id}/observations`,
+    token
+  )
+
+  return json?.data ?? []
+}
+
+export async function crearObservacionConvenio(
+  token,
+  id,
+  contenido
+) {
+  const json = await enviarJson(
+    `/api/agreements/${id}/observations`,
+    { contenido },
+    token
+  )
+
+  return json?.data ?? json
+}
+
+export async function responderObservacionConvenio(
+  token,
+  id,
+  respuesta
+) {
+  const json = await actualizarJson(
+    `/api/observations/${id}/response`,
+    { respuesta },
+    token
+  )
+
+  return json?.data ?? json
+}
+
+export async function resolverObservacionConvenio(token, id) {
+  const json = await actualizarJson(
+    `/api/observations/${id}/resolve`,
+    {},
+    token
+  )
+
+  return json?.data ?? json
+}
+
+// --------------------------------------------------
+// Decisiones de revisión
+// --------------------------------------------------
+
+export async function aprobarConvenio(
+  token,
+  id,
+  version,
+  fundamento = null
+) {
+  const json = await enviarJson(
+    `/api/agreements/${id}/approve`,
+    { version, fundamento },
+    token
+  )
+
+  return json?.data ?? json
+}
+
+export async function devolverConvenio(
+  token,
+  id,
+  version,
+  fundamento
+) {
+  const json = await enviarJson(
+    `/api/agreements/${id}/return`,
+    { version, fundamento },
+    token
+  )
+
+  return json?.data ?? json
+}
