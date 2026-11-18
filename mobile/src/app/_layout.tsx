@@ -62,6 +62,9 @@ function RootNavigator() {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       abrirConvenioNotificado,
     );
+    const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+      console.log('Notificación recibida:', notification.request.content);
+    });
 
     void Notifications.getLastNotificationResponseAsync()
       .then(abrirConvenioNotificado)
@@ -69,7 +72,10 @@ function RootNavigator() {
         console.warn('No se pudo procesar la notificación seleccionada:', error);
       });
 
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      receivedSubscription.remove();
+    };
   }, [status]);
   
   useEffect(() => {

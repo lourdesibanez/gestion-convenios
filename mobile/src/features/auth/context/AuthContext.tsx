@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { ApiError } from '@/services/api';
 import {
@@ -34,9 +35,14 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 async function registerPush() {
   try {
     const token = await getPushToken();
-    if (token) await authService.savePushToken(token);
+    if (token) {
+      await authService.savePushToken(token);
+      console.log('Token push registrado correctamente en el backend.');
+    }
   } catch (e) {
-    console.warn('No se pudo registrar el push:', e);
+    const mensaje = e instanceof Error ? e.message : 'Error desconocido al registrar el dispositivo.';
+    console.error('No se pudo registrar el push:', e);
+    Alert.alert('No se pudo registrar el push', mensaje);
   }
 }
 
