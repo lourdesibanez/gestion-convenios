@@ -19,7 +19,7 @@ export default function LineaEstados({ estado, transiciones = [] }) {
         <div className="row g-2">
           {ETAPAS.map((e, i) => {
             const alcanzada = i <= actual
-            const fecha = transiciones.find((t) => norm(t.estado) === e.clave)?.created_at
+            const fecha = transiciones.find((t) => norm(t.estado_nuevo ?? t.estado) === e.clave)?.created_at
             return (
               <div className="col-6 col-md-3" key={e.clave}>
                 <div

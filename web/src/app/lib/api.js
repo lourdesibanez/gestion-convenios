@@ -33,6 +33,25 @@ export async function enviarJson(ruta, datos, token) {
   })
 }
 
+export async function enviarFormData(ruta, formData, token) {
+  return solicitar(ruta, {
+    method: 'POST',
+    token,
+    body: formData,
+  })
+}
+
+export async function actualizarJson(ruta, datos, token) {
+  return solicitar(ruta, {
+    method: 'PATCH',
+    token,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(datos),
+  })
+}
+
 export async function obtenerUno(ruta, token) {
   const datos = await solicitar(ruta, { token })
   if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
@@ -62,3 +81,29 @@ export async function obtenerTodos(ruta, token) {
 
   return resultados
 }
+
+export async function obtenerPagina(ruta, token) {
+  const datos = await obtenerUno(ruta, token)
+
+  if (!Array.isArray(datos.data)) {
+    throw new Error(
+      `La respuesta paginada de ${ruta} no tiene un campo data válido.`
+    )
+  }
+
+  const meta = datos.meta ?? {}
+
+  return {
+    items: datos.data,
+    links: datos.links ?? {},
+    meta: {
+      current_page: Number(meta.current_page ?? 1),
+      last_page: Number(meta.last_page ?? 1),
+      per_page: Number(meta.per_page ?? datos.data.length),
+      from: meta.from ?? null,
+      to: meta.to ?? null,
+      total: Number(meta.total ?? datos.data.length),
+    },
+  }
+}
+
