@@ -10,6 +10,7 @@ import '../../css/headerfooter.css'
 const itemsComunes = [
   { href: '/dashboard', label: 'Dashboard', exacto: true },
   { href: '/convenios', label: 'Ver convenios' },
+  { href: '/notificaciones', label: 'Notificaciones' },
 ]
 
 const itemsPorPerfil = {
