@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { File, type File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CircleHelp, Pencil, Share2, Trash2, ArrowDownToLine } from 'lucide-react-native';
+import { Pencil, Share2, Trash2, ArrowDownToLine } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
@@ -23,6 +23,7 @@ import { creacionConvenioService, TAMANO_MAXIMO_DOCUMENTO, type TipoDocumentoCon
 import { HeaderBack, OfflineBanner } from '@/components/molecules';
 import { useOffline } from '@/services/useOffline';
 import { EstadoBadge } from '@/components/atoms';
+import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
 
 export default function FichaConvenio() {
   const colores = useColoresConvenio();
@@ -198,16 +199,7 @@ export default function FichaConvenio() {
     <SafeAreaView style={s.pantalla} edges={['top']}>
       <HeaderBack
         titulo="Detalle del convenio"
-        acciones={
-          <Pressable
-            onPress={() => Alert.alert('Ayuda', 'Acá ves el estado, los firmantes y los documentos del convenio.')}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Ayuda"
-          >
-            <CircleHelp size={24} color={colores.azul} />
-          </Pressable>
-        }
+        acciones={<BotonAyuda seccion="ficha" color={colores.azul} />}
       />
       <OfflineBanner />
 

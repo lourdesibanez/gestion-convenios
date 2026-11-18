@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, PanResponder, Alert, Image } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, Modal, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Share, Fingerprint, Delete, Signature, Check } from 'lucide-react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Share, Fingerprint, Signature } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
 import type { File } from 'expo-file-system';
 import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
@@ -13,8 +12,10 @@ import * as Location from 'expo-location';
 import { authenticate, getAvailableBiometrics } from '@/services/biometrics';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { FirmaExitosa } from '@/features/convenios/components/FirmaExitosa';
-import { OfflineBanner } from '@/components/molecules';
-import { HeaderBack } from '@/components/molecules';
+import { HeaderBack, OfflineBanner } from '@/components/molecules';
+import { SignaturePad, type SignaturePadHandle } from '@/components/organisms';
+import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
+
 
 export default function SignatureScreen() {
   const { colors, fs } = useTema();
@@ -33,37 +34,15 @@ export default function SignatureScreen() {
   const [attempt, setAttempt] = useState(0);
   const [acepta, setAcepta] = useState(false);
   const [firmaModalVisible, setFirmaModalVisible] = useState(false);
-  const [firmaPath, setFirmaPath] = useState('');
-  const firmaSvgRef = useRef<Svg | null>(null);
-  const firmaPathRef = useRef('');
-  const canvasSize = useRef({ width: 300, height: 100 });
+  const padRef = useRef<SignaturePadHandle>(null);
+  const [firmaVacia, setFirmaVacia] = useState(true); // para habilitar el botón de confirmar
+
   const [registrando, setRegistrando] = useState(false);
   const [firmaError, setFirmaError] = useState<string>();
   const [resultadoFirma, setResultadoFirma] = useState<RegistrarFirmaRespuesta | null>(null);
   const [firmaRegistradaPng, setFirmaRegistradaPng] = useState<string | null>(null);
 
-    const dibujoResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: (event) => {
-            const { locationX, locationY } = event.nativeEvent;
-            const x = (locationX / canvasSize.current.width) * 300;
-            const y = (locationY / canvasSize.current.height) * 100;
-
-            firmaPathRef.current += ` M ${x} ${y}`;
-            setFirmaPath(firmaPathRef.current);
-            },
-            onPanResponderMove: (event) => {
-            const { locationX, locationY } = event.nativeEvent;
-            const x = (locationX / canvasSize.current.width) * 300;
-            const y = (locationY / canvasSize.current.height) * 100;
-
-            firmaPathRef.current += ` L ${x} ${y}`;
-            setFirmaPath(firmaPathRef.current);
-            },
-        }),
-    ).current;
+    
 
   useEffect(() => {
     let active = true;
@@ -103,27 +82,7 @@ export default function SignatureScreen() {
     };
   }, [id, attempt, tipoPerfil]);
 
-  const exportarFirmaPng = (): Promise<string> =>
-    new Promise((resolve, reject) => {
-        const svg = firmaSvgRef.current;
-
-        if (!svg) {
-        reject(new Error('No se pudo acceder al área de firma.'));
-        return;
-        }
-
-        svg.toDataURL(
-        (base64) => {
-            if (!base64) {
-            reject(new Error('No se pudo convertir la firma.'));
-            return;
-            }
-
-            resolve(`data:image/png;base64,${base64}`);
-        },
-        { width: 900, height: 300 },
-        );
-    });
+  
 
     const confirmarFirma = async () => {
     setFirmaError(undefined);
@@ -133,7 +92,7 @@ export default function SignatureScreen() {
         return;
       }
 
-    if (!acepta || !firmaPathRef.current.trim()) {
+      if (!acepta || (padRef.current?.isEmpty() ?? true)) {
         setFirmaError('Dibujá tu firma y aceptá el documento para continuar.');
         return;
     }
@@ -166,7 +125,7 @@ export default function SignatureScreen() {
 
         if (!autenticado) return;
 
-        const firma = await exportarFirmaPng();
+        const firma = await padRef.current!.toPng();
 
         const resultado = await firmaService.registrarFirma(Number(id), {
             firma,
@@ -238,16 +197,20 @@ export default function SignatureScreen() {
         titulo={titulo}
         subtitulo={codigo}
         acciones={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Compartir PDF"
-            disabled={!file}
-            onPress={() => void compartir()}
-            style={styles.iconButton}
-          >
-            <Share color={file ? colors.primary : colors.textMuted} size={22} />
-          </Pressable>
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Compartir PDF"
+              disabled={!file}
+              onPress={() => void compartir()}
+              style={styles.iconButton}
+            >
+              <Share color={file ? colors.primary : colors.textMuted} size={22} />
+            </Pressable>
+            <BotonAyuda seccion="firma" color={colors.primary} />
+          </>
         }
+
       />
 
 
@@ -298,94 +261,47 @@ export default function SignatureScreen() {
                 />
 
                 <View style={styles.signatureCard}>
-                <View style={styles.signatureHeader}>
-                    <Text style={styles.signatureTitle}>Tu firma</Text>
-                    <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Borrar firma"
-                    style={styles.clearButton}
-                    onPress={() => {
-                        firmaPathRef.current = '';
-                        setFirmaPath('');
-                    }} 
-                    >
-                    <Delete size={20} color="#DC2626"/>
-                    </Pressable>
-                </View>
+                  <SignaturePad ref={padRef} onChange={setFirmaVacia} />
 
-                <View
-                    {...dibujoResponder.panHandlers}
-                    onLayout={(event) => {
-                        canvasSize.current = {
-                        width: event.nativeEvent.layout.width,
-                        height: event.nativeEvent.layout.height,
-                        };
-                    }}
-                    style={styles.signatureBox}
-                    >
-                    <View style={styles.signatureCanvas}>
-                        <Svg
-                        ref={firmaSvgRef}
-                        width="100%"
-                        height="100%"
-                        viewBox="0 0 300 100"
-                        preserveAspectRatio="none"
-                        >
-                        <Path
-                            d={firmaPath}
-                            fill="none"
-                            stroke="#315B96"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                        </Svg>
-                    </View>
+                  <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: acepta }}
+                      style={styles.acceptRow}
+                      onPress={() => setAcepta((actual) => !actual)}
+                  >
+                      <View style={[styles.checkbox, acepta && styles.checkboxChecked]}>
+                      {acepta ? <Text style={styles.checkmark}>✓</Text> : null}
+                      </View>
+                      <Text style={styles.acceptText}>
+                      Leí el documento completo y acepto firmarlo.
+                      </Text>
+                  </Pressable>
 
-                    <Text style={styles.signatureHint}>
-                        Firmá con el dedo dentro del recuadro
-                    </Text>
-                </View>
+                  <View style={styles.locationRow}>
+                      <Text style={styles.locationText}>
+                      Se registrará fecha, hora y ubicación del acto de firma.
+                      </Text>
+                  </View>
 
-                <Pressable
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: acepta }}
-                    style={styles.acceptRow}
-                    onPress={() => setAcepta((actual) => !actual)}
-                >
-                    <View style={[styles.checkbox, acepta && styles.checkboxChecked]}>
-                    {acepta ? <Text style={styles.checkmark}>✓</Text> : null}
-                    </View>
-                    <Text style={styles.acceptText}>
-                    Leí el documento completo y acepto firmarlo.
-                    </Text>
-                </Pressable>
-
-                <View style={styles.locationRow}>
-                    <Text style={styles.locationText}>
-                    Se registrará fecha, hora y ubicación del acto de firma.
-                    </Text>
-                </View>
-
-                <Pressable
-                    disabled={!acepta || !firmaPath.trim() || registrando}
-                    onPress={() => void confirmarFirma()}
-                    style={[
-                        styles.confirmButton,
-                        (!acepta || !firmaPath.trim() || registrando) &&
-                        styles.confirmButtonDisabled,
-                    ]}
-                    >
-                    {registrando ? (
-                        <ActivityIndicator color={colors.onPrimary} />
-                    ) : (
-                        <Fingerprint size={19} color={colors.onPrimary} />
-                    )}
-                    <Text style={styles.confirmText}>
-                        {registrando ? 'Registrando firma…' : 'Confirmar firma con huella'}
-                    </Text>
-                </Pressable>
-                {firmaError ? <Text style={styles.error}>{firmaError}</Text> : null}
+                  <Pressable
+                      disabled={!acepta || firmaVacia || registrando}
+                      onPress={() => void confirmarFirma()}
+                      style={[
+                          styles.confirmButton,
+                          (!acepta || firmaVacia || registrando) &&
+                          styles.confirmButtonDisabled,
+                      ]}
+                      >
+                      {registrando ? (
+                          <ActivityIndicator color={colors.onPrimary} />
+                      ) : (
+                          <Fingerprint size={19} color={colors.onPrimary} />
+                      )}
+                      <Text style={styles.confirmText}>
+                          {registrando ? 'Registrando firma…' : 'Confirmar firma con huella'}
+                      </Text>
+                  </Pressable>
+                  {firmaError ? <Text style={styles.error}>{firmaError}</Text> : null}
                 </View>
             </View>
             </Modal>
@@ -416,36 +332,6 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
     pdfFrame: {
       flex: 1,
       overflow: 'hidden',
-    },
-    signatureHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    signatureTitle: {
-      color: colors.primary,
-      fontSize: fs(16),
-      fontWeight: '700',
-    },
-    clearButton: {
-      padding: 6,
-    },
-    signatureBox: {
-      minHeight: 134,
-      alignItems: 'center',
-      justifyContent: 'center',
-      // Siempre blanco, como el papel: el trazo (#315B96, fijo) se guarda como imagen y va en el PDF firmado.
-      backgroundColor: '#FFFFFF',
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      borderStyle: 'dashed',
-      borderRadius: 12,
-      padding: 10,
-    },
-    signatureHint: {
-      alignSelf: 'flex-start',
-      color: colors.textMuted,
-      fontSize: fs(12),
     },
     acceptRow: {
       flexDirection: 'row',
@@ -524,9 +410,5 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       backgroundColor: colors.background,
       borderTopWidth: 1,
       borderTopColor: colors.border,
-    },
-    signatureCanvas: {
-      width: '100%',
-      height: 100,
     },
   });
