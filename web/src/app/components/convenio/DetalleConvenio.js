@@ -5,7 +5,16 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 import { useAuth } from '@/app/context/authContext'
-import { obtenerConvenioPrivado, subirDocumentoConvenio } from '@/model/convenioModel'
+import {
+  obtenerConvenioPrivado,
+  subirDocumentoConvenio,
+  obtenerObservacionesConvenio,
+  crearObservacionConvenio,
+  responderObservacionConvenio,
+  resolverObservacionConvenio,
+  aprobarConvenio,
+  devolverConvenio,
+} from '@/model/convenioModel'
 
 import LineaEstados from './LineaEstados'
 import FichaConvenio from './FichaConvenio'
@@ -36,6 +45,10 @@ export default function DetalleConvenio({ id }) {
   const [subiendoDocumento, setSubiendoDocumento] = useState(false)
   const [errorDocumento, setErrorDocumento] = useState(null)
   const [mensajeDocumento, setMensajeDocumento] = useState(null)
+  const [observacionesActuales, setObservacionesActuales] = useState([])
+  const [procesandoObservacion, setProcesandoObservacion] = useState(false)
+  const [errorObservaciones, setErrorObservaciones] = useState(null)
+  const [mensajeObservaciones, setMensajeObservaciones] = useState(null)
 
   // ---------- Cargar detalle privado ----------
 
@@ -70,6 +83,26 @@ export default function DetalleConvenio({ id }) {
         }
 
         setDatos(info)
+        try {
+          const observaciones = await obtenerObservacionesConvenio(token, id)
+
+          if (!activo) return
+
+          setObservacionesActuales(observaciones)
+        } catch (errObservaciones) {
+          if (!activo) return
+
+          if (errObservaciones.status === 401) {
+            throw errObservaciones
+          }
+
+          setErrorObservaciones(
+            errObservaciones.datos?.message ??
+            'No se pudieron cargar las observaciones.'
+          )
+
+          setObservacionesActuales(info.observaciones ?? [])
+        }
       } catch (err) {
         if (!activo) return
 
@@ -100,6 +133,147 @@ export default function DetalleConvenio({ id }) {
     }
   }, [id, token, isAuth, sesionCargando, logout, router])
 
+  async function refrescarObservaciones() {
+    const observaciones = await obtenerObservacionesConvenio(token, id)
+    setObservacionesActuales(observaciones)
+  }
+
+  function manejarErrorObservacion(err) {
+    if (err.status === 401) {
+      logout()
+      router.replace('/login')
+      return
+    }
+
+    if (err.status === 403) {
+      setErrorObservaciones(
+        'No tenés autorización para realizar esta operación.'
+      )
+      return
+    }
+
+    if (err.status === 409) {
+      setErrorObservaciones(
+        err.datos?.message ??
+        'El estado del convenio cambió. Recargá la ficha antes de continuar.'
+      )
+      return
+    }
+
+    if (err.status === 422) {
+      const erroresApi = err.datos?.errors ?? {}
+      const mensajes = Object.values(erroresApi).flat()
+
+      setErrorObservaciones(
+        mensajes.join(' ') ||
+        err.datos?.message ||
+        'Los datos enviados no son válidos.'
+      )
+      return
+    }
+
+    setErrorObservaciones(
+      err.datos?.message ??
+      err.message ??
+      'No se pudo completar la operación.'
+    )
+  }
+
+  async function ejecutarOperacionObservacion(operacion, mensaje) {
+    setProcesandoObservacion(true)
+    setErrorObservaciones(null)
+    setMensajeObservaciones(null)
+
+    try {
+      await operacion()
+
+      try {
+        await refrescarObservaciones()
+      } catch {
+        setErrorObservaciones(
+          'La operación se realizó, pero no se pudo actualizar la lista. Recargá la ficha.'
+        )
+      }
+
+
+      setMensajeObservaciones(mensaje)
+
+      return true
+    } catch (err) {
+      manejarErrorObservacion(err)
+      return false
+    } finally {
+      setProcesandoObservacion(false)
+    }
+  }
+
+  function manejarCrearObservacion(contenido) {
+    return ejecutarOperacionObservacion(
+      () => crearObservacionConvenio(token, id, contenido),
+      'Observación registrada correctamente.'
+    )
+  }
+
+  function manejarResponderObservacion(idObservacion, respuesta) {
+    return ejecutarOperacionObservacion(
+      () => responderObservacionConvenio(token, idObservacion, respuesta),
+      'Respuesta registrada correctamente.'
+    )
+  }
+
+  function manejarResolverObservacion(idObservacion) {
+    return ejecutarOperacionObservacion(
+      () => resolverObservacionConvenio(token, idObservacion),
+      'Observación marcada como resuelta.'
+    )
+  }
+
+  async function ejecutarDecisionRevision(operacion, mensaje) {
+    setProcesandoObservacion(true)
+    setErrorObservaciones(null)
+
+    try {
+      const resultado = await operacion()
+
+      setMensajeObservaciones(mensaje)
+
+      if (resultado?.version !== undefined) {
+        router.replace('/revision')
+        router.refresh()
+      }
+
+      return true
+    } catch (err) {
+      manejarErrorObservacion(err)
+      return false
+    } finally {
+      setProcesandoObservacion(false)
+    }
+  }
+
+  function manejarAprobar(fundamento) {
+    return ejecutarDecisionRevision(
+      () => aprobarConvenio(
+        token,
+        id,
+        convenio.version,
+        fundamento
+      ),
+      'Convenio aprobado correctamente.'
+    )
+  }
+
+  function manejarDevolver(fundamento) {
+    return ejecutarDecisionRevision(
+      () => devolverConvenio(
+        token,
+        id,
+        convenio.version,
+        fundamento
+      ),
+      'Convenio devuelto para corrección.'
+    )
+  }
 
   async function manejarSubidaDocumento(tipoDocumento, archivo) {
     if (!token || !id) return false
@@ -218,6 +392,9 @@ export default function DetalleConvenio({ id }) {
     puede_enviar_revision = false,
     puede_subir_archivo = false,
     puede_eliminar = false,
+    puede_crear_observacion = false,
+    puede_aprobar = false,
+    puede_devolver = false,
   } = datos
 
   // Los permisos quedan disponibles para conectar las acciones.
@@ -234,7 +411,7 @@ export default function DetalleConvenio({ id }) {
     { id: 'personas', label: 'Personas', cantidad: representantes.length },
     { id: 'documentos', label: 'Documentos', cantidad: archivos.length },
     { id: 'historial', label: 'Historial', cantidad: historial.length },
-    { id: 'observaciones', label: 'Observaciones', cantidad: observaciones.length },
+    { id: 'observaciones', label: 'Observaciones', cantidad: observacionesActuales.length },
   ]
 
   const pestaniaActiva = pestanias.some(
@@ -383,7 +560,22 @@ export default function DetalleConvenio({ id }) {
             )}
 
             {pestaniaActiva === 'observaciones' && (
-              <ObservacionesTab observaciones={observaciones} />
+              <ObservacionesTab
+                observaciones={observacionesActuales}
+                puedeCrear={puede_crear_observacion}
+                puedeAprobar={puede_aprobar}
+                puedeDevolver={puede_devolver}
+                esRevision={convenio.estado === 'revision'}
+                version={convenio.version}
+                onCrear={manejarCrearObservacion}
+                onResponder={manejarResponderObservacion}
+                onResolver={manejarResolverObservacion}
+                onAprobar={manejarAprobar}
+                onDevolver={manejarDevolver}
+                guardando={procesandoObservacion}
+                error={errorObservaciones}
+                mensaje={mensajeObservaciones}
+              />
             )}
           </div>
         </div>

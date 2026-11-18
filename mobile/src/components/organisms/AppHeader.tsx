@@ -12,6 +12,15 @@ import { useOffline } from '@/services/useOffline';
 import { spacing, useTema, type Colores } from '@/theme';
 import { UnidadSelector } from '@/components/molecules';
 import { useUnidad } from '@/features/unidades/context/UnidadContext';
+import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
+import type { SeccionAyuda } from '@/features/ayuda/contenidoAyuda';
+
+// Qué ayuda abre el "?" según la pestaña en la que estás.
+const AYUDA_POR_RUTA: [string, SeccionAyuda][] = [
+  ['/search', 'buscar'],
+  ['/sign', 'firmar'],
+  ['/profile', 'perfil'],
+];
 
 export function AppHeader() {
   const { usuario } = useAuth();
@@ -25,6 +34,7 @@ export function AppHeader() {
   const pathname = usePathname();
   const enBusqueda = pathname.endsWith('/search');
   const enPerfil = pathname.endsWith('/profile'); // en Perfil el header se expande
+  const seccionAyuda = AYUDA_POR_RUTA.find(([ruta]) => pathname.endsWith(ruta))?.[1] ?? 'inicio';
   const { query, setQuery } = useBusqueda();
 
   // Efecto persiana: el alto del fondo azul se anima hasta el alto del contenido.
@@ -74,21 +84,26 @@ export function AppHeader() {
           style={[styles.contenido, { paddingTop: spacing.sm + insets.top }]}
           onLayout={(e) => medirContenido(e.nativeEvent.layout.height)}
         >
-        {/* Campana fija arriba a la derecha en los dos estados */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            notificacionesSinLeer > 0
-              ? `${notificacionesSinLeer} notificaciones sin leer`
-              : 'Notificaciones'
-          }
-          onPress={() => router.push('/notifications')}
-          // Va con posición absoluta, así que también tiene que bajar lo que mide la zona de la hora.
-          style={[styles.notificationButton, { top: spacing.sm + insets.top + 4 }]}
-        >
-          <Bell size={22} color={colors.onPrimary} />
-          {notificacionesSinLeer > 0 && <View style={styles.notificationDot} />}
-        </Pressable>
+        {/* Ayuda y notificaciones, fijas arriba a la derecha en los dos estados.
+            Van con posición absoluta, así que bajan lo que mide la zona de la hora. */}
+        <View style={[styles.acciones, { top: spacing.sm + insets.top + 4 }]}>
+          <BotonAyuda seccion={seccionAyuda} color={colors.onPrimary} style={styles.botonIcono} />
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              notificacionesSinLeer > 0
+                ? `${notificacionesSinLeer} notificaciones sin leer`
+                : 'Notificaciones'
+            }
+            onPress={() => router.push('/notifications')}
+            style={styles.botonIcono}
+          >
+            <Bell size={22} color={colors.onPrimary} />
+            {notificacionesSinLeer > 0 && <View style={styles.notificationDot} />}
+          </Pressable>
+        </View>
+
 
         {enPerfil ? (
           // Header expandido: avatar grande, nombre y mail
@@ -214,7 +229,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      paddingRight: 52, // lugar para la campana
+      paddingRight: 104, // lugar para ayuda + campana
     },
     userInfo: { flex: 1 },
     unit: { color: colors.onPrimary, opacity: 0.8, fontSize: fs(12) },
@@ -243,11 +258,14 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
     },
     emailPerfil: { color: colors.onPrimary, opacity: 0.85, fontSize: fs(13), textAlign: 'center' },
 
-    notificationButton: {
+    acciones: {
       position: 'absolute',
-      // top se calcula en línea (depende de la zona de la hora)
-      right: spacing.md, // mismo margen que el contenido
+      right: spacing.md,
       zIndex: 1,
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    botonIcono: {
       width: 44,
       height: 44,
       borderRadius: 12,
@@ -255,6 +273,7 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+
     notificationDot: {
       position: 'absolute',
       top: 9,

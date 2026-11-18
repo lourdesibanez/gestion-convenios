@@ -44,6 +44,29 @@ function fechaLegible(fecha) {
   return `${dia}/${mes}/${anio}`
 }
 
+// Neutraliza valores que podrían interpretarse como fórmulas
+// al abrir el CSV en Excel u otras planillas.
+function escaparCeldaCSV(valor) {
+  const texto = valor === null || valor === undefined
+    ? ''
+    : String(valor)
+
+  // Detectar fórmulas incluso si están precedidas por espacios,
+  // tabulaciones, saltos de línea o caracteres de control.
+  const inicioSignificativo = texto.replace(
+    /^[\s\u0000-\u001F\u007F-\u009F\uFEFF]+/u,
+    ''
+  )
+
+  const esFormula = /^[=+\-@]/.test(inicioSignificativo)
+
+  // El apóstrofo inicial obliga a tratar el contenido como texto.
+  const seguro = esFormula ? `'${texto}` : texto
+
+  // Escapar comillas dobles según las reglas CSV.
+  return `"${seguro.replace(/"/g, '""')}"`
+}
+
 function claseEstado(estado) {
   switch (normalizar(estado)) {
     case 'firmado':
@@ -335,6 +358,72 @@ export default function ConveniosPage() {
     router.push(`/convenios/${id}`)
   }
 
+  function exportarCSV() {
+    if (filtrados.length === 0) return
+
+    const encabezados = [
+      'Código',
+      'Título',
+      'Tipo',
+      'Categoría',
+      'Ámbito',
+      'Unidad responsable',
+      'Estado',
+      'Número de resolución',
+      'Fecha de firma',
+      'Vencimiento',
+      'Instrumentos vinculados',
+      'Documentos adjuntos',
+    ]
+
+    const filas = filtrados.map((convenio) => [
+      convenio.codigo,
+      convenio.titulo,
+      convenio.tipo,
+      convenio.categoria,
+      convenio.ambito,
+      convenio.unidad,
+      convenio.estado,
+      convenio.numero_resolucion,
+      fechaLegible(convenio.fecha_firma) ?? '',
+      fechaLegible(convenio.vence) ?? '',
+      Number(convenio.hijos_count ?? 0),
+      Number(convenio.documentos_count ?? 0),
+    ])
+
+    const contenido = '\uFEFF' + [
+      encabezados,
+      ...filas,
+    ]
+      .map((fila) => fila.map(escaparCeldaCSV).join(','))
+      .join('\r\n')
+
+    const archivo = new Blob(
+      [contenido],
+      { type: 'text/csv;charset=utf-8;' }
+    )
+
+    const url = window.URL.createObjectURL(archivo)
+    const enlace = document.createElement('a')
+
+    const ahora = new Date()
+
+    const anio = ahora.getFullYear()
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0')
+    const dia = String(ahora.getDate()).padStart(2, '0')
+
+    enlace.href = url
+    enlace.download = `convenios_${anio}-${mes}-${dia}.csv`
+
+    document.body.appendChild(enlace)
+    enlace.click()
+    enlace.remove()
+
+    window.setTimeout(() => {
+      window.URL.revokeObjectURL(url)
+    }, 1000)
+  }
+
   // ---------- Render ----------
 
   if (sesionCargando || cargando) {
@@ -548,7 +637,19 @@ export default function ConveniosPage() {
             </span>
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex flex-wrap align-items-center gap-2">
+
+            <button
+              type="button"
+              className="btn btn-outline-success btn-sm"
+              onClick={exportarCSV}
+              disabled={total === 0}
+              title="Exportar todos los resultados que coinciden con los filtros"
+            >
+              <i className="bi bi-filetype-csv me-1" />
+              Exportar CSV
+            </button>
+
             <label htmlFor="convenios-por-pagina" className="small text-muted">
               Mostrar
             </label>

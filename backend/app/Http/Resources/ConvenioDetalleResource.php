@@ -13,6 +13,9 @@ class ConvenioDetalleResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'puede_crear_observacion' => $this->resource['puede_crear_observacion'] ?? false,
+            'puede_aprobar' => $this->resource['puede_aprobar'] ?? false,
+            'puede_devolver' => $this->resource['puede_devolver'] ?? false,
             'puede_firmar' => $this->resource['puede_firmar'] ?? false,
             'puede_editar' => $this->resource['puede_editar'] ?? false,
             'puede_enviar_revision' => $this->resource['puede_enviar_revision'] ?? false,
