@@ -32,7 +32,7 @@ type CampoTexto =
   | 'titulo'
   | 'fecha_inicio'
   | 'fecha_fin'
-  | 'fecha_preaviso'
+  | 'dias_preaviso'
   | 'numero_resolucion'
   | 'referencia_expediente'
   | 'notas'
@@ -109,11 +109,30 @@ function mostrarFecha(valor: string): string {
     : '';
 }
 
+// El usuario carga "días antes del vencimiento"; la API guarda la fecha (vencimiento - días).
+function fechaPreavisoDesdeDias(fechaFin: string, dias: string): string | null {
+  if (!fechaFin || !dias.trim()) return null;
+  const [anio, mes, dia] = fechaFin.slice(0, 10).split('-').map(Number);
+  const fecha = new Date(anio, mes - 1, dia - Number(dias)); // Date ajusta solo el cambio de mes/año
+  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dd = String(fecha.getDate()).padStart(2, '0');
+  return `${fecha.getFullYear()}-${mm}-${dd}`;
+}
+
+// Al editar: de la fecha guardada vuelve a los días.
+function diasDesdeFechaPreaviso(fechaFin: string | null, fechaPreaviso: string | null): string {
+  if (!fechaFin || !fechaPreaviso) return '';
+  const fin = new Date(`${fechaFin.slice(0, 10)}T00:00:00`);
+  const preaviso = new Date(`${fechaPreaviso.slice(0, 10)}T00:00:00`);
+  return String(Math.round((fin.getTime() - preaviso.getTime()) / 86_400_000));
+}
+
+
 const camposIniciales: CamposFormulario = {
   titulo: '',
   fecha_inicio: '',
   fecha_fin: '',
-  fecha_preaviso: '',
+  dias_preaviso: '',
   numero_resolucion: '',
   referencia_expediente: '',
   notas: '',
@@ -164,7 +183,7 @@ export function CrearConvenioScreen() {
 
   const camposPorPaso = [
     ['titulo', 'id_tipo_instrumento', 'id_institucion'],
-    ['fecha_inicio', 'fecha_fin', 'fecha_preaviso', 'referencia_expediente', 'notas'],
+    ['fecha_inicio', 'fecha_fin', 'dias_preaviso', 'referencia_expediente', 'notas'],
     [
       'objeto',
       'marco_legal',
@@ -199,7 +218,7 @@ export function CrearConvenioScreen() {
             titulo: datos.titulo,
             fecha_inicio: datos.fecha_inicio ?? '',
             fecha_fin: datos.fecha_fin ?? '',
-            fecha_preaviso: datos.fecha_preaviso ?? '',
+            dias_preaviso: diasDesdeFechaPreaviso(datos.fecha_fin, datos.fecha_preaviso),
             numero_resolucion: datos.numero_resolucion ?? '',
             referencia_expediente: datos.referencia_expediente ?? '',
             notas: datos.notas ?? '',
@@ -258,6 +277,27 @@ export function CrearConvenioScreen() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
+  // Días de preaviso: número entero, con vencimiento cargado y sin caer antes del inicio.
+  const validarVigencia = (): boolean => {
+    const dias = campos.dias_preaviso.trim();
+    let error = '';
+
+    if (dias) {
+      const fecha = fechaPreavisoDesdeDias(campos.fecha_fin, dias);
+      if (!/^\d+$/.test(dias) || Number(dias) < 1) {
+        error = 'Ingresá una cantidad de días mayor a 0.';
+      } else if (!campos.fecha_fin) {
+        error = 'Para el preaviso cargá primero la fecha de vencimiento.';
+      } else if (fecha && campos.fecha_inicio && fecha < campos.fecha_inicio.slice(0, 10)) {
+        error = 'El preaviso no puede quedar antes de la fecha de inicio.';
+      }
+    }
+
+    setErrores((actuales) => ({ ...actuales, dias_preaviso: error }));
+    return !error;
+  };
+
+
   const avanzarPaso = () => {
     const debeValidarDatosBasicos = modoEdicion || instrumentoCreadoId === null;
 
@@ -267,6 +307,11 @@ export function CrearConvenioScreen() {
     volverAlInicioDelPaso();
     setPasoActual((actual) => Math.min(actual + 1, pasos.length - 1));
   };
+
+  if (pasoActual === 1 && !validarVigencia()) {
+    return;
+  }
+
 
   const retrocederPaso = () => {
     volverAlInicioDelPaso();
@@ -332,7 +377,7 @@ export function CrearConvenioScreen() {
         id_institucion: institucion.id,
         fecha_inicio: textoOpcional(campos.fecha_inicio),
         fecha_fin: textoOpcional(campos.fecha_fin),
-        fecha_preaviso: textoOpcional(campos.fecha_preaviso),
+        fecha_preaviso: fechaPreavisoDesdeDias(campos.fecha_fin, campos.dias_preaviso),
         numero_resolucion: textoOpcional(campos.numero_resolucion),
         referencia_expediente: textoOpcional(campos.referencia_expediente),
         notas: textoOpcional(campos.notas),
@@ -573,13 +618,16 @@ export function CrearConvenioScreen() {
                 </View>
               </View>
               <FormField
-                label="Dias de preaviso"
-                value={campos.fecha_preaviso}
-                onChangeText={(valor) => actualizarCampo('fecha_preaviso', valor)}
-                error={errores.fecha_preaviso}
+                label="Días de preaviso"
+                value={campos.dias_preaviso}
+                onChangeText={(valor) => actualizarCampo('dias_preaviso', valor.replace(/\D/g, ''))}
+                error={errores.dias_preaviso ?? errores.fecha_preaviso}
                 editable={!formularioBloqueado}
+                keyboardType="number-pad"
+                maxLength={4}
                 placeholder="30"
               />
+
               <FormField
                 label="Referencia de expediente"
                 value={campos.referencia_expediente}
