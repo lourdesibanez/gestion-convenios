@@ -17,9 +17,11 @@ class ArchivoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id_instrumento' => ['required', 'integer', 'exists:instrumento,id'],
-            'tipo_documento' => ['required', 'string', 'max:255'],
-            'archivo' => ['required', 'file', 'mimes:pdf', 'max:20480'],
+            'id_instrumento'    => ['required', 'integer', 'exists:instrumento,id'],
+            'tipo_documento'    => ['required', 'string', 'max:255'],
+            'archivo'           => ['required', 'file', 'mimes:pdf', 'max:20480'],
+            'origen'            => ['nullable', 'in:web,app_movil'],
+
         ];
     }
 }

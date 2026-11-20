@@ -12,7 +12,7 @@ export interface Documento {
   id: number;
   nombre: string;
   descripcion: string; // "Principal · 1,2 MB"
-  selladoPor?: string; // "L. I."
+  selladoPor?: string; // quien lo subio
   selladoEn?: string; // ISO
 }
 
