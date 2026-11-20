@@ -479,13 +479,14 @@ export function CrearConvenioScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safe}>
+      {/* El header va fuera del scroll: ocupa todo el ancho y queda fijo, igual que en el detalle. */}
+      <HeaderBack
+        titulo={modoEdicion ? 'Editar convenio' : 'Nuevo convenio'}
+        onVolver={() => solicitarVolver()}
+        volverDeshabilitado={guardando}
+        acciones={<BotonAyuda seccion="crear" color={colors.primary} />}
+      />
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <HeaderBack 
-          titulo={modoEdicion ? 'Editar convenio' : 'Nuevo convenio'}
-          onVolver={() => solicitarVolver()}
-          volverDeshabilitado={guardando}
-          acciones={<BotonAyuda seccion="crear" color={colors.primary} />}
-        />
         {errorCarga ? (
           <Text style={styles.error}>{errorCarga}</Text>
         ) : !opciones ? (
