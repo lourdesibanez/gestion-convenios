@@ -55,13 +55,13 @@ class ArchivoService {
         $selladoEn = now();
         $marcado = $origen === 'app_movil'
             ? $this->marcaPdf->marcar($archivo->getRealPath(), [
-                'usuario' => trim("{$usuario->nombre} {$usuario->apellido}"),
-                'email' => $usuario->email,
-                'convenio' => $instrumento->titulo,
-                'codigo' => $instrumento->codigo,
-                'fecha' => $selladoEn->format('d/m/Y H:i:s'),
-                'origen' => $origen,
-                'hash_original' => $hashOriginal,
+                'usuario'           => trim("{$usuario->nombre} {$usuario->apellido}"),
+                'email'             => $usuario->email,
+                'convenio'          => $instrumento->titulo,
+                'codigo'            => $instrumento->codigo,
+                'fecha'             => $selladoEn->copy()->timezone('America/Argentina/Buenos_Aires')->format('d/m/Y H:i:s'),
+                'origen'            => $origen,
+                'hash_original'     => $hashOriginal,
             ])
             : null;
 

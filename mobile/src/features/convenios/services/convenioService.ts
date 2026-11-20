@@ -34,6 +34,9 @@ type DetalleApi = {
     tipo_documento: string;
     tamanio_bytes: number;
     created_at: string;
+    origen: 'web' | 'app_movil';
+    sellado_en: string | null; 
+    sellado_por: string | null;
   }[];
   historial: {
     estado_anterior: string | null;
@@ -133,6 +136,11 @@ export const conveniosService = {
         id: archivo.id,
         nombre: archivo.nombre,
         descripcion: `${archivo.tipo_documento} · ${describirTamano(archivo.tamanio_bytes)}`,
+        // Solo los que la API marcó: la fecha viene de MySQL en UTC, se pasa a ISO
+        ...(archivo.sellado_en && {
+          selladoPor: archivo.sellado_por ?? undefined,
+          selladoEn: `${archivo.sellado_en.replace(' ', 'T')}Z`,
+        }),
       })),
       comentarios: [],
     };
