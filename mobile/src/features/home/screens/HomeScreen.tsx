@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
-import { StatCard, ListItem, SinConexion } from '@/components/molecules';
+import { StatCard, ListItem, SinConexion, BotonFlotante } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 import { useHome } from '../hooks/useHome';
@@ -209,16 +209,12 @@ export function HomeScreen() {
       </ScrollView>
 
       {!esConsulta && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Nuevo convenio"
-            onPress={() => router.push('/agreement/create')}
-            style={styles.floatingButton}
-          >
-            <FilePlus2 size={20} color={colors.background} />
-            <Text style={styles.floatingButtonText}>Nuevo convenio</Text>
-          </Pressable>
-        )}
+        <BotonFlotante
+          titulo="Nuevo convenio"
+          icono={(color) => <FilePlus2 size={20} color={color} />}
+          onPress={() => router.push('/agreement/create')}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -310,27 +306,5 @@ const crearEstilos = (colors: Colores, typography: Tipografia, fs: (tamano: numb
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 12,
-    },
-    floatingButton: {
-      position: 'absolute',
-      right: spacing.lg,
-      bottom: spacing.lg,
-      minHeight: 56,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      borderRadius: 18,
-      backgroundColor: colors.primary,
-      elevation: 6,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.22,
-      shadowRadius: 4,
-    },
-    floatingButtonText: {
-      color: colors.background,
-      fontSize: fs(14),
-      fontWeight: '700',
     },
   });

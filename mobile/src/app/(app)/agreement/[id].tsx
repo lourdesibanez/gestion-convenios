@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useState, useMemo } from 'react';
 import { File, type File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pencil, Share2, Trash2, ArrowDownToLine } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowDownToLine, EllipsisVertical, Pencil, Send, Share2, Trash2, Upload } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
@@ -12,7 +12,7 @@ import { Documentos, type OpcionSubidaDocumento } from '@/features/convenios/com
 import { Firmantes } from '@/features/convenios/components/Firmante';
 import { BotonFirmarConvenio } from '@/features/convenios/components/BotonFirmarConvenio';
 import { useColoresConvenio, type ColoresConvenio } from '@/features/convenios/components/temas';
-import { useTema } from '@/theme';
+import { spacing, useTema } from '@/theme';
 import { useConvenio } from '@/features/convenios/hooks/useConvenio';
 import { conveniosService } from '@/features/convenios/services/convenioService';
 import { busquedaService } from '@/features/busqueda/services/busquedaService';
@@ -20,7 +20,14 @@ import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { ApiError } from '@/services/api';
 import { creacionConvenioService, TAMANO_MAXIMO_DOCUMENTO, type TipoDocumentoConvenio } from '@/features/convenios/services/creacionConvenioService';
-import { HeaderBack, OfflineBanner } from '@/components/molecules';
+import {
+  BotonFlotante,
+  HeaderBack,
+  HojaAcciones,
+  ModalOpciones,
+  OfflineBanner,
+  type AccionHoja,
+} from '@/components/molecules';
 import { useOffline } from '@/services/useOffline';
 import { EstadoBadge } from '@/components/atoms';
 import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
@@ -29,6 +36,7 @@ export default function FichaConvenio() {
   const colores = useColoresConvenio();
   const { fs } = useTema();
   const s = useMemo(() => crearEstilos(colores, fs), [colores, fs]);
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { tipoPerfil } = useAuth();
@@ -36,6 +44,8 @@ export default function FichaConvenio() {
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const [enviandoARevision, setEnviandoARevision] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [selectorTipoAbierto, setSelectorTipoAbierto] = useState(false);
   const [descargandoDocumentoId, setDescargandoDocumentoId] = useState<number | null>(null);
   const [pdfDescargado, setPdfDescargado] = useState<{ archivo: ExpoFile; nombre: string; descripcion: string } | null>(null);
   const esPerfilConsulta =
@@ -52,6 +62,11 @@ export default function FichaConvenio() {
       : []),
   ];
   const offline = useOffline();
+
+  // Sin permiso (o sin conexión) el botón no se muestra.
+  const mostrarEnviarARevision =
+    !!convenio?.puedeEnviarRevision && !esPerfilConsulta && !offline;
+  const puedeSubir = !!convenio?.puedeSubirArchivo && !offline;
 
   const subirArchivo = async (tipoDocumento: TipoDocumentoConvenio) => {
     if (!convenio || subiendoArchivo) return;
@@ -100,7 +115,7 @@ export default function FichaConvenio() {
     setDescargandoDocumentoId(documento.id);
     try {
       const archivo = await busquedaService.descargarPdf(documento.id);
-        setPdfDescargado({ archivo, nombre: documento.nombre, descripcion: documento.descripcion });
+      setPdfDescargado({ archivo, nombre: documento.nombre, descripcion: documento.descripcion });
     } catch (cause) {
       Alert.alert(
         'No se pudo descargar el documento',
@@ -129,6 +144,17 @@ export default function FichaConvenio() {
         'No se pudo compartir el documento',
         cause instanceof Error ? cause.message : 'Intentá nuevamente.',
       );
+    }
+  };
+
+  const compartirConvenio = async () => {
+    if (!convenio) return;
+    try {
+      await Share.share({
+        message: `${convenio.titulo}\n${convenio.expediente} · ${convenio.unidadAcademica}\nEstado: ${convenio.estado}`,
+      });
+    } catch {
+      Alert.alert('No se pudo compartir', 'Intentá nuevamente.');
     }
   };
 
@@ -195,11 +221,67 @@ export default function FichaConvenio() {
       ],
     );
 
+  // Cada opción aparece solo si el usuario tiene permiso para hacerla.
+  const accionesMenu: AccionHoja[] = convenio
+    ? [
+        ...(convenio.puedeEditar
+          ? [{
+              clave: 'editar',
+              etiqueta: 'Editar datos',
+              icono: (color: string) => <Pencil size={20} color={color} />,
+              onPress: () =>
+                router.push({ pathname: '/agreement/create', params: { id: String(convenio.id) } }),
+            }]
+          : []),
+        ...(puedeSubir
+          ? [{
+              clave: 'subir',
+              etiqueta: 'Subir documento',
+              icono: (color: string) => <Upload size={20} color={color} />,
+              onPress: () => setSelectorTipoAbierto(true),
+            }]
+          : []),
+        {
+          clave: 'compartir',
+          etiqueta: 'Compartir',
+          icono: (color: string) => <Share2 size={20} color={color} />,
+          onPress: () => void compartirConvenio(),
+        },
+        ...(convenio.puedeEliminar
+          ? [{
+              clave: 'eliminar',
+              etiqueta: 'Eliminar borrador',
+              ayuda: 'Solo se puede mientras esté en Borrador',
+              peligro: true,
+              icono: (color: string) => <Trash2 size={20} color={color} />,
+              onPress: confirmarEliminacion,
+            }]
+          : []),
+      ]
+    : [];
+
+  const mostrarMenu = !cargando && !!convenio && puedeVerConvenio;
+
   return (
     <SafeAreaView style={s.pantalla} edges={['top']}>
       <HeaderBack
         titulo="Detalle del convenio"
-        acciones={<BotonAyuda seccion="ficha" color={colores.azul} />}
+        acciones={
+          <>
+            <BotonAyuda seccion="ficha" color={colores.azul} />
+            {mostrarMenu ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Más acciones"
+                hitSlop={8}
+                disabled={eliminando || enviandoARevision}
+                onPress={() => setMenuAbierto(true)}
+              >
+                <EllipsisVertical size={22} color={colores.texto} />
+              </Pressable>
+            ) : null}
+          </>
+        }
       />
       <OfflineBanner />
 
@@ -221,7 +303,7 @@ export default function FichaConvenio() {
       )}
 
       {!cargando && convenio && puedeVerConvenio && (
-        <ScrollView contentContainerStyle={s.contenido}>
+        <ScrollView contentContainerStyle={[s.contenido, mostrarEnviarARevision && s.contenidoConBoton]}>
           <View style={s.encabezado}>
             <View style={s.etiquetas}>
               <Text style={s.tipo}>{convenio.tipoInstrumento}</Text>
@@ -231,59 +313,6 @@ export default function FichaConvenio() {
             <Text style={s.expediente}>
               {convenio.expediente} · {convenio.unidadAcademica}
             </Text>
-            {convenio.puedeEditar || convenio.puedeEnviarRevision || convenio.puedeEliminar ? (
-              <View style={s.accionesConvenio}>
-                {convenio.puedeEditar ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Editar convenio"
-                    disabled={eliminando || enviandoARevision}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/agreement/create',
-                        params: { id: String(convenio.id) },
-                      })
-                    }
-                    style={s.botonEditar}
-                  >
-                    <Pencil size={18} color={colores.azul} />
-                    <Text style={s.botonEditarTxt}>Editar convenio</Text>
-                  </Pressable>
-                ) : null}
-                {convenio.puedeEnviarRevision ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Enviar convenio a revisión"
-                    accessibilityState={{ disabled: enviandoARevision || eliminando }}
-                    disabled={enviandoARevision || eliminando}
-                    onPress={confirmarEnvioARevision}
-                    style={[
-                      s.botonRevision,
-                      (enviandoARevision || eliminando) && s.botonDeshabilitado,
-                    ]}
-                  >
-                    <Text style={s.botonRevisionTxt}>
-                      {enviandoARevision ? 'Enviando...' : 'Enviar a revisión'}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                {convenio.puedeEliminar ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Eliminar borrador"
-                    accessibilityState={{ disabled: eliminando || enviandoARevision }}
-                    disabled={eliminando || enviandoARevision}
-                    onPress={confirmarEliminacion}
-                    style={[s.botonEliminar, (eliminando || enviandoARevision) && s.botonDeshabilitado]}
-                  >
-                    <Trash2 size={16} color={colores.rojo} />
-                    <Text style={s.botonEliminarTxt}>
-                      {eliminando ? 'Eliminando...' : 'Eliminar borrador'}
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            ) : null}
           </View>
 
           <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
@@ -318,37 +347,66 @@ export default function FichaConvenio() {
             onSubir={(tipoDocumento) => void subirArchivo(tipoDocumento)}
             descargandoDocumentoId={descargandoDocumentoId}
             tiposSubida={tiposSubida}
-            puedeSubir={convenio.puedeSubirArchivo && !offline}
+            puedeSubir={puedeSubir}
             subiendo={subiendoArchivo}
           />
           <ComentariosConvenio idConvenio={Number(id)} />
         </ScrollView>
       )}
-            <Modal
-              animationType="slide"
-              onRequestClose={() => setPdfDescargado(null)}
-              visible={pdfDescargado !== null}
-            >
-              <SafeAreaView style={s.pdfModal}>
-                <HeaderBack
-                  titulo={pdfDescargado?.nombre}
-                  subtitulo={pdfDescargado?.descripcion}
-                  onVolver={() => setPdfDescargado(null)}
-                  acciones={
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Guardar o compartir documento"
-                      hitSlop={8}
-                      onPress={() => void compartirDocumento()}
-                    >
-                      <ArrowDownToLine size={22} color={colores.azul} />
-                    </Pressable>
-                  }
-                />
-                {pdfDescargado ? <PdfJsViewer file={pdfDescargado.archivo} /> : null}
-              </SafeAreaView>
-            </Modal>
 
+      {!cargando && convenio && puedeVerConvenio && mostrarEnviarARevision && (
+        <BotonFlotante
+          titulo={enviandoARevision ? 'Enviando...' : 'Enviar a revisión'}
+          accessibilityLabel="Enviar convenio a revisión"
+          icono={(color) => <Send size={20} color={color} />}
+          disabled={enviandoARevision || eliminando}
+          onPress={confirmarEnvioARevision}
+          style={{ bottom: spacing.lg + insets.bottom }}
+        />
+      )}
+
+      <HojaAcciones
+        visible={menuAbierto}
+        subtitulo={convenio ? `${convenio.expediente} · ${convenio.estado}` : undefined}
+        acciones={accionesMenu}
+        onCerrar={() => setMenuAbierto(false)}
+      />
+
+      <ModalOpciones
+        visible={puedeSubir && selectorTipoAbierto}
+        titulo="Tipo de documento"
+        opciones={tiposSubida.map((opcion) => ({ value: opcion.tipo, label: opcion.etiqueta }))}
+        onSeleccionar={(tipo) => {
+          setSelectorTipoAbierto(false);
+          void subirArchivo(tipo as TipoDocumentoConvenio);
+        }}
+        onCerrar={() => setSelectorTipoAbierto(false)}
+      />
+
+      <Modal
+        animationType="slide"
+        onRequestClose={() => setPdfDescargado(null)}
+        visible={pdfDescargado !== null}
+      >
+        <SafeAreaView style={s.pdfModal}>
+          <HeaderBack
+            titulo={pdfDescargado?.nombre}
+            subtitulo={pdfDescargado?.descripcion}
+            onVolver={() => setPdfDescargado(null)}
+            acciones={
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Guardar o compartir documento"
+                hitSlop={8}
+                onPress={() => void compartirDocumento()}
+              >
+                <ArrowDownToLine size={22} color={colores.azul} />
+              </Pressable>
+            }
+          />
+          {pdfDescargado ? <PdfJsViewer file={pdfDescargado.archivo} /> : null}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -357,49 +415,14 @@ const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) 
   StyleSheet.create({
     pantalla: { flex: 1, backgroundColor: colores.fondo },
     contenido: { padding: 16, paddingTop: 4 },
+    // Espacio para que el botón flotante no tape lo último de la lista.
+    contenidoConBoton: { paddingBottom: 100 },
     centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
     encabezado: { marginBottom: 14 },
     etiquetas: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
     tipo: { color: colores.azul, fontWeight: '700', fontSize: fs(12) },
     titulo: { color: colores.texto, fontSize: fs(22), fontWeight: '800', lineHeight: fs(28) },
     expediente: { color: colores.textoSuave, fontSize: fs(12), marginTop: 4 },
-    accionesConvenio: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-    botonEditar: {
-      minHeight: 40,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      paddingHorizontal: 12,
-      borderWidth: 1,
-      borderColor: colores.azul,
-      borderRadius: 10,
-    },
-    botonEditarTxt: { color: colores.azul, fontWeight: '700' },
-    botonRevision: {
-      minHeight: 40,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 12,
-      borderRadius: 10,
-      backgroundColor: colores.azul,
-    },
-    botonDeshabilitado: { opacity: 0.6 },
-    botonRevisionTxt: { color: colores.sobreAzul, fontSize: fs(15), fontWeight: '700' },
-    botonEliminar: {
-      minHeight: 40,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingHorizontal: 12,
-      borderWidth: 1,
-      borderColor: colores.rojo,
-      borderRadius: 10,
-      backgroundColor: colores.rojoClaro,
-    },
-    botonEliminarTxt: { color: colores.rojo, fontSize: fs(14), fontWeight: '700' },
     pdfModal: { flex: 1, backgroundColor: colores.fondo },
     error: { color: colores.rojo, textAlign: 'center', marginBottom: 12 },
     reintentar: { borderColor: colores.azul, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
