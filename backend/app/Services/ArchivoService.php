@@ -14,9 +14,12 @@ use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
+use Illuminate\Support\Str;
 
-class ArchivoService
-{
+class ArchivoService {
+
+    public function __construct(private MarcaPdfService $marcaPdf) {}
+
     public function listar(Usuario $usuario): LengthAwarePaginator
     {
         return Archivo::with('instrumento')
@@ -37,23 +40,43 @@ class ArchivoService
         return Instrumento::query()->visiblePara($usuario)->findOrFail($id);
     }
 
-    public function crear(Instrumento $instrumento, string $tipoDocumento, UploadedFile $archivo): Archivo
-    {
-        $ruta = $archivo->store("instrumentos/{$instrumento->uuid}", 'local');
-        if (! $ruta) {
-            throw new RuntimeException('No se pudo guardar el archivo.');
-        }
-
-        $hash = hash_file('sha256', $archivo->getRealPath());
-        if ($hash === false) {
-            Storage::disk('local')->delete($ruta);
+    public function crear(Instrumento $instrumento, Usuario $usuario,string $tipoDocumento,UploadedFile $archivo,string $origen = 'web'): Archivo {
+        $hashOriginal = hash_file('sha256', $archivo->getRealPath());
+        if ($hashOriginal === false) {
             throw new RuntimeException('No se pudo calcular el hash del archivo.');
         }
 
         $tipoMime = $archivo->getMimeType();
         if (! $tipoMime) {
-            Storage::disk('local')->delete($ruta);
             throw new RuntimeException('No se pudo determinar el tipo del archivo.');
+        }
+
+        // Si viene de la app, la API le escribe la marca en los metadatos
+        $selladoEn = now();
+        $marcado = $origen === 'app_movil'
+            ? $this->marcaPdf->marcar($archivo->getRealPath(), [
+                'usuario' => trim("{$usuario->nombre} {$usuario->apellido}"),
+                'email' => $usuario->email,
+                'convenio' => $instrumento->titulo,
+                'codigo' => $instrumento->codigo,
+                'fecha' => $selladoEn->format('d/m/Y H:i:s'),
+                'origen' => $origen,
+                'hash_original' => $hashOriginal,
+            ])
+            : null;
+
+        $carpeta = "instrumentos/{$instrumento->uuid}";
+        if ($marcado !== null) {
+            $ruta = "{$carpeta}/".Str::uuid().'.pdf';
+            if (! Storage::disk('local')->put($ruta, $marcado)) {
+                throw new RuntimeException('No se pudo guardar el archivo.');
+            }
+        } else {
+            // Sin marca (subido desde la web, o PDF que FPDI no pudo leer): se guarda tal cual
+            $ruta = $archivo->store($carpeta, 'local');
+            if (! $ruta) {
+                throw new RuntimeException('No se pudo guardar el archivo.');
+            }
         }
 
         try {
@@ -62,15 +85,20 @@ class ArchivoService
                 'nombre' => basename($archivo->getClientOriginalName()),
                 'tipo_documento' => $tipoDocumento,
                 'tipo_mime' => $tipoMime,
-                'tamanio_bytes' => $archivo->getSize(),
-                'hash_sha256' => $hash,
+                'tamanio_bytes' => $marcado !== null ? strlen($marcado) : $archivo->getSize(),
+                // Hash del archivo que queda guardado (el marcado, si se pudo marcar)
+                'hash_sha256' => $marcado !== null ? hash('sha256', $marcado) : $hashOriginal,
+                'hash_original' => $hashOriginal,
                 'ruta' => $ruta,
+                'origen' => $origen,
+                'sellado_en' => $marcado !== null ? $selladoEn : null,
             ]));
         } catch (Throwable $error) {
             Storage::disk('local')->delete($ruta);
             throw $error;
         }
     }
+
 
     public function eliminar(Archivo $archivo): void
     {
