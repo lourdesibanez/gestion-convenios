@@ -1,12 +1,15 @@
-import { router, Stack } from 'expo-router';
+import { router, Stack, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { AuthProvider, useAuth } from '@/features/auth/context/AuthContext';
 import { notificationService } from '@/features/notifications/services/notificationService';
+import { recordatoriosLocales } from '@/features/notifications/services/recordatoriosLocales';
 import { TemaProvider, useTema } from '@/theme';
 import { UnidadProvider } from '@/features/unidades/context/UnidadContext';
+
 
 // El splash queda visible hasta saber si hay sesión, así no se ve el login un instante.
 SplashScreen.preventAutoHideAsync();
@@ -43,6 +46,13 @@ function RootNavigator() {
       if (requestId === ultimaRespuestaProcesada.current) return;
 
       const datos = response.notification.request.content.data;
+      // Avisos locales sin convenio puntual: llevan a una pantalla (Firmar o Inicio)
+      if (typeof datos?.url === 'string') {
+        ultimaRespuestaProcesada.current = requestId;
+        router.push(datos.url as Href);
+        return;
+      }
+
       const rawId = datos?.id_instrumento;
       const idInstrumento = typeof rawId === 'number' ? rawId : Number(rawId);
       if (!Number.isSafeInteger(idInstrumento) || idInstrumento <= 0) return;
@@ -78,6 +88,20 @@ function RootNavigator() {
     };
   }, [status]);
   
+  // "Hay novedades": al salir de la app se programa; al volver se cancela.
+  // Así solo salta si el usuario no entró durante X horas.
+  useEffect(() => {
+    if (status !== 'signedIn') return;
+
+    void recordatoriosLocales.cancelarNovedades(); // acaba de entrar
+    const suscripcion = AppState.addEventListener('change', (estado) => {
+      if (estado === 'background') void recordatoriosLocales.programarNovedades();
+      if (estado === 'active') void recordatoriosLocales.cancelarNovedades();
+    });
+
+    return () => suscripcion.remove();
+  }, [status]);
+
   useEffect(() => {
     if (status !== 'loading') {
       SplashScreen.hideAsync();

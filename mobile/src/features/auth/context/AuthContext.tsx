@@ -12,6 +12,7 @@ import { tokenStorage } from '@/services/tokenStorage';
 import { usuarioStorage } from '@/services/usuarioStorage';
 import { authService, Usuario } from '../services/authService';
 import { pendientesCache } from '@/features/firma/services/pendientesCache';
+import { recordatoriosLocales } from '@/features/notifications/services/recordatoriosLocales';
 
 // locked: hay sesión guardada, pero hace falta la huella (o la contraseña) para entrar.
 type Status = 'loading' | 'signedIn' | 'locked' | 'signedOut';
@@ -169,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await tokenStorage.remove();
     await usuarioStorage.remove(); //cuando alguien cambia de cuenta, no quedan los datos del usuario anterior en el celular
     await pendientesCache.borrar(); // los datos offline son del usuario que se va
+    await recordatoriosLocales.cancelarTodos(); // los avisos programados eran de este usuario
     await biometricPreference.disable();
     setBiometricEnabled(false);
     setUsuario(null);
