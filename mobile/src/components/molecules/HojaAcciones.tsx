@@ -57,6 +57,7 @@ export function HojaAcciones({ visible, subtitulo, acciones, onCerrar }: Props) 
 
           {acciones.map((accion) => {
             const color = accion.peligro ? colors.error : colors.text;
+            const colorIcono = accion.peligro ? colors.error : colors.primary;
             return (
               <Pressable
                 key={accion.clave}
@@ -66,7 +67,7 @@ export function HojaAcciones({ visible, subtitulo, acciones, onCerrar }: Props) 
                 onPress={() => elegir(accion)}
                 style={[styles.fila, accion.peligro && styles.filaPeligro]}
               >
-                {accion.icono(color)}
+                {accion.icono(colorIcono)}
                 <View style={styles.textos}>
                   <Text style={[styles.etiqueta, { color }]}>{accion.etiqueta}</Text>
                   {accion.ayuda ? <Text style={styles.ayuda}>{accion.ayuda}</Text> : null}

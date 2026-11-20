@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { File, type File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowDownToLine, EllipsisVertical, Pencil, Send, Share2, Trash2, Upload } from 'lucide-react-native';
+import { ArrowDownToLine, EllipsisVertical, Pencil, Send, Share as ShareIcon, Trash2 } from 'lucide-react-native';
 import { Circuito } from '@/features/convenios/components/Circuito';
 import { ComentariosConvenio } from '@/features/convenios/components/ComentariosConvenio';
 import { Datos } from '@/features/convenios/components/Dato';
@@ -24,7 +24,6 @@ import {
   BotonFlotante,
   HeaderBack,
   HojaAcciones,
-  ModalOpciones,
   OfflineBanner,
   type AccionHoja,
 } from '@/components/molecules';
@@ -45,7 +44,6 @@ export default function FichaConvenio() {
   const [enviandoARevision, setEnviandoARevision] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [selectorTipoAbierto, setSelectorTipoAbierto] = useState(false);
   const [descargandoDocumentoId, setDescargandoDocumentoId] = useState<number | null>(null);
   const [pdfDescargado, setPdfDescargado] = useState<{ archivo: ExpoFile; nombre: string; descripcion: string } | null>(null);
   const esPerfilConsulta =
@@ -233,18 +231,10 @@ export default function FichaConvenio() {
                 router.push({ pathname: '/agreement/create', params: { id: String(convenio.id) } }),
             }]
           : []),
-        ...(puedeSubir
-          ? [{
-              clave: 'subir',
-              etiqueta: 'Subir documento',
-              icono: (color: string) => <Upload size={20} color={color} />,
-              onPress: () => setSelectorTipoAbierto(true),
-            }]
-          : []),
         {
           clave: 'compartir',
           etiqueta: 'Compartir',
-          icono: (color: string) => <Share2 size={20} color={color} />,
+          icono: (color: string) => <ShareIcon size={20} color={color} />,
           onPress: () => void compartirConvenio(),
         },
         ...(convenio.puedeEliminar
@@ -370,17 +360,6 @@ export default function FichaConvenio() {
         subtitulo={convenio ? `${convenio.expediente} · ${convenio.estado}` : undefined}
         acciones={accionesMenu}
         onCerrar={() => setMenuAbierto(false)}
-      />
-
-      <ModalOpciones
-        visible={puedeSubir && selectorTipoAbierto}
-        titulo="Tipo de documento"
-        opciones={tiposSubida.map((opcion) => ({ value: opcion.tipo, label: opcion.etiqueta }))}
-        onSeleccionar={(tipo) => {
-          setSelectorTipoAbierto(false);
-          void subirArchivo(tipo as TipoDocumentoConvenio);
-        }}
-        onCerrar={() => setSelectorTipoAbierto(false)}
       />
 
       <Modal
