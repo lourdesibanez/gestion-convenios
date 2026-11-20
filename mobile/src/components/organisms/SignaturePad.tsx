@@ -103,8 +103,8 @@ export function SignaturePad({ ref, label = 'Tu firma', onChange }: Props) {
           onPress={() => actualizar('')}
           style={styles.borrar}
         >
-          <Eraser size={18} color={vacio ? colors.textMuted : colors.error} />
-          <Text style={[styles.borrarTxt, vacio && styles.borrarDeshabilitado]}>Borrar</Text>
+          <Eraser size={18} color={colors.error} />
+          <Text style={styles.borrarTxt}>Borrar</Text>
         </Pressable>
       </View>
 
@@ -153,7 +153,6 @@ const crearEstilos = (colors: Colores, typography: Tipografia) =>
     label: { ...typography.label, color: colors.text },
     borrar: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44 },
     borrarTxt: { ...typography.small, fontWeight: '600', color: colors.error },
-    borrarDeshabilitado: { color: colors.textMuted },
     recuadro: {
       aspectRatio: ANCHO / ALTO, // mantiene la proporción del dibujo
       borderRadius: radius.md,

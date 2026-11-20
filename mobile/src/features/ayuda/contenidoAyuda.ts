@@ -12,7 +12,7 @@ export type SeccionAyuda =
   | 'firma'
   | 'notificaciones'
   | 'crear'
-  | 'identidad';;
+  | 'identidad';
 
 export type AyudaPuntual = {
   seccion: string; // etiqueta corta que se muestra arriba ("Buscador")
