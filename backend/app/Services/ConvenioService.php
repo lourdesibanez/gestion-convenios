@@ -25,6 +25,9 @@ class ConvenioService
      *     instituciones: Collection<int, Institucion>
      * }
      */
+
+    public function __construct(private NotificacionConvenioService $notificaciones) {}
+
     public function opcionesCreacion(Usuario $usuario): array
     {
         // Solo las unidades donde puede crear (permisos por rol y unidad).
@@ -52,7 +55,7 @@ class ConvenioService
      */
     public function crear(Usuario $usuario, array $datos): Instrumento
     {
-        return DB::transaction(function () use ($usuario, $datos): Instrumento {
+        $instrumento = DB::transaction(function () use ($usuario, $datos): Instrumento {
             $instrumento = Instrumento::create([
                 'codigo' => 'BORRADOR-'.Str::uuid(),
                 'titulo' => $datos['titulo'],
@@ -80,6 +83,9 @@ class ConvenioService
                 'created_by' => $usuario->id,
             ]);
 
+            // Se avisa recién cuando quedó guardado
+            $this->notificaciones->nuevoConvenio($instrumento, $usuario);
+
             return $instrumento->load(['tipo', 'institucion', 'estado']);
         });
     }
@@ -89,7 +95,7 @@ class ConvenioService
      */
     public function actualizar(Usuario $usuario, Instrumento $instrumento, array $datos): Instrumento
     {
-        return DB::transaction(function () use ($usuario, $instrumento, $datos): Instrumento {
+        $actualizado = DB::transaction(function () use ($usuario, $instrumento, $datos): Instrumento {
             $actualizado = DB::table('instrumento')
                 ->where('id', $instrumento->id)
                 ->whereNull('deleted_at')
@@ -136,7 +142,8 @@ class ConvenioService
                     'updated_at' => now(),
                 ]);
 
-            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+            $this->notificaciones->cambioDeDatos($actualizado, $usuario);
+            return $actualizado->refresh()->load(['tipo', 'institucion', 'estado']);
         });
     }
 

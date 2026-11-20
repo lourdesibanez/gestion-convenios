@@ -42,6 +42,9 @@ function tituloNotificacion(tipo: string): string {
     vencimiento_proximo: 'Aviso de vencimiento',
     observacion_nueva: 'Nueva observación',
     comentario_nuevo: 'Nuevo comentario',
+    convenio_nuevo: 'Nuevo convenio',
+    convenio_modificado: 'Cambios en un convenio',
+    convenio_rescindido: 'Convenio cancelado',
   };
 
   return titulos[tipo] ?? 'Notificación';
