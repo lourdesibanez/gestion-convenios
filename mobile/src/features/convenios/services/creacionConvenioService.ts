@@ -135,12 +135,7 @@ export const creacionConvenioService = {
     formData.append('id_instrumento', String(idInstrumento));
     formData.append('tipo_documento', tipoDocumento);
     formData.append('origen', 'app_movil'); // la API marca los metadatos que sube la app
-    // Android a veces da "document:123" en vez del nombre real: si no termina en .pdf, armamos uno
-    const nombre = decodeURIComponent(archivo.name);
-    const nombreFinal = nombre.toLowerCase().endsWith('.pdf')
-      ? nombre
-      : `${tipoDocumento}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    formData.append('archivo', archivo, nombreFinal);
+    formData.append('archivo', archivo, archivo.name);
     await api.postForm('/documents', formData);
   },
 };

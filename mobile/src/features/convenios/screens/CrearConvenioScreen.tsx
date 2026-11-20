@@ -304,13 +304,13 @@ export function CrearConvenioScreen() {
     if (pasoActual === 0 && debeValidarDatosBasicos && !validarDatosBasicos() ) {
       return;
     }
+    // Paso "Vigencia": valida los días de preaviso antes de avanzar
+    if (pasoActual === 1 && !validarVigencia()) {
+      return;
+    }
     volverAlInicioDelPaso();
     setPasoActual((actual) => Math.min(actual + 1, pasos.length - 1));
   };
-
-  if (pasoActual === 1 && !validarVigencia()) {
-    return;
-  }
 
 
   const retrocederPaso = () => {

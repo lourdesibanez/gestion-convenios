@@ -79,19 +79,25 @@ class ArchivoService {
             }
         }
 
+        // React Native en Android a veces manda "document:123" en lugar del nombre real
+        $nombre = basename(urldecode($archivo->getClientOriginalName()));
+        if (! str_ends_with(strtolower($nombre), '.pdf')) {
+            $nombre = "{$instrumento->codigo}_{$tipoDocumento}.pdf";
+        }
+
         try {
             return DB::transaction(fn () => Archivo::create([
-                'id_instrumento' => $instrumento->id,
-                'nombre' => basename($archivo->getClientOriginalName()),
-                'tipo_documento' => $tipoDocumento,
-                'tipo_mime' => $tipoMime,
-                'tamanio_bytes' => $marcado !== null ? strlen($marcado) : $archivo->getSize(),
+                'id_instrumento'        => $instrumento->id,
+                'nombre'                => $nombre,
+                'tipo_documento'        => $tipoDocumento,
+                'tipo_mime'             => $tipoMime,
+                'tamanio_bytes'         => $marcado !== null ? strlen($marcado) : $archivo->getSize(),
                 // Hash del archivo que queda guardado (el marcado, si se pudo marcar)
-                'hash_sha256' => $marcado !== null ? hash('sha256', $marcado) : $hashOriginal,
-                'hash_original' => $hashOriginal,
-                'ruta' => $ruta,
-                'origen' => $origen,
-                'sellado_en' => $marcado !== null ? $selladoEn : null,
+                'hash_sha256'           => $marcado !== null ? hash('sha256', $marcado) : $hashOriginal,
+                'hash_original'         => $hashOriginal,
+                'ruta'                  => $ruta,
+                'origen'                => $origen,
+                'sellado_en'            => $marcado !== null ? $selladoEn : null,
             ]));
         } catch (Throwable $error) {
             Storage::disk('local')->delete($ruta);
