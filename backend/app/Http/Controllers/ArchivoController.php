@@ -33,9 +33,12 @@ class ArchivoController extends Controller
         $this->authorize('create', [Archivo::class, $instrumento]);
         $archivo = $this->archivos->crear(
             $instrumento,
+            $request->user(),
             $request->validated('tipo_documento'),
             $request->file('archivo'),
+            $request->validated('origen') ?? 'web',
         );
+
 
         return (new ArchivoResource($archivo))
             ->response()

@@ -477,10 +477,22 @@ class ConvenioService
             )
             ->get();
 
-        $archivos = DB::table('archivo')
-            ->where('id_instrumento', $instrumento->id)
-            ->whereNull('deleted_at')
-            ->select('id', 'nombre', 'tipo_documento', 'tipo_mime', 'tamanio_bytes', 'created_at')
+        // Archivos con la marca: quién lo subió (created_by) y cuándo la API lo selló
+        $archivos = DB::table('archivo as a')
+            ->leftJoin('usuario as u', 'u.id', '=', 'a.created_by')
+            ->where('a.id_instrumento', $instrumento->id)
+            ->whereNull('a.deleted_at')
+            ->select(
+                'a.id',
+                'a.nombre',
+                'a.tipo_documento',
+                'a.tipo_mime',
+                'a.tamanio_bytes',
+                'a.created_at',
+                'a.origen',
+                'a.sellado_en',
+                DB::raw("TRIM(CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, ''))) as sellado_por"),
+            )
             ->get();
 
         $historial = DB::table('historial_estado as h')
