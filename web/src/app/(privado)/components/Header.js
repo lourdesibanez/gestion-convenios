@@ -63,7 +63,7 @@ export default function Header({ onMenu }) {
         <h3 className="header-titulo">Gestión de Convenios</h3>
         <div className="header-opciones d-flex align-items-center gap-2">
           <Link
-            href="/notificaciones"
+            href="/notificacion"
             className="btn btn-light position-relative"
             aria-label={sinLeer > 0 ? `${sinLeer} notificaciones sin leer` : 'Notificaciones'}
             title="Notificaciones"

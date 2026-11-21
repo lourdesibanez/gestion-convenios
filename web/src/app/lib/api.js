@@ -3,8 +3,7 @@ const API = process.env.NEXT_PUBLIC_API_URL
 async function solicitar(ruta, opciones = {}) {
   const { token, ...resto } = opciones
 
-  console.log('RUTA:', ruta);
-  console.log('TOKEN RECIBIDO:', token ? 'EXISTE' : 'NO EXISTE');
+
 
   const respuesta = await fetch(`${API}${ruta}`, {
     ...resto,

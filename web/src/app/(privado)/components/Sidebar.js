@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/app/context/authContext'
 import { obtenerPerfil } from '../../../model/dashboardModel'
 import '../../css/headerfooter.css'
+import { href } from 'react-router-dom';
 
 const itemsComunes = [
   { href: '/dashboard', label: 'Dashboard', exacto: true },
@@ -15,10 +16,14 @@ const itemsPorPerfil = {
   administrador: [
     { href: '/vencimientos', label: 'Vencimientos' },
     { href: '/partes', label: 'Partes y personas' },
+    {href:'/notificacion', label: 'Notificaciones'},
+    {href:'/revision', label:'Revisión'}
   ],
   gestion: [
     { href: '/vencimientos', label: 'Vencimientos' },
     { href: '/partes', label: 'Partes y personas' },
+    {href:'/notificacion', label: 'Notificaciones'},
+    {href:'/revision', label:'Revisión'}
   ],
   revision: [],
   consulta: [],
