@@ -6,6 +6,7 @@ import { SegmentedControl, type SegmentedOption } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { radius, spacing, useTema, type Colores, type TamanoLetra, type Tipografia } from '@/theme';
 import { router } from 'expo-router';
+import { TarjetaIdentidad } from '@/features/identidad/components/TarjetaIdentidad';
 
 // Cada opción se muestra con su propio tamaño, así se ve la diferencia antes de elegir.
 const OPCIONES_LETRA: SegmentedOption<TamanoLetra>[] = [
@@ -58,6 +59,8 @@ export function PerfilScreen() {
           </View>
         </View>
 
+        <TarjetaIdentidad />
+
         {/* Ayuda y cuenta */}
         <View style={styles.tarjeta}>
           <Pressable
@@ -91,18 +94,6 @@ const crearEstilos = (colors: Colores, typography: Tipografia) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.surface },
     content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.lg },
-    tarjetaUsuario: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      padding: spacing.md,
-      borderRadius: radius.md,
-      backgroundColor: colors.background,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    nombre: { ...typography.button, fontSize: typography.body.fontSize + 2, color: colors.text },
-    email: { ...typography.small, color: colors.textMuted },
     tarjeta: {
       gap: spacing.md,
       padding: spacing.md,

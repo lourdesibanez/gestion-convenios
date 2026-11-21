@@ -19,9 +19,16 @@ class Archivo extends Model
         'tipo_mime',
         'tamanio_bytes',
         'hash_sha256',
+        'hash_original',
         'ruta',
+        'origen',
+        'sellado_en',
         'created_by',
-        'deleted_by'
+        'deleted_by',
+    ];
+
+    protected $casts = [
+        'sellado_en' => 'datetime',
     ];
 
     public function instrumento()

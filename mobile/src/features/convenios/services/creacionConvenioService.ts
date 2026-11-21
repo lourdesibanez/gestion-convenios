@@ -134,6 +134,7 @@ export const creacionConvenioService = {
     const formData = new FormData();
     formData.append('id_instrumento', String(idInstrumento));
     formData.append('tipo_documento', tipoDocumento);
+    formData.append('origen', 'app_movil'); // la API marca los metadatos que sube la app
     formData.append('archivo', archivo, archivo.name);
     await api.postForm('/documents', formData);
   },

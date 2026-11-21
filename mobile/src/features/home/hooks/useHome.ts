@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '@/services/api';
 import { HomeData, homeService } from '../services/homeService';
 import { useUnidad } from '@/features/unidades/context/UnidadContext';
+import { recordatoriosLocales } from '@/features/notifications/services/recordatoriosLocales';
 
 export function useHome() {
   const [data, setData] = useState<HomeData>();
@@ -11,14 +12,17 @@ export function useHome() {
   const { unidadActiva } = useUnidad();
   const idUnidad = unidadActiva?.id ?? null;
 
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      setData(await homeService.get(idUnidad));
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.');
-    }
-  }, [idUnidad]);
+    const load = useCallback(async () => {
+      setError(undefined);
+      try {
+        const datos = await homeService.get(idUnidad);
+        setData(datos);
+        // Consigna "notificación vía app": si sigue pendiente en X horas, se recuerda
+        void recordatoriosLocales.programarFirma(datos.pendientes.items);
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : 'Ocurrió un error inesperado.');
+      }
+    }, [idUnidad]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));

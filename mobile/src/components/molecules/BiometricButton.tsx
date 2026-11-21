@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { Fingerprint } from 'lucide-react-native';
+import { Fingerprint, ScanFace } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/atoms';
 import { useTema, type Colores } from '@/theme';
+import type { BiometricType } from '@/services/biometrics';
 
 type Props = {
-  type: 'fingerprint';
+  type: BiometricType;
   onPress: () => void;
 };
 
@@ -15,10 +16,16 @@ export function BiometricButton({ type, onPress }: Props) {
   return (
     <View style={styles.container}>
       <Button
-        title="Huella"
+        title={type === 'facial' ? 'Rostro' : 'Huella'}
         variant="outline"
         onPress={onPress}
-        icon={<Fingerprint size={20} color={colors.primary} />}
+        icon={
+          type === 'facial' ? (
+            <ScanFace size={20} color={colors.primary} />
+          ) : (
+            <Fingerprint size={20} color={colors.primary} />
+          )
+        }
       />
     </View>
   );

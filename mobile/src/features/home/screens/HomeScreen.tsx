@@ -12,12 +12,11 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/atoms';
-import { StatCard } from '@/components/molecules';
+import { StatCard, ListItem, SinConexion, BotonFlotante } from '@/components/molecules';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
 import { useHome } from '../hooks/useHome';
 import { useState, useMemo } from 'react';
-import { SinConexion } from '@/components/molecules';
 import { useOffline } from '@/services/useOffline';
 import { EstadoBadge } from '@/components/atoms';
 
@@ -133,29 +132,23 @@ export function HomeScreen() {
               ) : (
                 <View style={styles.list}>
                   {ultimosMovimientos.map((movimiento) => (
-                    <Pressable
+                    <ListItem
                       key={movimiento.uuid}
-                      accessibilityRole="button"
+                      title={movimiento.titulo}
+                      subtitle={`${movimiento.codigo} · ${fechaRelativa(movimiento.fecha)}`}
+                      trailing={<EstadoBadge estado={movimiento.estado} />}
                       accessibilityLabel={`Ver detalle de ${movimiento.titulo}`}
-                      onPress={() => router.push({
-                        pathname: '/agreement/[id]',
-                        params: { id: String(movimiento.id) },
-                      })}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/agreement/[id]',
+                          params: { id: String(movimiento.id) },
+                        })
+                      }
                       style={styles.itemList}
-                    >
-                      <View style={styles.flex}>
-                        <Text style={styles.titleList} numberOfLines={1}>
-                          {movimiento.titulo}
-                        </Text>
-                        <Text style={styles.unit} numberOfLines={1}>
-                          {movimiento.codigo} · {fechaRelativa(movimiento.fecha)}
-                        </Text>
-                      </View>
-
-                      <EstadoBadge estado={movimiento.estado} />
-                    </Pressable>
+                    />
                   ))}
                 </View>
+
               ))}
 
             {!esConsulta && (
@@ -168,44 +161,45 @@ export function HomeScreen() {
                 {data.pendientes.items.length === 0 ? (
                   <Text style={styles.unit}>No tenés firmas pendientes.</Text>
                 ) : (
-                  <View style={styles.list}>
+                                    <View style={styles.list}>
                     {data.pendientes.items.map((item) => (
-                      <View key={item.uuid} style={styles.itemList}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Ver detalle de ${item.titulo}`}
-                    onPress={() => router.push({
-                      pathname: '/agreement/[id]',
-                      params: { id: String(item.id_instrumento) },
-                    })}
-                    style={styles.flex}
-                  >
-                    <Text style={styles.titleList} numberOfLines={1}>
-                      {item.titulo}
-                    </Text>
-                    <Text style={styles.unit}>
-                      {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Ir a firmar ${item.titulo}`}
-                    hitSlop={8}
-                    onPress={() => router.push({
-                      pathname: '/signature/[id]',
-                      params: { 
-                        id: String(item.id_instrumento),
-                        titulo: item.titulo,
-                        codigo: item.codigo,
-                       },
-                    })}
-                    style={styles.signIconButton}
-                  >
-                    <Signature size={20} color={colors.primary} />
-                  </Pressable>
-                </View>
+                      <ListItem
+                        key={item.uuid}
+                        title={item.titulo}
+                        subtitle={`${item.codigo} · ${new Date(item.asignado_en).toLocaleDateString('es-AR')}`}
+                        accessibilityLabel={`Ver detalle de ${item.titulo}`}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/agreement/[id]',
+                            params: { id: String(item.id_instrumento) },
+                          })
+                        }
+                        style={styles.itemList}
+                        // A la derecha va el atajo para ir directo a firmar
+                        trailing={
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Ir a firmar ${item.titulo}`}
+                            hitSlop={8}
+                            onPress={() =>
+                              router.push({
+                                pathname: '/signature/[id]',
+                                params: {
+                                  id: String(item.id_instrumento),
+                                  titulo: item.titulo,
+                                  codigo: item.codigo,
+                                },
+                              })
+                            }
+                            style={styles.signIconButton}
+                          >
+                            <Signature size={20} color={colors.primary} />
+                          </Pressable>
+                        }
+                      />
                     ))}
                   </View>
+
                 )}
               </>
             )}
@@ -215,16 +209,12 @@ export function HomeScreen() {
       </ScrollView>
 
       {!esConsulta && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Nuevo convenio"
-            onPress={() => router.push('/agreement/create')}
-            style={styles.floatingButton}
-          >
-            <FilePlus2 size={20} color={colors.background} />
-            <Text style={styles.floatingButtonText}>Nuevo convenio</Text>
-          </Pressable>
-        )}
+        <BotonFlotante
+          titulo="Nuevo convenio"
+          icono={(color) => <FilePlus2 size={20} color={color} />}
+          onPress={() => router.push('/agreement/create')}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -263,9 +253,6 @@ const crearEstilos = (colors: Colores, typography: Tipografia, fs: (tamano: numb
       fontSize: fs(20),
       fontWeight: '700',
       color: colors.background,
-    },
-    flex: {
-      flex: 1,
     },
     hello: {
       fontSize: fs(22),
@@ -319,31 +306,5 @@ const crearEstilos = (colors: Colores, typography: Tipografia, fs: (tamano: numb
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 12,
-    },
-    titleList: {
-      ...typography.label,
-      color: colors.text,
-    },
-    floatingButton: {
-      position: 'absolute',
-      right: spacing.lg,
-      bottom: spacing.lg,
-      minHeight: 56,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      borderRadius: 18,
-      backgroundColor: colors.primary,
-      elevation: 6,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.22,
-      shadowRadius: 4,
-    },
-    floatingButtonText: {
-      color: colors.background,
-      fontSize: fs(14),
-      fontWeight: '700',
     },
   });

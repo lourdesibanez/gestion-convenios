@@ -11,3 +11,6 @@ export * from './SegmentedControl';
 export * from './UnidadSelector';
 export * from './HeaderBack';
 export * from './ModalOpciones';
+export * from './ListItem';
+export * from './BotonFlotante';
+export * from './HojaAcciones';

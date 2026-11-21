@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, Divider, TextLink } from '@/components/atoms';
 import { BiometricButton, FormField } from '@/components/molecules';
 import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
+import type { BiometricType } from '@/services/biometrics';
 
 export type LoginData = {
   email: string;
@@ -12,7 +13,7 @@ export type LoginData = {
 type Props = {
   onSubmit: (data: LoginData) => void;
   onForgotPassword: () => void;
-  biometricTypes?: ('fingerprint')[];
+  biometricTypes?: BiometricType[];
   onBiometric: () => void;
   loading?: boolean;
   serverError?: string;
