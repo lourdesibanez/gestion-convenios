@@ -1,10 +1,9 @@
 'use client'
-
-import { Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/app/context/authContext'
-import { obtenerPerfil } from '@/app/lib/perfiles'
+import { obtenerPerfil } from '../../../model/dashboardModel'
 import '../../css/headerfooter.css'
 
 const itemsComunes = [
@@ -57,7 +56,8 @@ function ListaConResaltado({ onCerrar, items }) {
 }
 
 function normalizarClavePerfil(perfil) {
-  const valor = String(perfil ?? '')
+  console.log()
+  const valor = String(perfil.tipo_perfil ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
@@ -82,21 +82,40 @@ function normalizarClavePerfil(perfil) {
   return 'desconocido'
 }
 
-export default function Sidebar({ abierto, onCerrar }) {
-  const { user } = useAuth()
 
-  const perfilOriginal = obtenerPerfil(user)
-  const perfil = normalizarClavePerfil(perfilOriginal)
+export default function Sidebar({ abierto, onCerrar }) {
+  const { user, token } = useAuth();
+
+  const [perfilOriginal, setPerfilOriginal] = useState(null);
+
+  useEffect(() => {
+    async function cargarPerfil() {
+      try {
+        const resultado = await obtenerPerfil(token);
+        setPerfilOriginal(resultado);
+      } catch (error) {
+        console.error('Error al obtener perfil:', error);
+      }
+    }
+
+    if (user?.id && token) {
+      cargarPerfil();
+    }
+  }, [user, token]);
+
+  if (!user?.id || !token) {
+    return null;
+  }
+  
+  const perfil = perfilOriginal
+    ? normalizarClavePerfil(perfilOriginal)
+    : 'desconocido';
 
   const items = [
     ...itemsComunes,
     ...(itemsPorPerfil[perfil] ?? itemsPorPerfil.desconocido),
-  ]
+  ];
 
-  console.log('Perfil detectado:', perfilOriginal)
-  console.log('Perfil normalizado:', perfil)
-  console.log('Elementos del sidebar:', items)
-  console.log(user)
   return (
     <aside className={`barra-lateral ${abierto ? 'barra-lateral-abierta' : ''}`}>
       <div className="barra-lateral-logo">
@@ -134,5 +153,5 @@ export default function Sidebar({ abierto, onCerrar }) {
         </strong>
       </div>
     </aside>
-  )
+  );
 }
