@@ -24,7 +24,7 @@ export function AuthTemplate({ title, subtitle, children }: Props) {
         >
           <View style={styles.header}>
             <View style={styles.logo}>
-              <Image source={require('../../../assets/images/Logo.png')} style={{ width: 150, height: 150 }} />
+              <Image source={require('../../../assets/images/Logo.png')} style={{ width: 200, height: 200 }} />
             </View>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
