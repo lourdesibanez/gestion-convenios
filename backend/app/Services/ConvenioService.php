@@ -18,6 +18,8 @@ class ConvenioService
 {
     private const ESTADOS_PUBLICOS = ['firmado'];
 
+    public function __construct(private NotificacionService $notificaciones) {}
+
     /**
      * @return array{
      *     puede_crear: bool,
@@ -177,7 +179,11 @@ class ConvenioService
                 'created_at' => now(),
             ]);
 
-            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+            $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+
+            $this->notificaciones->revisionPendiente($instrumento, $usuario);
+
+            return $instrumento;
         });
     }
 
@@ -588,7 +594,7 @@ class ConvenioService
                 DB::table('observacion as o')
                     ->selectRaw('COUNT(*)')
                     ->whereColumn('o.id_instrumento', 'i.id')
-                    ->where('o.estado', ['pendiente', 'respondida']),
+                    ->whereIn('o.estado', ['pendiente', 'respondida']),
                 'observaciones_pendientes',
             )
             ->orderByDesc('i.created_at')
@@ -862,8 +868,11 @@ class ConvenioService
                 'created_at' => now(),
             ]);
 
-            return Instrumento::with(['tipo', 'institucion', 'estado'])
-                ->findOrFail($actual->id);
+            $aprobado = Instrumento::with(['tipo', 'institucion', 'estado'])->findOrFail($actual->id);
+
+            $this->notificaciones->estadoCambiado($aprobado, $usuario, 'lo aprobó');
+
+            return $aprobado;
         });
     }
 
@@ -931,8 +940,11 @@ class ConvenioService
                 'created_at' => now(),
             ]);
 
-            return Instrumento::with(['tipo', 'institucion', 'estado'])
-                ->findOrFail($actual->id);
+           $devuelto = Instrumento::with(['tipo', 'institucion', 'estado'])->findOrFail($actual->id);
+
+            $this->notificaciones->estadoCambiado($devuelto, $usuario, 'lo devolvió para corrección');
+
+            return $devuelto;
         });
     }
 }
