@@ -28,6 +28,7 @@ type AuthContextValue = {
   forgetDevice: () => Promise<void>;
   unlock: () => Promise<string | null>;
   enableBiometrics: () => Promise<boolean>;
+  actualizarFoto: (fotoUrl: string | null) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -119,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
   const signIn = async (token: string, usuario: Usuario) => {
     // Si había otra sesión guardada (por ejemplo, bloqueada), se revoca antes de reemplazarla.
     if (await tokenStorage.get()) {
@@ -149,6 +149,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  // Actualiza la foto en memoria y en la copia local, así todas las pantallas la ven.
+  const actualizarFoto = async (fotoUrl: string | null) => {
+    if (!usuario) return;
+    const actualizado = { ...usuario, foto_url: fotoUrl };
+    setUsuario(actualizado);
+    await usuarioStorage.set(actualizado);
+  };
+
   // Cerrar sesión: con huella activada solo se bloquea; sin huella se borra todo.
   const signOut = async () => {
     if (biometricEnabled) {
@@ -168,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Aunque la API falle, la sesión se cierra igual en el celular.
     }
     await tokenStorage.remove();
-    await usuarioStorage.remove(); //cuando alguien cambia de cuenta, no quedan los datos del usuario anterior en el celular
+    await usuarioStorage.remove(); // cuando alguien cambia de cuenta, no quedan los datos del usuario anterior en el celular
     await pendientesCache.borrar(); // los datos offline son del usuario que se va
     await recordatoriosLocales.cancelarTodos(); // los avisos programados eran de este usuario
     await biometricPreference.disable();
@@ -191,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         forgetDevice,
         unlock,
         enableBiometrics,
+        actualizarFoto,
       }}
     >
       {children}

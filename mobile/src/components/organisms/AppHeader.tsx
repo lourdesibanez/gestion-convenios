@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming,ZoomIn} from 'react-native-reanimated';
 import { Bell, Camera, Search, X } from 'lucide-react-native';
@@ -14,6 +14,9 @@ import { UnidadSelector } from '@/components/molecules';
 import { useUnidad } from '@/features/unidades/context/UnidadContext';
 import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
 import type { SeccionAyuda } from '@/features/ayuda/contenidoAyuda';
+import { PerfilCabecera } from '@/features/perfil/components/PerfilCabecera';
+import { useFotoPerfil } from '@/features/perfil/hooks/useFotoPerfil';
+
 
 // Qué ayuda abre el "?" según la pestaña en la que estás.
 const AYUDA_POR_RUTA: [string, SeccionAyuda][] = [
@@ -41,6 +44,9 @@ export function AppHeader() {
   const altura = useSharedValue(0);
   const estiloPersiana = useAnimatedStyle(() => ({ height: altura.value }));
   const { unidades, unidadActiva, setUnidadActiva } = useUnidad();
+
+  //Imagen perfil
+  const {subiendo, abrirMenu} = useFotoPerfil();
 
   const medirContenido = (alto: number) => {
     // La primera vez se fija sin animar, para que no "baje" al abrir la app.
@@ -71,9 +77,9 @@ export function AppHeader() {
   }, []));
 
   const nombreCompleto = usuario ? `${usuario.nombre} ${usuario.apellido}` : '';
+  console.log(usuario?.foto_url);
 
   // El cambio de foto se conecta en el paso 4.
-  const cambiarFoto = () => Alert.alert('Foto de perfil', 'Próximamente.');
 
   return (
     <SafeAreaView edges={['left', 'right']}>
@@ -109,15 +115,20 @@ export function AppHeader() {
           // Header expandido: avatar grande, nombre y mail
           <View style={styles.perfil}>
             <Animated.View key="avatar-grande" entering={ZoomIn.duration(250)}>
-              <Avatar name={nombreCompleto} size={88} bordered />
+              <Avatar name={nombreCompleto} uri={usuario?.foto_url} size={88} bordered />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Cambiar foto de perfil"
                 hitSlop={8}
-                onPress={cambiarFoto}
+                disabled={subiendo}
+                onPress={abrirMenu}
                 style={styles.badgeCamara}
               >
-                <Camera size={16} color={colors.primary} />
+                {subiendo ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Camera size={16} color={colors.primary} />
+                )}
               </Pressable>
             </Animated.View>
             <Animated.Text entering={FadeIn.duration(250)} style={styles.nombrePerfil}>
@@ -136,7 +147,7 @@ export function AppHeader() {
               onPress={() => router.push('/profile')}
             >
               <Animated.View key="avatar-chico" entering={FadeIn.duration(250)}>
-                <Avatar name={nombreCompleto} size={48} bordered />
+                <Avatar name={nombreCompleto} uri={usuario?.foto_url} size={48} bordered />
               </Animated.View>
             </Pressable>
 

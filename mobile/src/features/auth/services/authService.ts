@@ -18,6 +18,7 @@ export type Usuario = {
   apellido: string;
   email: string;
   tipo_perfil: string | null;
+  foto_url?: string | null;
 };
 
 export type VerifyCodeResponse = {
