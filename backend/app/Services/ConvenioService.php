@@ -137,8 +137,11 @@ class ConvenioService
                     'updated_by' => $usuario->id,
                     'updated_at' => now(),
                 ]);
+            $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
 
-            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+            $this->notificaciones->borradorEditado($instrumento, $usuario);
+
+            return $instrumento;
         });
     }
 
@@ -203,6 +206,7 @@ class ConvenioService
             }
 
             $borrador->delete();
+            $this->notificaciones->borradorEliminado($borrador, $usuario);
         });
     }
 

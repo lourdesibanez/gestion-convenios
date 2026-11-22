@@ -87,26 +87,41 @@ class NotificacionService
         string $titulo,
         string $mensaje,
         Usuario $actor,
+        bool $conEnlace = true,
+        int $sinRepetirMinutos = 0,
     ): void {
         $ids = collect($idsDestinatarios)
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->unique()
-            ->reject(fn (int $id) => $id === (int) $actor->id) // no avisarle a quien hizo la acción
+            ->reject(fn (int $id) => $id === (int) $actor->id)
             ->values();
 
         if ($ids->isEmpty()) {
             return;
         }
 
+        $idInstrumento = $conEnlace ? $instrumento->id : null;
+
         foreach (Usuario::query()->whereIn('id', $ids)->get() as $destinatario) {
             if ($destinatario->estaSuspendido() || $destinatario->esConsulta()) {
                 continue;
             }
 
+            $yaAvisado = $sinRepetirMinutos > 0 && Notificacion::query()
+                ->where('id_usuario', $destinatario->id)
+                ->where('id_instrumento', $idInstrumento)
+                ->where('mensaje', $mensaje)
+                ->where('created_at', '>=', now()->subMinutes($sinRepetirMinutos))
+                ->exists();
+
+            if ($yaAvisado) {
+                continue;
+            }
+
             $notificacion = Notificacion::create([
                 'id_usuario' => $destinatario->id,
-                'id_instrumento' => $instrumento->id,
+                'id_instrumento' => $idInstrumento,
                 'tipo' => $tipo,
                 'mensaje' => $mensaje,
             ]);
@@ -118,7 +133,7 @@ class NotificacionService
             try {
                 EnviarPushExpo::dispatch($destinatario->id, $titulo, $mensaje, [
                     'tipo' => $tipo,
-                    'id_instrumento' => $instrumento->id,
+                    'id_instrumento' => $idInstrumento,
                     'notificacion_id' => $notificacion->id,
                 ])->afterCommit();
             } catch (Throwable $error) {
@@ -168,5 +183,41 @@ class NotificacionService
     private function nombre(Usuario $usuario): string
     {
         return trim($usuario->nombre.' '.$usuario->apellido);
+    }
+
+    /** El creador editó el borrador: avisa a quienes ya lo habían observado. */
+    public function borradorEditado(Instrumento $instrumento, Usuario $actor): void
+    {
+        $this->seguro(fn () => $this->avisar(
+            $this->observadores($instrumento),
+            $instrumento,
+            'cambio_estado',
+            'Borrador editado',
+            $this->etiqueta($instrumento).': '.$this->nombre($actor).' editó el borrador.',
+            $actor,
+            sinRepetirMinutos: 10,
+        ));
+    }
+
+    /** El creador eliminó (canceló) el borrador: avisa a quienes ya lo habían observado. */
+    public function borradorEliminado(Instrumento $instrumento, Usuario $actor): void
+    {
+        $this->seguro(fn () => $this->avisar(
+            $this->observadores($instrumento),
+            $instrumento,
+            'cambio_estado',
+            'Borrador cancelado',
+            $this->etiqueta($instrumento).': '.$this->nombre($actor).' canceló el borrador.',
+            $actor,
+            conEnlace: false,
+        ));
+    }
+
+    /** @return Collection<int, int> ids de quienes registraron observaciones en el convenio */
+    private function observadores(Instrumento $instrumento): Collection
+    {
+        return Observacion::query()
+            ->where('id_instrumento', $instrumento->id)
+            ->pluck('id_usuario');
     }
 }
