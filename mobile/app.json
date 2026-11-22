@@ -36,6 +36,7 @@
           "imageWidth": 76
         }
       ],
+      ["expo-image-picker", { "photosPermission": "Permitir elegir una foto de perfil de tu galería." }],
       "expo-secure-store",
       "expo-sharing",
       "expo-image",
