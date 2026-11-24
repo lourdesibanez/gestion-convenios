@@ -242,12 +242,27 @@ class NotificacionService
             incluirActor: true,
         ));
     }
-    
+
     /** @return Collection<int, int> ids de quienes registraron observaciones en el convenio */
     private function observadores(Instrumento $instrumento): Collection
     {
         return Observacion::query()
             ->where('id_instrumento', $instrumento->id)
             ->pluck('id_usuario');
+    }
+
+
+    /** El creador registró un borrador nuevo: le confirma a él mismo. */
+    public function borradorCreado(Instrumento $instrumento, Usuario $actor): void
+    {
+        $this->seguro(fn () => $this->avisar(
+            [$actor->id],
+            $instrumento,
+            'cambio_estado',
+            'Convenio registrado',
+            $this->etiqueta($instrumento).': creaste el borrador.',
+            $actor,
+            incluirActor: true,
+        ));
     }
 }

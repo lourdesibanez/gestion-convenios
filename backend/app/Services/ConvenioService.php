@@ -82,7 +82,11 @@ class ConvenioService
                 'created_by' => $usuario->id,
             ]);
 
-            return $instrumento->load(['tipo', 'institucion', 'estado']);
+            $instrumento->load(['tipo', 'institucion', 'estado']);
+
+            $this->notificaciones->borradorCreado($instrumento, $usuario);
+
+            return $instrumento;
         });
     }
 
