@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
-import {ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '@/services/api';
 import { spacing, useTema, type Colores, type Tipografia } from '@/theme';
@@ -7,6 +7,7 @@ import {FirmaPendiente, firmaService,} from '../services/firmaService';
 import { router } from 'expo-router';
 import { pendientesCache } from '../services/pendientesCache';
 import { conveniosService } from '@/features/convenios/services/convenioService';
+import { useHome } from '@/features/home/hooks/useHome';
 
 // Descarga el detalle de cada pendiente para poder abrirlo sin conexión.
 async function guardarDetallesOffline(pendientes: FirmaPendiente[]) {
@@ -33,7 +34,8 @@ export function FirmarScreen() {
   const [error, setError] = useState<string>();
   const [errorMas, setErrorMas] = useState<string>();
   const [guardadoEn, setGuardadoEn] = useState<string>(); // con valor = mostrando datos offline
-
+  const { refreshing, refresh } = useHome();
+  
 
   const cargarPrimeraPagina = useCallback(async () => {
     setLoading(true);
@@ -96,83 +98,91 @@ export function FirmarScreen() {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Convenios por firmar</Text>
-        <Text style={styles.subtitle}>{total} pendientes</Text>
-          {guardadoEn && (
-            <Text style={styles.subtitle}>
-              Actualizado el {new Date(guardadoEn).toLocaleString('es-AR')}
-            </Text>
-          )}
-      </View>
-
-      {loading ? (
-        <ActivityIndicator
-          style={styles.loader}
-          size="large"
-          color={colors.primary}
-        />
-      ) : error ? (
-        <View style={styles.messageBox}>
-          <Text style={styles.error}>{error}</Text>
-          <Pressable onPress={() => void cargarPrimeraPagina()}>
-            <Text style={styles.action}>Reintentar</Text>
-          </Pressable>
-        </View>
-      ) : items.length === 0 ? (
-        <Text style={styles.empty}>
-          No tenés convenios pendientes de firma.
+return (
+  <SafeAreaView style={styles.safe}>
+    <View style={styles.header}>
+      <Text style={styles.title}>Convenios por firmar</Text>
+      <Text style={styles.subtitle}>{total} pendientes</Text>
+      {guardadoEn && (
+        <Text style={styles.subtitle}>
+          Actualizado el {new Date(guardadoEn).toLocaleString('es-AR')}
         </Text>
-      ) : (
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.list}>
-            {items.map((item) => (
-              <View key={item.id_instrumento} style={styles.row}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Ver detalle de ${item.titulo}`}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/agreement/[id]',
-                      params: { id: String(item.id_instrumento) },
-                    })
-                  }
-                  style={styles.rowContent}
-                >
-                  <Text style={styles.name} numberOfLines={1}>
-                    {item.titulo}
-                  </Text>
-                  <Text style={styles.meta}>
-                    {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
-                  </Text>
-                </Pressable>
-
-              </View>
-            ))}
-          </View>
-
-          {errorMas && <Text style={styles.error}>{errorMas}</Text>}
-
-          {pagina < ultimaPagina && (
-            <Pressable
-              accessibilityRole="button"
-              disabled={loadingMore}
-              onPress={() => void cargarMas()}
-              style={styles.loadMore}
-            >
-              {loadingMore ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Text style={styles.action}>Cargar más</Text>
-              )}
-            </Pressable>
-          )}
-        </ScrollView>
       )}
-    </SafeAreaView>
-  );
+    </View>
+
+    {loading ? (
+      <ActivityIndicator
+        style={styles.loader}
+        size="large"
+        color={colors.primary}
+      />
+    ) : (
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />
+        }
+      >
+        {error ? (
+          <View style={styles.messageBox}>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable onPress={() => void cargarPrimeraPagina()}>
+              <Text style={styles.action}>Reintentar</Text>
+            </Pressable>
+          </View>
+        ) : items.length === 0 ? (
+          <Text style={styles.empty}>
+            No tenés convenios pendientes de firma.
+          </Text>
+        ) : (
+          <>
+            <View style={styles.list}>
+              {items.map((item) => (
+                <View key={item.id_instrumento} style={styles.row}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver detalle de ${item.titulo}`}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/agreement/[id]',
+                        params: { id: String(item.id_instrumento) },
+                      })
+                    }
+                    style={styles.rowContent}
+                  >
+                    <Text style={styles.name} numberOfLines={1}>
+                      {item.titulo}
+                    </Text>
+                    <Text style={styles.meta}>
+                      {item.codigo} · {new Date(item.asignado_en).toLocaleDateString('es-AR')}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+
+            {errorMas && <Text style={styles.error}>{errorMas}</Text>}
+
+            {pagina < ultimaPagina && (
+              <Pressable
+                accessibilityRole="button"
+                disabled={loadingMore}
+                onPress={() => void cargarMas()}
+                style={styles.loadMore}
+              >
+                {loadingMore ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text style={styles.action}>Cargar más</Text>
+                )}
+              </Pressable>
+            )}
+          </>
+        )}
+      </ScrollView>
+    )}
+  </SafeAreaView>
+);
 }
 
 const crearEstilos = (colors: Colores, typography: Tipografia) =>

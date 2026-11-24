@@ -4,6 +4,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -310,6 +311,16 @@ export function BuscarScreen() {
   const [error, setError] = useState('');
   const solicitudActual = useRef(0);
   const { unidadActiva } = useUnidad();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      await buscar({ ...filtros, q: query.trim() || undefined }, 1);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     setFiltros((actuales) => ({
@@ -503,6 +514,13 @@ export function BuscarScreen() {
       <FlatList
         data={resultados}
         keyExtractor={(item) => String(item.id)}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            colors={[colors.primary]}
+          />
+        }
         ListEmptyComponent={
           buscando ? (
             <ActivityIndicator style={styles.empty} color={colors.primary} />

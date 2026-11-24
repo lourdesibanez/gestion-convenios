@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { useState, useMemo } from 'react';
 import { File, type File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -60,7 +60,8 @@ export default function FichaConvenio() {
       : []),
   ];
   const offline = useOffline();
-
+  const [refreshing, setRefreshing] = useState(false);
+  const [claveComentarios, setClaveComentarios] = useState(0);
   // Sin permiso (o sin conexión) el botón no se muestra.
   const mostrarEnviarARevision =
     !!convenio?.puedeEnviarRevision && !esPerfilConsulta && !offline;
@@ -252,144 +253,163 @@ export default function FichaConvenio() {
 
   const mostrarMenu = !cargando && !!convenio && puedeVerConvenio;
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await recargar();
+      setClaveComentarios((actual) => actual + 1);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   return (
-    <SafeAreaView style={s.pantalla} edges={['top']}>
-      <HeaderBack
-        titulo="Detalle del convenio"
-        acciones={
-          <>
-            <BotonAyuda seccion="ficha" color={colores.azul} />
-            {mostrarMenu ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Más acciones"
-                hitSlop={8}
-                disabled={eliminando || enviandoARevision}
-                onPress={() => setMenuAbierto(true)}
-              >
-                <EllipsisVertical size={22} color={colores.texto} />
-              </Pressable>
-            ) : null}
-          </>
+  <SafeAreaView style={s.pantalla} edges={['top']}>
+    <HeaderBack
+      titulo="Detalle del convenio"
+      acciones={
+        <>
+          <BotonAyuda seccion="ficha" color={colores.azul} />
+          {mostrarMenu ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Más acciones"
+              hitSlop={8}
+              disabled={eliminando || enviandoARevision}
+              onPress={() => setMenuAbierto(true)}
+            >
+              <EllipsisVertical size={22} color={colores.texto} />
+            </Pressable>
+          ) : null}
+        </>
+      }
+    />
+    <OfflineBanner />
+
+    {cargando && !convenio && (
+      <ActivityIndicator style={s.centro} size="large" color={colores.azul} />
+    )}
+
+    {!cargando && error && (
+      <View style={s.centro}>
+        <Text style={s.error}>{error}</Text>
+        <Pressable onPress={recargar} style={s.reintentar}>
+          <Text style={s.reintentarTxt}>Reintentar</Text>
+        </Pressable>
+      </View>
+    )}
+
+    {!cargando && convenio && !puedeVerConvenio && (
+      <View style={s.centro}>
+        <Text style={s.error}>Tu perfil solo permite ver convenios firmados.</Text>
+      </View>
+    )}
+
+    {convenio && puedeVerConvenio && (
+      <ScrollView
+        contentContainerStyle={[s.contenido, mostrarEnviarARevision && s.contenidoConBoton]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colores.azul]}
+          />
         }
-      />
-      <OfflineBanner />
-
-      {cargando && <ActivityIndicator style={s.centro} size="large" color={colores.azul} />}
-
-      {!cargando && error && (
-        <View style={s.centro}>
-          <Text style={s.error}>{error}</Text>
-          <Pressable onPress={recargar} style={s.reintentar}>
-            <Text style={s.reintentarTxt}>Reintentar</Text>
-          </Pressable>
-        </View>
-      )}
-
-      {!cargando && convenio && !puedeVerConvenio && (
-        <View style={s.centro}>
-          <Text style={s.error}>Tu perfil solo permite ver convenios firmados.</Text>
-        </View>
-      )}
-
-      {!cargando && convenio && puedeVerConvenio && (
-        <ScrollView contentContainerStyle={[s.contenido, mostrarEnviarARevision && s.contenidoConBoton]}>
-          <View style={s.encabezado}>
-            <View style={s.etiquetas}>
-              <Text style={s.tipo}>{convenio.tipoInstrumento}</Text>
-              <EstadoBadge estado={convenio.estado} />
-            </View>
-            <Text style={s.titulo}>{convenio.titulo}</Text>
-            <Text style={s.expediente}>
-              {convenio.expediente} · {convenio.unidadAcademica}
-            </Text>
+      >
+        <View style={s.encabezado}>
+          <View style={s.etiquetas}>
+            <Text style={s.tipo}>{convenio.tipoInstrumento}</Text>
+            <EstadoBadge estado={convenio.estado} />
           </View>
+          <Text style={s.titulo}>{convenio.titulo}</Text>
+          <Text style={s.expediente}>
+            {convenio.expediente} · {convenio.unidadAcademica}
+          </Text>
+        </View>
 
-          <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
-          {!esPerfilConsulta && convenio.etapaActual === 'aprobado' && convenio.puedeFirmar && (
-            <BotonFirmarConvenio
-              motivoDeshabilitado={offline ? 'Para firmar necesitás conexión.' : undefined}
-              onPress={() =>
-                router.push({
-                  pathname: '/signature/[id]',
-                  params: {
-                    id: String(convenio.id),
-                    titulo: convenio.titulo,
-                    codigo: convenio.codigo,
-                  },
-                })
-              }
-            />
-          )}
-          <Datos
-            c={convenio}
-            onAbrirPadre={(padreId) =>
+        <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
+        {!esPerfilConsulta && convenio.etapaActual === 'aprobado' && convenio.puedeFirmar && (
+          <BotonFirmarConvenio
+            motivoDeshabilitado={offline ? 'Para firmar necesitás conexión.' : undefined}
+            onPress={() =>
               router.push({
-                pathname: '/agreement/[id]',
-                params: { id: String(padreId) },
+                pathname: '/signature/[id]',
+                params: {
+                  id: String(convenio.id),
+                  titulo: convenio.titulo,
+                  codigo: convenio.codigo,
+                },
               })
             }
           />
-          <Firmantes firmantes={convenio.firmantes} />
-          <Documentos
-            documentos={convenio.documentos}
-            onAbrir={(doc) => void abrirDocumento(doc)}
-            onSubir={(tipoDocumento) => void subirArchivo(tipoDocumento)}
-            descargandoDocumentoId={descargandoDocumentoId}
-            tiposSubida={tiposSubida}
-            puedeSubir={puedeSubir}
-            subiendo={subiendoArchivo}
-          />
-          <ComentariosConvenio idConvenio={Number(id)} />
-        </ScrollView>
-      )}
-
-      {!cargando && convenio && puedeVerConvenio && mostrarEnviarARevision && (
-        <BotonFlotante
-          titulo={enviandoARevision ? 'Enviando...' : 'Enviar a revisión'}
-          accessibilityLabel="Enviar convenio a revisión"
-          icono={(color) => <Send size={20} color={color} />}
-          disabled={enviandoARevision || eliminando}
-          onPress={confirmarEnvioARevision}
-          style={{ bottom: spacing.lg + insets.bottom }}
+        )}
+        <Datos
+          c={convenio}
+          onAbrirPadre={(padreId) =>
+            router.push({
+              pathname: '/agreement/[id]',
+              params: { id: String(padreId) },
+            })
+          }
         />
-      )}
+        <Firmantes firmantes={convenio.firmantes} />
+        <Documentos
+          documentos={convenio.documentos}
+          onAbrir={(doc) => void abrirDocumento(doc)}
+          onSubir={(tipoDocumento) => void subirArchivo(tipoDocumento)}
+          descargandoDocumentoId={descargandoDocumentoId}
+          tiposSubida={tiposSubida}
+          puedeSubir={puedeSubir}
+          subiendo={subiendoArchivo}
+        />
+        <ComentariosConvenio key={claveComentarios} idConvenio={Number(id)} />
+      </ScrollView>
+    )}
 
-      <HojaAcciones
-        visible={menuAbierto}
-        subtitulo={convenio ? `${convenio.expediente} · ${convenio.estado}` : undefined}
-        acciones={accionesMenu}
-        onCerrar={() => setMenuAbierto(false)}
+    {convenio && puedeVerConvenio && mostrarEnviarARevision && (
+      <BotonFlotante
+        titulo={enviandoARevision ? 'Enviando...' : 'Enviar a revisión'}
+        accessibilityLabel="Enviar convenio a revisión"
+        icono={(color) => <Send size={20} color={color} />}
+        disabled={enviandoARevision || eliminando}
+        onPress={confirmarEnvioARevision}
+        style={{ bottom: spacing.lg + insets.bottom }}
       />
+    )}
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setPdfDescargado(null)}
-        visible={pdfDescargado !== null}
-      >
-        <SafeAreaView style={s.pdfModal}>
-          <HeaderBack
-            titulo={pdfDescargado?.nombre}
-            subtitulo={pdfDescargado?.descripcion}
-            onVolver={() => setPdfDescargado(null)}
-            acciones={
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Guardar o compartir documento"
-                hitSlop={8}
-                onPress={() => void compartirDocumento()}
-              >
-                <ArrowDownToLine size={22} color={colores.azul} />
-              </Pressable>
-            }
-          />
-          {pdfDescargado ? <PdfJsViewer file={pdfDescargado.archivo} /> : null}
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
-  );
+    <HojaAcciones
+      visible={menuAbierto}
+      subtitulo={convenio ? `${convenio.expediente} · ${convenio.estado}` : undefined}
+      acciones={accionesMenu}
+      onCerrar={() => setMenuAbierto(false)}
+    />
+
+    <Modal
+      animationType="slide"
+      onRequestClose={() => setPdfDescargado(null)}
+      visible={pdfDescargado !== null}
+    >
+      <SafeAreaView style={s.pdfModal}>
+        <HeaderBack
+          titulo={pdfDescargado?.nombre}
+          subtitulo={pdfDescargado?.descripcion}
+          onVolver={() => setPdfDescargado(null)}
+          acciones={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Guardar o compartir documento"
+              hitSlop={8}
+              onPress={() => void compartirDocumento()}
+            >
+              <ArrowDownToLine size={22} color={colores.azul} />
+            </Pressable>
+          }
+        />
+        {pdfDescargado ? <PdfJsViewer file={pdfDescargado.archivo} /> : null}
+      </SafeAreaView>
+    </Modal>
+  </SafeAreaView>
+);
 }
-
 const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) =>
   StyleSheet.create({
     pantalla: { flex: 1, backgroundColor: colores.fondo },

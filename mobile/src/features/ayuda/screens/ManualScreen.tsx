@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, X } from 'lucide-react-native';
 import { HeaderBack } from '@/components/molecules';
@@ -19,11 +19,21 @@ export function ManualScreen() {
   const guia = guias.find((g) => g.id === guiaElegida) ?? guias[0];
   const sinResultados = guias.length === 0 && preguntas.length === 0;
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = () => {
+    setRefreshing(true);
+    setConsulta(''); // limpia el buscador
+    setTimeout(() => setRefreshing(false), 600);
+  };
   return (
     <SafeAreaView edges={['top']} style={styles.pantalla}>
       <HeaderBack titulo="Manual de uso" />
 
-      <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+      }
+      >
         {/* Buscador: filtra guías y preguntas mientras escribís */}
         <View style={styles.buscador}>
           <Search size={20} color={colors.textMuted} />
