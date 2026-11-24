@@ -80,21 +80,25 @@ class NotificacionService
      *
      * @param  iterable<int>  $idsDestinatarios
      */
-    private function avisar(
-        iterable $idsDestinatarios,
-        Instrumento $instrumento,
-        string $tipo,
-        string $titulo,
-        string $mensaje,
-        Usuario $actor,
-        bool $conEnlace = true,
-        int $sinRepetirMinutos = 0,
+   private function avisar(
+    iterable $idsDestinatarios,
+    Instrumento $instrumento,
+    string $tipo,
+    string $titulo,
+    string $mensaje,
+    Usuario $actor,
+    bool $conEnlace = true,
+    int $sinRepetirMinutos = 0,
+    bool $incluirActor = false,
     ): void {
         $ids = collect($idsDestinatarios)
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->unique()
-            ->reject(fn (int $id) => $id === (int) $actor->id)
+            ->when(
+                ! $incluirActor,
+                fn ($coleccion) => $coleccion->reject(fn (int $id) => $id === (int) $actor->id),
+            )
             ->values();
 
         if ($ids->isEmpty()) {
@@ -185,34 +189,60 @@ class NotificacionService
         return trim($usuario->nombre.' '.$usuario->apellido);
     }
 
-    /** El creador editó el borrador: avisa a quienes ya lo habían observado. */
+    /** El creador editó el borrador: avisa a los revisores y le confirma a él mismo. */
     public function borradorEditado(Instrumento $instrumento, Usuario $actor): void
     {
+        $etiqueta = $this->etiqueta($instrumento);
+
         $this->seguro(fn () => $this->avisar(
             $this->observadores($instrumento),
             $instrumento,
             'cambio_estado',
             'Borrador editado',
-            $this->etiqueta($instrumento).': '.$this->nombre($actor).' editó el borrador.',
+            $etiqueta.': '.$this->nombre($actor).' editó el borrador.',
             $actor,
             sinRepetirMinutos: 10,
         ));
+
+        $this->seguro(fn () => $this->avisar(
+            [$actor->id],
+            $instrumento,
+            'cambio_estado',
+            'Borrador editado',
+            $etiqueta.': editaste el borrador.',
+            $actor,
+            sinRepetirMinutos: 10,
+            incluirActor: true,
+        ));
     }
 
-    /** El creador eliminó (canceló) el borrador: avisa a quienes ya lo habían observado. */
+   /** El creador eliminó (canceló) el borrador: avisa a los revisores y le confirma a él mismo. */
     public function borradorEliminado(Instrumento $instrumento, Usuario $actor): void
     {
+        $etiqueta = $this->etiqueta($instrumento);
+
         $this->seguro(fn () => $this->avisar(
             $this->observadores($instrumento),
             $instrumento,
             'cambio_estado',
             'Borrador cancelado',
-            $this->etiqueta($instrumento).': '.$this->nombre($actor).' canceló el borrador.',
+            $etiqueta.': '.$this->nombre($actor).' canceló el borrador.',
             $actor,
             conEnlace: false,
         ));
-    }
 
+        $this->seguro(fn () => $this->avisar(
+            [$actor->id],
+            $instrumento,
+            'cambio_estado',
+            'Borrador cancelado',
+            $etiqueta.': cancelaste el borrador.',
+            $actor,
+            conEnlace: false,
+            incluirActor: true,
+        ));
+    }
+    
     /** @return Collection<int, int> ids de quienes registraron observaciones en el convenio */
     private function observadores(Instrumento $instrumento): Collection
     {
