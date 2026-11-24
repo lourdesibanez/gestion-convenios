@@ -664,7 +664,11 @@ class ConvenioService
         if (!empty($filtros['unidad'])) {
             $query->where('i.id_institucion', $filtros['unidad']);
         }
-
+        
+        if (!empty($filtros['estado'])) {
+            $query->where('e.nombre', $filtros['estado']);
+        }
+        
         if (!empty($filtros['anio'])) {
             $inicio = sprintf('%04d-01-01', $filtros['anio']);
             $fin = sprintf('%04d-12-31', $filtros['anio']);
@@ -682,6 +686,8 @@ class ConvenioService
                     ->orWhere('u.nombre', 'like', $busqueda);
             });
         }
+
+
 
         switch ($filtros['orden'] ?? 'recientes') {
             case 'antiguos':

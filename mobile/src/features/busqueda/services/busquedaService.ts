@@ -70,6 +70,7 @@ export type FiltrosBusqueda = {
   unidad?: string;
   orden?: 'recientes' | 'antiguos' | 'titulo';
   page?: number;
+  estado?: string;
 };
 
 export const busquedaService = {
@@ -156,6 +157,8 @@ export const busquedaService = {
     if (filtros.unidad) params.set('unidad', filtros.unidad);
     if (filtros.orden) params.set('orden', filtros.orden);
     if (filtros.page) params.set('page', String(filtros.page));
+    if (filtros.estado) params.set('estado', String(filtros.estado));
+
 
     const query = params.toString();
     return api.get<Pagina<NodoConvenio>>(
