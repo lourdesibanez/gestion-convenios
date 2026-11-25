@@ -329,7 +329,7 @@ export default function FichaConvenio() {
         <Circuito etapaActual={convenio.etapaActual} resumen={convenio.resumenCircuito} />
         {!esPerfilConsulta && convenio.etapaActual === 'aprobado' && convenio.puedeFirmar && (
           <BotonFirmarConvenio
-            motivoDeshabilitado={offline ? 'Para firmar necesitás conexión.' : undefined}
+            soloLectura={offline ? 'Sin conexión: podés leer el convenio, pero no firmarlo.' : undefined}
             onPress={() =>
               router.push({
                 pathname: '/signature/[id]',

@@ -15,7 +15,9 @@ import { FirmaExitosa } from '@/features/convenios/components/FirmaExitosa';
 import { HeaderBack, OfflineBanner } from '@/components/molecules';
 import { SignaturePad, type SignaturePadHandle } from '@/components/organisms';
 import { BotonAyuda } from '@/features/ayuda/components/BotonAyuda';
-
+import { ApiError } from '@/services/api';
+import { pendientesCache } from '@/features/firma/services/pendientesCache';
+import { useOffline } from '@/services/useOffline';
 
 export default function SignatureScreen() {
   const { colors, fs } = useTema();
@@ -41,8 +43,8 @@ export default function SignatureScreen() {
   const [firmaError, setFirmaError] = useState<string>();
   const [resultadoFirma, setResultadoFirma] = useState<RegistrarFirmaRespuesta | null>(null);
   const [firmaRegistradaPng, setFirmaRegistradaPng] = useState<string | null>(null);
-
-    
+  const offline = useOffline();
+  const [desdeCache, setDesdeCache] = useState(false); // mostrando el PDF guardado
 
   useEffect(() => {
     let active = true;
@@ -64,14 +66,32 @@ export default function SignatureScreen() {
       return;
     }
 
+        setDesdeCache(false);
+
     firmaService.descargarPdfPendiente(idInstrumento)
       .then((downloadedFile) => {
         if (active) setFile(downloadedFile);
       })
       .catch((cause: unknown) => {
-        if (active) {
-          setError(cause instanceof Error ? cause.message : 'No se pudo cargar el PDF.');
+        if (!active) return;
+
+        // Sin conexión: se muestra la copia guardada desde la pestaña Firmar.
+        const guardado =
+          cause instanceof ApiError && cause.status === 0
+            ? pendientesCache.leerPdf(idInstrumento)
+            : null;
+
+        if (guardado) {
+          setFile(guardado);
+          setDesdeCache(true);
+          return;
         }
+
+        setError(
+          cause instanceof ApiError && cause.status === 0
+            ? 'Sin conexión. Este PDF todavía no se guardó para verlo offline: abrí la pestaña Firmar con conexión.'
+            : cause instanceof Error ? cause.message : 'No se pudo cargar el PDF.',
+        );
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -231,20 +251,27 @@ export default function SignatureScreen() {
         </View>
         ) : file ? (
         <>
-            <View style={styles.pdfFrame}>
+          <View style={styles.pdfFrame}>
             <PdfJsViewer file={file} />
             </View>
 
-            <View style={styles.footer}>
+                        <View style={styles.footer}>
+            {(offline || desdeCache) && (
+                <Text style={styles.offlineAviso}>
+                Sin conexión: podés leer el convenio, pero para firmarlo necesitás conexión.
+                </Text>
+            )}
             <Pressable
                 accessibilityRole="button"
+                accessibilityState={{ disabled: offline || desdeCache }}
+                disabled={offline || desdeCache}
                 onPress={() => setFirmaModalVisible(true)}
-                style={styles.confirmButton}
+                style={[styles.confirmButton, (offline || desdeCache) && styles.confirmDisabled]}
             >
                 <Signature size={19} color={colors.onPrimary} />
                 <Text style={styles.confirmText}>Firmar convenio</Text>
             </Pressable>
-            </View>
+          </View>
 
             <Modal
             visible={firmaModalVisible}
@@ -411,4 +438,14 @@ const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
+    offlineAviso: {
+      color: colors.textMuted,
+      fontSize: fs(13),
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    confirmDisabled: {
+      opacity: 0.5,
+    },
+
   });
