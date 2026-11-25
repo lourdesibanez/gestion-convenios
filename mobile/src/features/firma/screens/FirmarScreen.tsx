@@ -9,7 +9,7 @@ import { pendientesCache } from '../services/pendientesCache';
 import { conveniosService } from '@/features/convenios/services/convenioService';
 import { useHome } from '@/features/home/hooks/useHome';
 
-// Descarga el detalle de cada pendiente para poder abrirlo sin conexión.
+// Descarga el detalle y el PDF de cada pendiente para poder abrirlos sin conexión.
 async function guardarDetallesOffline(pendientes: FirmaPendiente[]) {
   try {
     const detalles = await Promise.all(
@@ -19,8 +19,16 @@ async function guardarDetallesOffline(pendientes: FirmaPendiente[]) {
   } catch (e) {
     console.warn('No se pudieron guardar los detalles para offline:', e);
   }
-}
 
+  // Los PDF van aparte: si falla uno, los demás se guardan igual.
+  pendientesCache.limpiarPdfs(pendientes.map((p) => p.id_instrumento));
+  await Promise.allSettled(
+    pendientes.map(async (p) => {
+      const pdf = await firmaService.descargarPdfPendiente(p.id_instrumento);
+      pendientesCache.guardarPdf(p.id_instrumento, pdf);
+    }),
+  );
+}
 
 export function FirmarScreen() {
   const { colors, typography } = useTema();
@@ -103,11 +111,6 @@ return (
     <View style={styles.header}>
       <Text style={styles.title}>Convenios por firmar</Text>
       <Text style={styles.subtitle}>{total} pendientes</Text>
-      {guardadoEn && (
-        <Text style={styles.subtitle}>
-          Actualizado el {new Date(guardadoEn).toLocaleString('es-AR')}
-        </Text>
-      )}
     </View>
 
     {loading ? (
@@ -181,6 +184,12 @@ return (
         )}
       </ScrollView>
     )}
+
+    {guardadoEn && (
+      <Text style={[styles.subtitle, styles.actualizado]}>
+        Actualizado el {new Date(guardadoEn).toLocaleString('es-AR')}
+      </Text>
+    )}
   </SafeAreaView>
 );
 }
@@ -202,6 +211,11 @@ const crearEstilos = (colors: Colores, typography: Tipografia) =>
     subtitle: {
       ...typography.small,
       color: colors.textMuted,
+    },
+    actualizado: {
+      textAlign: 'right',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
     },
     content: {
       paddingHorizontal: spacing.lg,

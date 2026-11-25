@@ -7,32 +7,36 @@ import { useColoresConvenio, type ColoresConvenio } from './temas';
 type Props = {
   onPress: () => void;
   motivoDeshabilitado?: string; // si viene, el botón se deshabilita y muestra el motivo
+  soloLectura?: string; // si viene, abre el PDF para leer y muestra el aviso
 };
 
-export function BotonFirmarConvenio({ onPress, motivoDeshabilitado }: Props) {
+export function BotonFirmarConvenio({ onPress, motivoDeshabilitado, soloLectura }: Props) {
   const colores = useColoresConvenio();
   const { fs } = useTema();
   const styles = useMemo(() => crearEstilos(colores, fs), [colores, fs]);
   const deshabilitado = Boolean(motivoDeshabilitado);
+  const etiqueta = soloLectura ? 'Ver convenio' : 'Firmar convenio';
+  const aviso = motivoDeshabilitado ?? soloLectura;
 
   return (
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Firmar convenio"
+        accessibilityLabel={etiqueta}
         accessibilityState={{ disabled: deshabilitado }}
-        accessibilityHint={motivoDeshabilitado}
+        accessibilityHint={aviso}
         disabled={deshabilitado}
         onPress={onPress}
         style={[styles.button, deshabilitado && styles.disabled]}
       >
         <Signature size={20} color={colores.sobreAzul} />
-        <Text style={styles.label}>Firmar convenio</Text>
+        <Text style={styles.label}>{etiqueta}</Text>
       </Pressable>
-      {motivoDeshabilitado && <Text style={styles.motivo}>{motivoDeshabilitado}</Text>}
+      {aviso && <Text style={styles.motivo}>{aviso}</Text>}
     </>
   );
 }
+
 
 
 const crearEstilos = (colores: ColoresConvenio, fs: (tamano: number) => number) =>
