@@ -103,11 +103,6 @@ return (
     <View style={styles.header}>
       <Text style={styles.title}>Convenios por firmar</Text>
       <Text style={styles.subtitle}>{total} pendientes</Text>
-      {guardadoEn && (
-        <Text style={styles.subtitle}>
-          Actualizado el {new Date(guardadoEn).toLocaleString('es-AR')}
-        </Text>
-      )}
     </View>
 
     {loading ? (
@@ -181,6 +176,12 @@ return (
         )}
       </ScrollView>
     )}
+
+    {guardadoEn && (
+      <Text style={[styles.subtitle, styles.actualizado]}>
+        Actualizado el {new Date(guardadoEn).toLocaleString('es-AR')}
+      </Text>
+    )}
   </SafeAreaView>
 );
 }
@@ -202,6 +203,11 @@ const crearEstilos = (colors: Colores, typography: Tipografia) =>
     subtitle: {
       ...typography.small,
       color: colors.textMuted,
+    },
+    actualizado: {
+      textAlign: 'right',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
     },
     content: {
       paddingHorizontal: spacing.lg,
