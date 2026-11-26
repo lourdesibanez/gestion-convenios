@@ -36,6 +36,10 @@ const crearEstilos = (colors: Colores, typography: Tipografia) =>
       backgroundColor: colors.textMuted, // gris; el texto usa colors.background para contrastar en claro y oscuro
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
+      // Tarjeta flotante: separada del header para no dejar huecos en sus esquinas redondeadas.
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      borderRadius: 12,
     },
     text: {
       ...typography.small,

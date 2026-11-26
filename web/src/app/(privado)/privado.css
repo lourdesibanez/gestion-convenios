@@ -13,3 +13,33 @@
   border: 0;
   background: rgb(15 23 42 / 42%);
 }
+
+
+
+
+.icono-campana {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 0;
+  user-select: none; /* Evita el fondo azul al seleccionar/arrastrar */
+  -webkit-tap-highlight-color: transparent; /* Evita el destello azul al tocar en móvil */
+}
+
+/* Evita que el contenedor o enlace padre cambie de color/fondo al pasar el mouse (hover) */
+.icono-campana:hover,
+.icono-campana:focus,
+a:hover .icono-campana,
+button:hover .icono-campana {
+  background-color: transparent !important;
+  outline: none;
+  box-shadow: none;
+}
+
+.icono-campana img {
+  display: block;
+  pointer-events: none; /* Evita que la imagen capture eventos del mouse */
+  /* Descomentá la siguiente línea si querés convertir la campana azul a gris oscuro: */
+  /* filter: grayscale(100%) brightness(40%); */
+}

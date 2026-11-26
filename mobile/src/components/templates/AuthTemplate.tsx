@@ -1,4 +1,5 @@
-import { FilePenLine } from 'lucide-react-native';
+//import { FilePenLine } from 'lucide-react-native';
+import { Image } from 'react-native';
 import { ReactNode, useMemo } from 'react';
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,9 +24,8 @@ export function AuthTemplate({ title, subtitle, children }: Props) {
         >
           <View style={styles.header}>
             <View style={styles.logo}>
-              <FilePenLine size={36} color={colors.background} />
+              <Image source={require('../../../assets/images/Logo.png')} style={{ width: 200, height: 200 }} />
             </View>
-            <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
 
@@ -56,10 +56,9 @@ const crearEstilos = (colors: Colores, typography: Tipografia, fs: (tamano: numb
       gap: spacing.sm,
     },
     logo: {
-      width: 72,
-      height: 72,
+      width: 200,
+      height: 200,
       borderRadius: radius.md * 2,
-      backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.sm,

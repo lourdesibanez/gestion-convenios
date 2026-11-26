@@ -4,6 +4,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -27,27 +28,35 @@ import { PdfJsViewer } from '@/features/firma/pdfViewer/PdfJsViewer';
 import { useOffline } from '@/services/useOffline';
 import { EstadoBadge } from '@/components/atoms';
 import { useUnidad } from '@/features/unidades/context/UnidadContext';
-
+ 
 type Opcion = {
   valor: string;
   etiqueta: string;
 };
-
+ 
+// Estados disponibles para filtrar. Ajustá `valor` si el backend usa otros.
+const ESTADOS: Opcion[] = [
+  { valor: 'firmado', etiqueta: 'Firmado' },
+  { valor: 'aprobado', etiqueta: 'Aprobado' },
+  { valor: 'revision', etiqueta: 'En revisión' },
+  { valor: 'borrador', etiqueta: 'Borrador' },
+];
+ 
 function tamanoArchivo(bytes: number): string {
   if (bytes < 1024 * 1024) {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   }
-
+ 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
-
+ 
 function estadoFirmado(estado: string): boolean {
   return estado.trim().toLocaleLowerCase('es-AR') === 'firmado';
 }
-
+ 
 function filtrarFirmados(nodo: NodoConvenio): NodoConvenio | null {
   if (!estadoFirmado(nodo.estado)) return null;
-
+ 
   return {
     ...nodo,
     hijos: nodo.hijos.flatMap((hijo) => {
@@ -56,28 +65,28 @@ function filtrarFirmados(nodo: NodoConvenio): NodoConvenio | null {
     }),
   };
 }
-
+ 
 function opcionesConTodos(opciones: Opcion[]): Opcion[] {
   return [{ valor: '', etiqueta: 'Todos' }, ...opciones];
 }
-
+ 
 function adaptarOpciones(opciones: Opcion[]): SelectFieldOption[] {
   return opciones.map((opcion) => ({
     value: opcion.valor,
     label: opcion.etiqueta,
   }));
 }
-
+ 
 function DocumentoBusqueda({ archivo }: { archivo: ArchivoBusqueda }) {
   const { colors, fs } = useTema();
   const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [descargando, setDescargando] = useState(false);
   const [error, setError] = useState('');
   const [pdfLocal, setPdfLocal] = useState<ExpoFile | null>(null);
-
+ 
   const abrirPdf = async () => {
     if (descargando) return;
-
+ 
     setDescargando(true);
     setError('');
     try {
@@ -88,7 +97,7 @@ function DocumentoBusqueda({ archivo }: { archivo: ArchivoBusqueda }) {
       setDescargando(false);
     }
   };
-
+ 
   return (
     <>
       <View>
@@ -110,7 +119,7 @@ function DocumentoBusqueda({ archivo }: { archivo: ArchivoBusqueda }) {
         </Pressable>
         {error ? <Text style={styles.documentError}>{error}</Text> : null}
       </View>
-
+ 
       <Modal
         animationType="slide"
         onRequestClose={() => setPdfLocal(null)}
@@ -134,7 +143,7 @@ function DocumentoBusqueda({ archivo }: { archivo: ArchivoBusqueda }) {
     </>
   );
 }
-
+ 
 function SelectorOrdenamiento({
   titulo,
   valor,
@@ -150,7 +159,7 @@ function SelectorOrdenamiento({
   const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [abierto, setAbierto] = useState(false);
   const etiqueta = opciones.find((opcion) => opcion.valor === valor)?.etiqueta ?? 'Todos';
-
+ 
   return (
     <>
       <Pressable
@@ -165,7 +174,7 @@ function SelectorOrdenamiento({
         </Text>
         <ChevronDown size={17} color={colors.textMuted} />
       </Pressable>
-
+ 
       <ModalOpciones
         visible={abierto}
         titulo={titulo}
@@ -180,17 +189,17 @@ function SelectorOrdenamiento({
     </>
   );
 }
-
-function NodoArbol({nodo,raiz = false, }: {
+ 
+function NodoArbol({ nodo, raiz = false }: {
   nodo: NodoConvenio;
   raiz?: boolean;
 }) {
   const { colors, fs } = useTema();
   const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
   const [abierto, setAbierto] = useState(false);
-
+ 
   const tieneContenido = nodo.hijos.length > 0 || nodo.archivos.length > 0 || Boolean(nodo.numero_resolucion);
-  
+ 
   return (
     <View style={[styles.node, !raiz && styles.childNode]}>
       <View style={styles.nodeHeader}>
@@ -212,7 +221,7 @@ function NodoArbol({nodo,raiz = false, }: {
         ) : (
           <View style={styles.nodeExpandButton} />
         )}
-
+ 
         <View
           style={[
             styles.typeBadge,
@@ -223,7 +232,7 @@ function NodoArbol({nodo,raiz = false, }: {
             {(nodo.categoria || nodo.tipo).slice(0, 3).toUpperCase()}
           </Text>
         </View>
-
+ 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Ver detalle del convenio ${nodo.codigo}`}
@@ -241,7 +250,7 @@ function NodoArbol({nodo,raiz = false, }: {
             {nodo.codigo}
             {nodo.vence ? ` · vigente hasta ${nodo.vence.slice(0, 10)}` : ''}
           </Text>
-
+ 
           {raiz && nodo.hijos_count > 0 ? (
             <Text style={styles.nodeCode}>
               {nodo.hijos_count} {nodo.hijos_count === 1 ? 'hijo' : 'hijos'}
@@ -249,10 +258,10 @@ function NodoArbol({nodo,raiz = false, }: {
             </Text>
           ) : null}
         </Pressable>
-
+ 
         <EstadoBadge estado={nodo.estado} />
       </View>
-
+ 
       {abierto ? (
         <View style={styles.nodeContent}>
           {nodo.numero_resolucion ? (
@@ -263,7 +272,7 @@ function NodoArbol({nodo,raiz = false, }: {
               </Text>
             </View>
           ) : null}
-
+ 
           {nodo.archivos.map((archivo) =>
             archivo.tipo_mime === 'application/pdf' ? (
               <DocumentoBusqueda key={archivo.id} archivo={archivo} />
@@ -276,7 +285,7 @@ function NodoArbol({nodo,raiz = false, }: {
               </View>
             ),
           )}
-
+ 
           {nodo.hijos.map((hijo) => (
             <NodoArbol key={`${hijo.convenio.id}-${hijo.tipo_vinculo}`} nodo={hijo.convenio} />
           ))}
@@ -285,7 +294,7 @@ function NodoArbol({nodo,raiz = false, }: {
     </View>
   );
 }
-
+ 
 export function BuscarScreen() {
   const { colors, fs } = useTema();
   const styles = useMemo(() => crearEstilos(colors, fs), [colors, fs]);
@@ -310,18 +319,28 @@ export function BuscarScreen() {
   const [error, setError] = useState('');
   const solicitudActual = useRef(0);
   const { unidadActiva } = useUnidad();
-
+  const [refreshing, setRefreshing] = useState(false);
+ 
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      await buscar({ ...filtros, q: query.trim() || undefined }, 1);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+ 
   useEffect(() => {
     setFiltros((actuales) => ({
       ...actuales,
       unidad: unidadActiva ? String(unidadActiva.id) : undefined,
     }));
   }, [unidadActiva]);
-  
+ 
   const cargarCatalogos = useCallback(async () => {
     setCatalogosCargando(true);
     setCatalogosError('');
-
+ 
     try {
       const [opciones, listaUnidades] = await Promise.all([
         busquedaService.obtenerCatalogos(),
@@ -337,7 +356,7 @@ export function BuscarScreen() {
       setCatalogosCargando(false);
     }
   }, []);
-
+ 
   const buscar = useCallback(async (
     criterios: FiltrosBusqueda,
     numeroPagina = 1,
@@ -345,7 +364,7 @@ export function BuscarScreen() {
     const numeroSolicitud = ++solicitudActual.current;
     setBuscando(true);
     setError('');
-
+ 
     try {
       const respuesta = await busquedaService.buscar({
         ...criterios,
@@ -372,12 +391,12 @@ export function BuscarScreen() {
       }
     }
   }, [esConsulta]);
-
+ 
   useEffect(() => {
     if (offline) return;
     void cargarCatalogos();
   }, [cargarCatalogos, offline]);
-
+ 
   useEffect(() => {
     if (offline) return; // sin red no se busca; al volver, se re-ejecuta
     const timer = setTimeout(() => {
@@ -386,19 +405,19 @@ export function BuscarScreen() {
         1,
       );
     }, query.trim() ? 350 : 0);
-
+ 
     return () => clearTimeout(timer);
   }, [buscar, filtros, query, offline]);
-
-
+ 
   const actualizarFiltro = (clave: keyof FiltrosBusqueda, valor: string) => {
     setFiltros((actuales) => ({
       ...actuales,
       [clave]: valor || undefined,
     }));
   };
-
+ 
   const tipos = opcionesConTodos(catalogos.tipos);
+  const estados = opcionesConTodos(ESTADOS);
   // Años de firma: del actual hacia atrás hasta 2000.
   const anioActual = new Date().getFullYear();
   const anios = opcionesConTodos(
@@ -413,17 +432,17 @@ export function BuscarScreen() {
       etiqueta: unidad.nombre,
     })),
   );
-
+ 
   const activo =
-    Boolean(filtros.anio || filtros.tipo || filtros.unidad);
-
+    Boolean(filtros.anio || filtros.tipo || filtros.unidad || filtros.estado);
+ 
   const cabecera = (
     <View style={styles.header}>
       <Text style={styles.heading}>Buscar convenios</Text>
-
+ 
       <View style={styles.filterPanel}>
         <Text style={styles.panelTitle}>Filtros{activo ? ' aplicados' : ''}</Text>
-
+ 
         {catalogosCargando ? (
           <ActivityIndicator color={colors.primary} />
         ) : catalogosError ? (
@@ -440,7 +459,7 @@ export function BuscarScreen() {
                 onValueChange={(valor) => actualizarFiltro('anio', valor)}
                 placeholder="Todos"
               />
-
+ 
               <SelectField
                 label="Tipo de convenio"
                 value={filtros.tipo ?? ''}
@@ -449,7 +468,7 @@ export function BuscarScreen() {
                 placeholder="Todos"
               />
             </View>
-
+ 
             <View style={styles.filterRow}>
               <SelectField
                 label="Unidad"
@@ -458,12 +477,22 @@ export function BuscarScreen() {
                 onValueChange={(valor) => actualizarFiltro('unidad', valor)}
                 placeholder="Todos"
               />
-
+ 
+              {/* El perfil consulta solo ve firmados, no tiene sentido filtrar */}
+              {!esConsulta && (
+                <SelectField
+                  label="Estado"
+                  value={filtros.estado ?? ''}
+                  options={adaptarOpciones(estados)}
+                  onValueChange={(valor) => actualizarFiltro('estado', valor)}
+                  placeholder="Todos"
+                />
+              )}
             </View>
           </>
         )}
       </View>
-
+ 
       <View style={styles.resultsHeader}>
         <Text style={styles.resultsCount}>
           {buscando
@@ -488,21 +517,28 @@ export function BuscarScreen() {
           }
         />
       </View>
-
+ 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
-
+ 
   // el buscador indica que no hay conexión.
   if (offline) {
     return <SinConexion mensaje="El buscador necesita conexión. Probá de nuevo cuando vuelva la red." />;
   }
-
+ 
   return (
     <View style={styles.screen}>
       <FlatList
         data={resultados}
         keyExtractor={(item) => String(item.id)}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            colors={[colors.primary]}
+          />
+        }
         ListEmptyComponent={
           buscando ? (
             <ActivityIndicator style={styles.empty} color={colors.primary} />
@@ -518,6 +554,7 @@ export function BuscarScreen() {
                     anio: undefined,
                     tipo: undefined,
                     unidad: undefined,
+                    estado: undefined,
                   }))
                 }
               >
@@ -528,7 +565,6 @@ export function BuscarScreen() {
             <Text style={styles.empty}>No se encontraron convenios.</Text>
           )
         }
-
         ListFooterComponent={
           total > 0 ? (
             <View style={styles.pagination}>
@@ -570,6 +606,7 @@ export function BuscarScreen() {
     </View>
   );
 }
+ 
 
 const crearEstilos = (colors: Colores, fs: (tamano: number) => number) =>
   StyleSheet.create({

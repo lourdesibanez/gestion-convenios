@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\PerfilFotoController;
 use App\Http\Controllers\ArchivoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConvenioController;
@@ -106,5 +106,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('agreements/{id}/return',                               [ConvenioController::class, 'devolverParaCorreccion'])->name('agreements.return');
 
     Route::get('types',                                             [TipoInstrumentoController::class, 'listar'])->name('types.index');
+
+    // ----------------- Foto Perfil --------------
+    Route::post('/perfil/foto', [PerfilFotoController::class, 'guardar']);
+    Route::post('/perfil/foto/quitar', [PerfilFotoController::class, 'quitar']);    
 });
 

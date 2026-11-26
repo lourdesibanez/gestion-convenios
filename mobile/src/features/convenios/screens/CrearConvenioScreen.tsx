@@ -7,7 +7,8 @@ import {
   Text,
   View,
   Keyboard,
-  type ScrollViewInstance, Modal
+  type ScrollViewInstance, Modal,
+  RefreshControl
 } from 'react-native';
 import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -152,6 +153,7 @@ export function CrearConvenioScreen() {
   const modoEdicion = typeof idConvenio === 'string' && idConvenio.length > 0;
   const [opciones, setOpciones] = useState<OpcionesCreacionConvenio | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorCarga, setErrorCarga] = useState('');
   const [errorEnvio, setErrorEnvio] = useState('');
@@ -245,6 +247,21 @@ export function CrearConvenioScreen() {
 
     void cargarFormulario();
   }, [idConvenio, modoEdicion]);
+
+  // Tirar para actualizar: vuelve a pedir solo las opciones (tipos y unidades).
+  // No toca lo que el usuario ya escribió, el paso actual ni los adjuntos.
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      const opcionesCargadas = await creacionConvenioService.opciones();
+      setOpciones(opcionesCargadas);
+      setErrorCarga('');
+    } catch (error) {
+      setErrorCarga(error instanceof Error ? error.message : 'No se pudieron cargar las opciones.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const actualizarCampo = (campo: CampoTexto, valor: string) => {
     setFormularioModificado(true);
@@ -486,7 +503,16 @@ export function CrearConvenioScreen() {
         volverDeshabilitado={guardando}
         acciones={<BotonAyuda seccion="crear" color={colors.primary} />}
       />
-      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"
+       refreshControl={
+          <RefreshControl
+            enabled={!guardando}
+            refreshing={refreshing}
+            onRefresh={refresh}
+            colors={[colors.primary]}
+          />
+        }
+      >
         {errorCarga ? (
           <Text style={styles.error}>{errorCarga}</Text>
         ) : !opciones ? (

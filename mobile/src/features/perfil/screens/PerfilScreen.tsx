@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LogOut, BookOpen, ChevronRight } from 'lucide-react-native';
 import { SegmentedControl, type SegmentedOption } from '@/components/molecules';
@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { radius, spacing, useTema, type Colores, type TamanoLetra, type Tipografia } from '@/theme';
 import { router } from 'expo-router';
 import { TarjetaIdentidad } from '@/features/identidad/components/TarjetaIdentidad';
+import { useHome } from '@/features/home/hooks/useHome';
 
 // Cada opción se muestra con su propio tamaño, así se ve la diferencia antes de elegir.
 const OPCIONES_LETRA: SegmentedOption<TamanoLetra>[] = [
@@ -19,7 +20,7 @@ export function PerfilScreen() {
   const { signOut } = useAuth();
   const { colors, typography, esOscuro, tamanoLetra, setModo, setTamanoLetra } = useTema();
   const styles = useMemo(() => crearEstilos(colors, typography), [colors, typography]);
-
+  const {refreshing, refresh } = useHome();
   const confirmSignOut = () =>
     Alert.alert('Cerrar sesión', '¿Querés cerrar la sesión en este dispositivo?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -28,7 +29,12 @@ export function PerfilScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}
+       refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.primary]} />
+        }
+      
+      >
 
         {/* Apariencia: se guarda en el celular y aplica a toda la app */}
         <View style={styles.tarjeta}>

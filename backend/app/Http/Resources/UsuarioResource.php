@@ -25,6 +25,7 @@ class UsuarioResource extends JsonResource
             'apellido' => $this->apellido,
             'email' => $this->email,
             'tipo_perfil' => $perfil?->perfil?->nombre,
+            'foto_url' => $this->foto_url,      // si es un Resource
         ];
     }
 }

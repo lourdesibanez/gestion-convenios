@@ -31,6 +31,7 @@ export function obtenerPerfil(usuario) {
   const valor = candidatosPerfil(usuario).find(
     (item) => typeof item === 'string' && item.trim(),
   )
+
   const perfil = normalizarTexto(valor)
 
   if (!perfil) return 'desconocido'

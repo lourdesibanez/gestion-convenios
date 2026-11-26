@@ -29,6 +29,7 @@ class ConvenioIndexRequest extends FormRequest
             'q'         => ['sometimes', 'nullable', 'string', 'max:100'],
             'orden'     => ['sometimes', 'nullable', 'in:recientes,antiguos,titulo'],
             'per_page'  => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'estado' => ['nullable', 'string', 'in:borrador,revision,aprobado,firmado'],
         ];
     }
 }

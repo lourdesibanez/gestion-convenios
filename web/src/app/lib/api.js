@@ -3,6 +3,8 @@ const API = process.env.NEXT_PUBLIC_API_URL
 async function solicitar(ruta, opciones = {}) {
   const { token, ...resto } = opciones
 
+
+
   const respuesta = await fetch(`${API}${ruta}`, {
     ...resto,
     headers: {

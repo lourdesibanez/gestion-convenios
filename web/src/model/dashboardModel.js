@@ -6,8 +6,10 @@ export const obtenerHome = (token) =>
   obtenerUno('/api/home', token)
 
 // Perfil real del usuario autenticado
-export const obtenerPerfil = (token) =>
-  obtenerUno('/api/auth/me', token)
+export async function obtenerPerfil (token){
+  const json = await obtenerUno('/api/auth/me', token);
+  return json.data ?? json;
+}
 
 // Convenios que esperan firma
 export const obtenerPendientesFirma = (token) =>

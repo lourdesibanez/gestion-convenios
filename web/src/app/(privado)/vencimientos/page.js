@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useAuth } from '../../../../app/context/authContext'
-import { fecha } from '../../../components/convenio/Formato'
-import { obtenerVencimientos } from '../../../../model/convenioModel'
-import {prepararVencimientos,filtrarPorHorizonte, resumirVencimientos} from '../../../../controller/convenioController'
+import { useAuth } from '../../../app/context/authContext'
+import { fecha } from '../../components/convenio/Formato'
+import { obtenerVencimientos } from '../../../model/convenioModel'
+import {prepararVencimientos,filtrarPorHorizonte, resumirVencimientos} from '../../../controller/convenioController'
 
 const norm = (t) =>
   (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()

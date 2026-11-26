@@ -18,6 +18,8 @@ class ConvenioService
 {
     private const ESTADOS_PUBLICOS = ['firmado'];
 
+    public function __construct(private NotificacionService $notificaciones) {}
+
     /**
      * @return array{
      *     puede_crear: bool,
@@ -141,6 +143,9 @@ class ConvenioService
                     'updated_by' => $usuario->id,
                     'updated_at' => now(),
                 ]);
+            $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+
+            $this->notificaciones->borradorEditado($instrumento, $usuario);
 
             $this->notificaciones->cambioDeDatos($actualizado, $usuario);
             return $actualizado->refresh()->load(['tipo', 'institucion', 'estado']);
@@ -184,7 +189,11 @@ class ConvenioService
                 'created_at' => now(),
             ]);
 
-            return $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+            $instrumento->refresh()->load(['tipo', 'institucion', 'estado']);
+
+            $this->notificaciones->revisionPendiente($instrumento, $usuario);
+
+            return $instrumento;
         });
     }
 
@@ -204,6 +213,7 @@ class ConvenioService
             }
 
             $borrador->delete();
+            $this->notificaciones->borradorEliminado($borrador, $usuario);
         });
     }
 
@@ -595,7 +605,7 @@ class ConvenioService
                 DB::table('observacion as o')
                     ->selectRaw('COUNT(*)')
                     ->whereColumn('o.id_instrumento', 'i.id')
-                    ->where('o.estado', ['pendiente', 'respondida']),
+                    ->whereIn('o.estado', ['pendiente', 'respondida']),
                 'observaciones_pendientes',
             )
             ->orderByDesc('i.created_at')
@@ -657,7 +667,11 @@ class ConvenioService
         if (!empty($filtros['unidad'])) {
             $query->where('i.id_institucion', $filtros['unidad']);
         }
-
+        
+        if (!empty($filtros['estado'])) {
+            $query->where('e.nombre', $filtros['estado']);
+        }
+        
         if (!empty($filtros['anio'])) {
             $inicio = sprintf('%04d-01-01', $filtros['anio']);
             $fin = sprintf('%04d-12-31', $filtros['anio']);
@@ -675,6 +689,8 @@ class ConvenioService
                     ->orWhere('u.nombre', 'like', $busqueda);
             });
         }
+
+
 
         switch ($filtros['orden'] ?? 'recientes') {
             case 'antiguos':
@@ -869,8 +885,11 @@ class ConvenioService
                 'created_at' => now(),
             ]);
 
-            return Instrumento::with(['tipo', 'institucion', 'estado'])
-                ->findOrFail($actual->id);
+            $aprobado = Instrumento::with(['tipo', 'institucion', 'estado'])->findOrFail($actual->id);
+
+            $this->notificaciones->estadoCambiado($aprobado, $usuario, 'lo aprobó');
+
+            return $aprobado;
         });
     }
 
@@ -938,8 +957,11 @@ class ConvenioService
                 'created_at' => now(),
             ]);
 
-            return Instrumento::with(['tipo', 'institucion', 'estado'])
-                ->findOrFail($actual->id);
+           $devuelto = Instrumento::with(['tipo', 'institucion', 'estado'])->findOrFail($actual->id);
+
+            $this->notificaciones->estadoCambiado($devuelto, $usuario, 'lo devolvió para corrección');
+
+            return $devuelto;
         });
     }
 }

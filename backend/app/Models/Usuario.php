@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Storage;
 
 class Usuario extends Authenticatable
 {
@@ -76,6 +77,14 @@ class Usuario extends Authenticatable
             'contrasena' => 'hashed',
         ];
     }
+
+
+    /** Para la foto de perfil */
+    public function getFotoUrlAttribute(): ?string
+    {
+        return $this->foto ? Storage::disk('public')->url($this->foto) : null;
+    }
+
 
     public function codigosVerificacion(): HasMany
     {

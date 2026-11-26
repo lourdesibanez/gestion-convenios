@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\DB;
 
 class ObservacionService
 {
+ 
+    public function __construct(private NotificacionService $notificaciones) {}
+
     public function listar(Instrumento $instrumento): Collection
     {
         return Observacion::query()
@@ -61,6 +64,8 @@ class ObservacionService
                 'estado' => 'pendiente',
             ]);
 
+            $this->notificaciones->observacionNueva($bloqueado, $usuario);
+
             return $observacion->load([
                 'usuario:id,nombre,apellido',
                 'respondidoPor:id,nombre,apellido',
@@ -102,6 +107,8 @@ class ObservacionService
                 'fecha_respuesta' => now(),
                 'estado' => 'respondida',
             ]);
+
+            $this->notificaciones->observacionRespondida($instrumento, $actual, $usuario);
 
             return $actual->load([
                 'usuario:id,nombre,apellido',
